@@ -14,7 +14,7 @@ path.insert(0, "..")
 from config import alias_dict
 
 # extract the contents of one electronic inspection record into a list of dictionaries
-def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, worksheet_names = []) -> list:
+def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, worksheet_names = []) -> dict:
 	
 	# define the file path
 	file_path = os.path.join(qc_folder, workbook_name)
@@ -22,8 +22,8 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
 	# open the workbook
 	wb = load_workbook(filename = file_path, read_only = True, data_only = True)
 	
-	# initialize the output list
-	output = []
+	# initialize the output dictionary
+	output = {}
 	
 	# check if worksheet names were supplied
 	if len(worksheet_names) == 0:
@@ -89,7 +89,7 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
 				# initialize the storage lists
 				data_types = []
 				features = []
-				gages = []
+				gauges = []
 				measurements = []
 				
 				# search column by column
@@ -108,14 +108,14 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
 					# define metadata
 					data_type = str(type(cell_value)).replace("<class ", "").replace(">", "").replace("'", "").strip()
 					feature = ws[f"{column_index}{feature_index}"].value
-					gage = ws[f"{column_index}{gage_index}"].value
+					gauge = ws[f"{column_index}{gage_index}"].value
 					
 					# only add data when the feature number is defined
 					if feature != 0:
 						
 						data_types.append(data_type)
 						features.append(feature)
-						gages.append(gage)
+						gauges.append(gauge)
 						
 						for x in range(item_count):
 							measurements.append(ws[f"{column_index}{x + initial_i}"].value)
@@ -134,7 +134,7 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
 						if measurements[x].lower() in alias_dict.keys():
 							measurements[x] = alias_dict[measurements[x].lower()]
 						else:
-							measurements[x] = "empty"
+							measurements[x] = alias_dict["empty"]
 				
 				# slice the raw measurement list into constituent parts
 				meas_lists = []
@@ -150,21 +150,21 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
 					find_column = get_column_letter(anchor_column + x)
 					data_column = get_column_letter(anchor_column + x + 2)
 					if str(ws[f"{find_column}{anchor_row + 5}"].value).lower() == "item number":
-						value0 = ws[f"{data_column}{anchor_row + 5}"].value # item number
-						value1 = ws[f"{data_column}{anchor_row + 6}"].value # drawing number
-						value2 = ws[f"{data_column}{anchor_row + 7}"].value # revision
+						value0 = ws[f"{data_column}{anchor_row + 5}"].value			# item number
+						value1 = ws[f"{data_column}{anchor_row + 6}"].value			# drawing number
+						value2 = ws[f"{data_column}{anchor_row + 7}"].value			# revision
 						if value0 is not None:
 							section_1.append(value0)
 						else:
-							section_1.append("empty")
+							section_1.append(alias_dict["empty"])
 						if value1 is not None:
 							section_1.append(value1)
 						else:
-							section_1.append("empty")
+							section_1.append(alias_dict["empty"])
 						if value2 is not None:
 							section_1.append(value2)
 						else:
-							section_1.append("empty")
+							section_1.append(alias_dict["empty"])
 						break
 				
 				# section 2 metadata
@@ -173,10 +173,10 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
 					find_column = get_column_letter(anchor_column + x)
 					data_column = get_column_letter(anchor_column + x + 1)
 					if str(ws[f"{find_column}{anchor_row + 5}"].value).lower() == "date":
-						value0 = ws[f"{data_column}{anchor_row + 5}"].value # date
-						value1 = ws[f"{data_column}{anchor_row + 6}"].value # inspector
-						value2 = ws[f"{data_column}{anchor_row + 7}"].value # disposition
-						value3 = ws[f"{data_column}{anchor_row + 8}"].value # supplier
+						value0 = ws[f"{data_column}{anchor_row + 5}"].value			# date
+						value1 = ws[f"{data_column}{anchor_row + 6}"].value			# inspector
+						value2 = ws[f"{data_column}{anchor_row + 7}"].value			# disposition
+						value3 = ws[f"{data_column}{anchor_row + 8}"].value			# supplier
 						if value0 is not None:
 							try:
 								if type(value0) is int:
@@ -185,19 +185,19 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
 							except AttributeError:
 								print(f"AttributeError in {ws.title} of {workbook_name}; {value0}")
 						else:
-							section_2.append("empty")
+							section_2.append(alias_dict["empty"])
 						if value1 is not None:
 							section_2.append(value1)
 						else:
-							section_2.append("empty")
+							section_2.append(alias_dict["empty"])
 						if value2 is not None:
 							section_2.append(value2)
 						else:
-							section_2.append("empty")
+							section_2.append(alias_dict["empty"])
 						if value3 is not None:
 							section_2.append(value3)
 						else:
-							section_2.append("empty")
+							section_2.append(alias_dict["empty"])
 						break
 				
 				# section 3 metadata
@@ -206,26 +206,26 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
 					find_column = get_column_letter(anchor_column + x)
 					data_column = get_column_letter(anchor_column + x + 1)
 					if str(ws[f"{find_column}{anchor_row + 5}"].value).lower() == "recv. #":
-						value0 = ws[f"{data_column}{anchor_row + 5}"].value # receiver number
-						value1 = ws[f"{data_column}{anchor_row + 6}"].value # purchase order
-						value2 = ws[f"{data_column}{anchor_row + 7}"].value # job number
-						value3 = ws[f"{data_column}{anchor_row + 8}"].value # operator
+						value0 = ws[f"{data_column}{anchor_row + 5}"].value			# receiver number
+						value1 = ws[f"{data_column}{anchor_row + 6}"].value			# purchase order
+						value2 = ws[f"{data_column}{anchor_row + 7}"].value			# job number
+						value3 = ws[f"{data_column}{anchor_row + 8}"].value			# operator
 						if value0 is not None:
 							section_3.append(value0)
 						else:
-							section_3.append("empty")
+							section_3.append(alias_dict["empty"])
 						if value1 is not None:
 							section_3.append(value1)
 						else:
-							section_3.append("empty")
+							section_3.append(alias_dict["empty"])
 						if value2 is not None:
 							section_3.append(value2)
 						else:
-							section_3.append("empty")
+							section_3.append(alias_dict["empty"])
 						if value3 is not None:
 							section_3.append(value3)
 						else:
-							section_3.append("empty")
+							section_3.append(alias_dict["empty"])
 						break
 				
 				# section 4 metadata
@@ -234,39 +234,40 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
 					find_column = get_column_letter(anchor_column + x)
 					data_column = get_column_letter(anchor_column + x + 2)
 					if str(ws[f"{find_column}{anchor_row + 6}"].value).lower() == "qc full inspect interval":
-						value0 = ws[f"{data_column}{anchor_row + 6}"].value # qc full inspect quantity
-						value1 = ws[f"{data_column}{anchor_row + 7}"].value # released quantity
-						value2 = ws[f"{data_column}{anchor_row + 8}"].value # completed quantity
+						value0 = ws[f"{data_column}{anchor_row + 6}"].value			# qc full inspect quantity
+						value1 = ws[f"{data_column}{anchor_row + 7}"].value			# released quantity
+						value2 = ws[f"{data_column}{anchor_row + 8}"].value			# completed quantity
 						if value0 is not None:
 							section_4.append(value0)
 						else:
-							section_4.append("empty")
+							section_4.append(alias_dict["empty"])
 						if value1 is not None:
 							section_4.append(value1)
 						else:
-							section_4.append("empty")
+							section_4.append(alias_dict["empty"])
 						if value2 is not None:
 							section_4.append(value2)
 						else:
-							section_4.append("empty")
+							section_4.append(alias_dict["empty"])
 						break
 				
 				# ensure the section lists have contents
 				if len(section_1) == 0:
-					section_1 = ["empty", "empty", "empty"]
+					section_1 = [alias_dict["empty"], alias_dict["empty"], alias_dict["empty"]]
 				if len(section_2) == 0:
-					section_2 = ["empty", "empty", "empty", "empty"]
+					section_2 = [alias_dict["empty"], alias_dict["empty"], alias_dict["empty"], alias_dict["empty"]]
 				if len(section_3) == 0:
-					section_3 = ["empty", "empty", "empty", "empty"]
+					section_3 = [alias_dict["empty"], alias_dict["empty"], alias_dict["empty"], alias_dict["empty"]]
 				if len(section_4) == 0:
-					section_4 = ["empty", "empty", "empty"]
+					section_4 = [alias_dict["empty"], alias_dict["empty"], alias_dict["empty"]]
 				
-				# initialize the output data
-				object_data = pd.DataFrame()
+				# initialize the output DataFrames
+				metadata_df = pd.DataFrame()
+				measurements_df = pd.DataFrame()
 
 				try:
-					# store the data in a DataFrame
-					object_data = pd.DataFrame({
+					# store metadata in a DataFrame
+					metadata_df = pd.DataFrame({
 						"item_number": section_1[0],
 						"drawing": section_1[1],
 						"revision": section_1[2],
@@ -280,21 +281,30 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
 						"operator": section_3[3],
 						"full_inspect_qty": section_4[0],
 						"received_qty": section_4[1],
-						"completed_qty": section_4[2],
+						"completed_qty": section_4[2]
+					})
+
+					# store measurement data in a DataFrame
+					measurements_df = pd.DataFrame({
 						"feature_id": features,
-						"gages": gages,
-						"data_types": data_types})
+						"gauge": gauges,
+						"data_type": data_types
+					})
+
+					# add measurement data to measurements_df
+					x = 0
+					for meas_list in meas_lists:
+						measurements_df[f"part_{x}"] = meas_list
+						x += 1
+					
 				except IndexError:
 					print(f"IndexError in {ws.title} of {workbook_name}")
 				
-				# add the measurements to the DataFrame as new columns
-				x = 0
-				for meas_list in meas_lists:
-					object_data[f"part_{x}"] = meas_list
-					x += 1
-				
-				# add the DataFrame to the output dictionary
-				output.append({ "worksheet": ws.title, "data": object_data })
+				# add the DataFrames to the output dictionary
+				output = {
+					"metadata": metadata_df,
+					"measurements": measurements_df
+				}
 	
 	# close the workbook
 	wb.close()
@@ -304,7 +314,7 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
 
 # extract the contents of multiple electronic inspection records into lists of dictionaries
 def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty_limit = 0, is_random = False, workbooks = []) -> list:
-	
+
 	# retrieve a list of the folder contents
 	folder_contents = os.listdir(qc_folder)
 
