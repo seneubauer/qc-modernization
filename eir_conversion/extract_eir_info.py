@@ -1,5 +1,3 @@
-# import dependencies
-
 # import functions
 from eir_functions import scrape_all, to_binary, to_csv, binary_to_csvs
 
