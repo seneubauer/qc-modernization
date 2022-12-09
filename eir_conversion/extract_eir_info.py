@@ -7,8 +7,8 @@ path.insert(0, "..")
 from config import eir_raw_source, eir_cleaned_destination_csv, eir_cleaned_destination_bin, eir_anchor_search_term, eir_file_extension
 
 # toggle routine steps
-save_load_binary = False
-save_csv = True
+raw_save_load_binary = False
+raw_save_csv = True
 
 # specify targeted data
 scraped_workbook_qty = 3            # sets a limit on how many workbooks will be scraped, if 0 then no limit
@@ -25,7 +25,7 @@ results_all = scrape_all(
     workbooks = overwrite_targeted_workbooks)
 
 # saves results to then loads from a binary file
-if save_load_binary:
+if raw_save_load_binary:
 
     # binary file name
     bin_file_name = "results_all.pkl"
@@ -34,11 +34,11 @@ if save_load_binary:
     to_raw_binary(eir_cleaned_destination_bin, bin_file_name, results_all)
 
     # loads from binary and resaves to csv if the results aren't already being converted directly to csv
-    if not save_csv:
+    if not raw_save_csv:
         raw_binary_to_csvs(eir_cleaned_destination_bin, bin_file_name, eir_cleaned_destination_csv, eir_file_extension)
 
 # saves results directly to csv files
-if save_csv:
+if raw_save_csv:
 
     # saves to csv files
     to_raw_csv(eir_cleaned_destination_csv, results_all)
