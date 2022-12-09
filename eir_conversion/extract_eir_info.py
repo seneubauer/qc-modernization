@@ -1,5 +1,5 @@
 # import functions
-from eir_functions import scrape_all, to_binary, to_csv, binary_to_csvs
+from eir_functions import scrape_all, to_raw_binary, to_raw_csv, raw_binary_to_csvs
 
 # bring in config values
 from sys import path
@@ -31,14 +31,14 @@ if save_load_binary:
     bin_file_name = "results_all.pkl"
 
     # saves to binary
-    to_binary(eir_cleaned_destination_bin, bin_file_name, results_all)
+    to_raw_binary(eir_cleaned_destination_bin, bin_file_name, results_all)
 
     # loads from binary and resaves to csv if the results aren't already being converted directly to csv
     if not save_csv:
-        binary_to_csvs(eir_cleaned_destination_bin, bin_file_name, eir_cleaned_destination_csv, eir_file_extension)
+        raw_binary_to_csvs(eir_cleaned_destination_bin, bin_file_name, eir_cleaned_destination_csv, eir_file_extension)
 
 # saves results directly to csv files
 if save_csv:
 
     # saves to csv files
-    to_csv(eir_cleaned_destination_csv, eir_file_extension, results_all)
+    to_raw_csv(eir_cleaned_destination_csv, results_all)
