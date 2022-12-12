@@ -419,7 +419,7 @@ def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty
     raw_measurement_df = pd.concat(measurements_list, axis = 0, ignore_index = True)
 
     # process individual columns
-    raw_metadata_df["operator"] = raw_metadata_df.apply(clean_operator(row))
+    raw_metadata_df["operator"] = raw_metadata_df.apply(lambda row: clean_operator(row))
 
     # return the results
     return (raw_metadata_df, raw_measurement_df)
