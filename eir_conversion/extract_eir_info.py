@@ -11,7 +11,7 @@ raw_save_load_binary = False
 raw_save_csv = True
 
 # specify targeted data
-scraped_workbook_qty = 3            # sets a limit on how many workbooks will be scraped, if 0 then no limit
+scraped_workbook_qty = 5            # sets a limit on how many workbooks will be scraped, if 0 then no limit
 randomize_workbooks = True          # will select workbooks at random, only use if qty is > 0
 overwrite_targeted_workbooks = []   # if list is empty then scrape_all will use the quantity/randomized parameters
 

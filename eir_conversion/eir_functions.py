@@ -3,7 +3,8 @@ from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 from datetime import date
 from xlrd import xldate_as_datetime
-from os import path, listdir
+from os import listdir
+from os.path import isfile, join
 from pickle import dump, load
 from random import sample
 import pandas as pd
@@ -13,26 +14,62 @@ from sys import path
 path.insert(0, "..")
 from config import alias_dict
 
+# concat a list of strings into one string
+def str_concat(my_list: list, delimitor: str) -> str:
+    output = ""
+    for item in my_list:
+        output += f"{delimitor}{item}"
+    return output[1:]
+
+# clean the operator column
+def clean_operator(row):
+
+    # enforce lower case
+    item_str = str(row)
+
+    # remove various characters
+    if "." in item_str:
+        item_str = item_str.replace(".", "")
+    if ")" in item_str:
+        item_str = item_str.replace(")", "")
+    if "(" in item_str:
+        item_str = item_str.replace("(", "")
+    
+    # split by various delimitors
+    if "\\" in item_str:
+        item_str = item_str.replace("\\", ",")
+    if "/" in item_str:
+        item_str = item_str.replace("/", ",")
+    if " " in item_str:
+        item_str = item_str.replace(" ", ",")
+    if "-" in item_str:
+        item_str = item_str.replace("-", ",")
+    
+    if "," in item_str:
+        return str_concat([x for x in item_str.split(",") if x is not None and len(x) > 0], "|")
+    elif len(item_str) > 0 and item_str != ".":
+        return item_str
+
 # extract the contents of one electronic inspection record into a list of dictionaries
-def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, worksheet_names = []) -> tuple:
+def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, metadata_index: int, worksheet_names = []) -> tuple:
 
     # define the file path
-    file_path = path.join(qc_folder, workbook_name)
+    file_path = join(qc_folder, workbook_name)
 
     # open the workbook
     wb = load_workbook(filename = file_path, read_only = True, data_only = True)
 
-    # initialize the output tuple
-    output = ()
+    # initialize the output DataFrames
+    metadata_df = pd.DataFrame()
+    measurements_df = pd.DataFrame()
 
     # check if worksheet names were supplied
     if len(worksheet_names) == 0:
         worksheet_names = wb.worksheets
 
     # iterate through the specified worksheets
-    metadata_index = 0
     for ws in worksheet_names:
-        
+
         # find the data anchor
         anchor_column = 0
         anchor_row = 1
@@ -42,93 +79,93 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
                 anchor_column = i
                 anchor_found = True
                 break
-        
+
         # continue if this is the correct worksheet
         if anchor_found:
-            
+
             # define search parameters
             search_column = get_column_letter(anchor_column + 2)
             search_row = anchor_row + 17
             index_limit = 200
             initial_i = anchor_row + 17
             initial_j = anchor_column + 2
-            
+
             # define iterator parameters
             cell_value = "initial"
             i = initial_i
-            
+
             # get the item count
             while cell_value is not None:
-                
+
                 # exit the iterator
                 if cell_value is None:
                     break
-                
+
                 # exit condition
                 cell_value = ws[f"{search_column}{i}"].value
-                
+
                 # increment the iterator
                 i += 1
-                
+
                 # limit the while loop
                 if i >= index_limit:
                     print(f"Row search has exceeded index limit ({index_limit})")
                     break
-            
+
             # define the item count
             item_count = i - 1 - initial_i
-            
+
             # continue if there are items in the worksheet
             if item_count > 0:
-                
+
                 # define iterator parameters
                 feature_index = 12
                 gage_index = 16
                 cell_value = "initial"
                 j = initial_j
-                
+
                 # initialize the storage lists
                 data_types = []
                 features = []
                 gauges = []
                 measurements = []
-                
+
                 # search column by column
                 while cell_value is not None:
-                    
+
                     # define the current column
                     column_index = get_column_letter(j)
-                    
+
                     # define the exit condition value
                     cell_value = ws[f"{column_index}{search_row}"].value
-                    
+
                     # exit the iterator
                     if cell_value is None:
                         break
-                    
+
                     # define metadata
                     data_type = str(type(cell_value)).replace("<class ", "").replace(">", "").replace("'", "").strip()
                     feature = ws[f"{column_index}{feature_index}"].value
                     gauge = ws[f"{column_index}{gage_index}"].value
-                    
+
                     # only add data when the feature number is defined
                     if feature != 0:
-                        
+
                         data_types.append(data_type)
                         features.append(feature)
                         gauges.append(gauge)
-                        
+
                         for x in range(item_count):
                             measurements.append(ws[f"{column_index}{x + initial_i}"].value)
-                    
+
                     # increment the iterator
                     j += 1
-                    
+
                     # limit the while loop
                     if j >= index_limit:
                         print(f"Column search has exceeded index limit ({index_limit})")
                         break
-                
+
                 # convert pass/fail to numerical data
                 for x in range(len(measurements)):
                     if type(measurements[x]) == str:
@@ -136,7 +173,7 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
                             measurements[x] = alias_dict[measurements[x].lower()]
                         else:
                             measurements[x] = alias_dict["empty"]
-                
+
                 # slice the raw measurement list into constituent parts
                 meas_lists = []
                 for x in range(item_count):
@@ -144,7 +181,7 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
                     for y in range(0, len(measurements), item_count):
                         temp_list.append(measurements[x + y])
                     meas_lists.append(temp_list)
-                
+
                 # section 1 metadata
                 section_1 = []
                 for x in range(21):
@@ -167,7 +204,7 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
                         else:
                             section_1.append(alias_dict["empty"])
                         break
-                
+
                 # section 2 metadata
                 section_2 = []
                 for x in range(21):
@@ -200,7 +237,7 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
                         else:
                             section_2.append(alias_dict["empty"])
                         break
-                
+
                 # section 3 metadata
                 section_3 = []
                 for x in range(21):
@@ -228,7 +265,7 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
                         else:
                             section_3.append(alias_dict["empty"])
                         break
-                
+
                 # section 4 metadata
                 section_4 = []
                 for x in range(21):
@@ -251,7 +288,7 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
                         else:
                             section_4.append(alias_dict["empty"])
                         break
-                
+
                 # ensure the section lists have contents
                 if len(section_1) == 0:
                     section_1 = [alias_dict["empty"], alias_dict["empty"], alias_dict["empty"]]
@@ -261,14 +298,11 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
                     section_3 = [alias_dict["empty"], alias_dict["empty"], alias_dict["empty"], alias_dict["empty"]]
                 if len(section_4) == 0:
                     section_4 = [alias_dict["empty"], alias_dict["empty"], alias_dict["empty"]]
-                
-                # initialize the output DataFrames
-                metadata_df = pd.DataFrame()
-                measurements_df = pd.DataFrame()
+
 
                 try:
                     # store metadata in a DataFrame
-                    metadata_df = pd.DataFrame({
+                    current_metadata_df = pd.DataFrame({
                         "id": [metadata_index],
                         "item_number": section_1[0],
                         "drawing": section_1[1],
@@ -287,7 +321,7 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
                     })
 
                     # store measurement data in a DataFrame
-                    measurements_df = pd.DataFrame({
+                    current_measurements_df = pd.DataFrame({
                         "metadata_id": [metadata_index for i in range(len(features))],
                         "feature_id": features,
                         "gauge": gauges,
@@ -300,20 +334,20 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, work
                     # add measurement data to measurements_df
                     x = 0
                     for meas_list in meas_lists:
-                        measurements_df[f"part_{x}"] = meas_list
+                        current_measurements_df[f"part_{x}"] = meas_list
                         x += 1
                     
+                    metadata_df = pd.concat([metadata_df, current_metadata_df], axis = 0, ignore_index = True)
+                    measurements_df = pd.concat([measurements_df, current_measurements_df], axis = 0, ignore_index = True)
+
                 except IndexError:
                     print(f"IndexError in {ws.title} of {workbook_name}")
-                
-                # add the DataFrames to the output dictionary
-                output = (metadata_df, measurements_df)
 
     # close the workbook
     wb.close()
 
     # return the results
-    return output
+    return (metadata_df, measurements_df)
 
 # extract the contents of multiple electronic inspection records into lists of dictionaries
 def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty_limit = 0, is_random = False, workbooks = []) -> tuple:
@@ -323,7 +357,7 @@ def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty
 
     # filter the folder contents
     filtered_contents = list(filter(lambda item:
-                            path.isfile(path.join(qc_folder, item))
+                            isfile(join(qc_folder, item))
                             and item[:1].lower() != "~"
                             and item[:1].lower() != "_"
                             and item[-len(file_extension):].lower() == file_extension
@@ -350,6 +384,9 @@ def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty
     # initialize the counter
     iterator_count = 1
 
+    # initialize the metadata index
+    metadata_index = 0
+
     # iterate through the directory contents
     for item in files:
         
@@ -365,7 +402,11 @@ def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty
         
         # interpret the current workbook
         print(f"Current: {item}")
-        metadata_df, measurements_df = scrape_one(qc_folder, anchor_search_term, item)
+        print(metadata_index)
+        metadata_df, measurements_df = scrape_one(qc_folder, anchor_search_term, item, metadata_index)
+
+        # advance the metadata index
+        metadata_index += len(metadata_df)
 
         # append results to the DataFrame lists
         if metadata_df is not None:
@@ -377,6 +418,9 @@ def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty
     raw_metadata_df = pd.concat(metadata_list, axis = 0, ignore_index = True)
     raw_measurement_df = pd.concat(measurements_list, axis = 0, ignore_index = True)
 
+    # process individual columns
+    raw_metadata_df["operator"] = raw_metadata_df.apply(clean_operator(row))
+
     # return the results
     return (raw_metadata_df, raw_measurement_df)
 
@@ -384,7 +428,7 @@ def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty
 def to_raw_binary(destination_folder: str, file_name: str, data_object: tuple) -> None:
 
     # create, populate, then close the binary file
-    my_file = open(path.join(destination_folder, file_name), "wb")
+    my_file = open(join(destination_folder, file_name), "wb")
     dump(data_object, my_file)
     my_file.close()
 
@@ -395,14 +439,14 @@ def to_raw_csv(destination_folder: str, data_object: tuple) -> None:
     raw_metadata_df, raw_measurements_df = data_object
 
     # save metadata
-    raw_metadata_df.to_csv(path.join(destination_folder, "raw_metadata.csv"), index = False)
-    raw_measurements_df.to_csv(path.join(destination_folder, "raw_measurements.csv"), index = False)
+    raw_metadata_df.to_csv(join(destination_folder, "raw_metadata.csv"), index = False)
+    raw_measurements_df.to_csv(join(destination_folder, "raw_measurements.csv"), index = False)
 
 # convert binary file to multiple csv files
 def raw_binary_to_csvs(binary_folder: str, binary_name: str, destination_folder: str, file_extension: str) -> None:
 
     # open, read, then close the binary file
-    bin_file = open(path.join(binary_folder, binary_name), "rb")
+    bin_file = open(join(binary_folder, binary_name), "rb")
     file_contents = load(bin_file)
     bin_file.close()
 
