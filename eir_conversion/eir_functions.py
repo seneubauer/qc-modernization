@@ -14,13 +14,6 @@ from sys import path
 path.insert(0, "..")
 from config import alias_dict
 
-# concat a list of strings into one string
-def str_concat(my_list: list, delimitor: str) -> str:
-    output = ""
-    for item in my_list:
-        output += f"{delimitor}{item}"
-    return output[1:]
-
 # clean the operator column
 def clean_operator(row):
 
@@ -46,7 +39,7 @@ def clean_operator(row):
         item_str = item_str.replace("-", ",")
     
     if "," in item_str:
-        return str_concat([x for x in item_str.split(",") if x is not None and len(x) > 0], "|")
+        return "|".join([x for x in item_str.split(",") if x is not None and len(x) > 0])
     elif len(item_str) > 0 and item_str != ".":
         return item_str
 
@@ -417,9 +410,6 @@ def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty
     # concatenate the DataFrame lists
     raw_metadata_df = pd.concat(metadata_list, axis = 0, ignore_index = True)
     raw_measurement_df = pd.concat(measurements_list, axis = 0, ignore_index = True)
-
-    # process individual columns
-    raw_metadata_df["operator"] = raw_metadata_df.apply(lambda row: clean_operator(row))
 
     # return the results
     return (raw_metadata_df, raw_measurement_df)
