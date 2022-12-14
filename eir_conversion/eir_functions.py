@@ -365,7 +365,6 @@ def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty
 
         # interpret the current workbook
         print(f"Current: {item}")
-        print(metadata_index)
         metadata_df, measurements_df = scrape_one(qc_folder, anchor_search_term, item, metadata_index)
 
         # advance the metadata index
