@@ -14,35 +14,6 @@ from sys import path
 path.insert(0, "..")
 from config import alias_dict
 
-# clean the operator column
-def clean_operator(row):
-
-    # enforce lower case
-    item_str = str(row)
-
-    # remove various characters
-    if "." in item_str:
-        item_str = item_str.replace(".", "")
-    if ")" in item_str:
-        item_str = item_str.replace(")", "")
-    if "(" in item_str:
-        item_str = item_str.replace("(", "")
-    
-    # split by various delimitors
-    if "\\" in item_str:
-        item_str = item_str.replace("\\", ",")
-    if "/" in item_str:
-        item_str = item_str.replace("/", ",")
-    if " " in item_str:
-        item_str = item_str.replace(" ", ",")
-    if "-" in item_str:
-        item_str = item_str.replace("-", ",")
-    
-    if "," in item_str:
-        return "|".join([x for x in item_str.split(",") if x is not None and len(x) > 0])
-    elif len(item_str) > 0 and item_str != ".":
-        return item_str
-
 # extract the contents of one electronic inspection record into a list of dictionaries
 def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, metadata_index: int, worksheet_names = []) -> tuple:
 
@@ -292,7 +263,6 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
                 if len(section_4) == 0:
                     section_4 = [alias_dict["empty"], alias_dict["empty"], alias_dict["empty"]]
 
-
                 try:
                     # store metadata in a DataFrame
                     current_metadata_df = pd.DataFrame({
@@ -329,7 +299,7 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
                     for meas_list in meas_lists:
                         current_measurements_df[f"part_{x}"] = meas_list
                         x += 1
-                    
+
                     metadata_df = pd.concat([metadata_df, current_metadata_df], axis = 0, ignore_index = True)
                     measurements_df = pd.concat([measurements_df, current_measurements_df], axis = 0, ignore_index = True)
 
@@ -382,17 +352,17 @@ def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty
 
     # iterate through the directory contents
     for item in files:
-        
+
         # conditional break
         if qty_limit > 0:
-            
+
             # exit the iterator
             if iterator_count > qty_limit:
                 break
-            
+
             # increment the iterator count
             iterator_count += 1
-        
+
         # interpret the current workbook
         print(f"Current: {item}")
         print(metadata_index)
