@@ -12,7 +12,7 @@ import pandas as pd
 # bring in config values
 from sys import path
 path.insert(0, "..")
-from config import alias_dict
+from reference_values import alias_dict
 
 # extract the contents of one electronic inspection record into a list of dictionaries
 def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, metadata_index: int, worksheet_names = []) -> tuple:
