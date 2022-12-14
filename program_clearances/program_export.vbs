@@ -16,25 +16,22 @@ else
     dim pc_dmis
     set pc_dmis = CreateObject("PCDLRN.Application")
     pc_dmis.visible = False
+    msgbox("pc-dmis has been initialized")
 
     ' iterate through all the subfolders in the source directory
     dim file_name
     dim part
-    dim i
-    i = 0
     for each folder in fso.GetFolder(source_dir).SubFolders
 
         ' iterate through the measurement routine file(s) in the current subfolder
         for each file in fso.GetFolder(folder.Path).Files
             if LCase(file.type) = "pc-dmis measurement routine file" then
-                file_name = LCase(fso.buildpath(export_dir, Split(file.name, ".")(0) + ".xml"))
-                WScript.Echo file_name
+                file_name = fso.buildpath(export_dir, Split(file.name, ".")(0) + ".xml")
                 set part = pc_dmis.partprograms.open(file.path, "Offline")
-                part.exporttoxml(fso.buildpath(export_dir, file_name + ".xml"))
+                part.exporttoxml(file_name)
                 part.close
             end if
         next
-        i = 1
     next
 
     ' close the pc-dmis instance
