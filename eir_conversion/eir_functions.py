@@ -1,7 +1,7 @@
 # import dependencies
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
-from datetime import date
+from datetime import date, strptime
 from xlrd import xldate_as_datetime
 from os import listdir
 from os.path import isfile, join
@@ -13,6 +13,233 @@ import pandas as pd
 from sys import path
 path.insert(0, "..")
 from reference_values import alias_dict
+
+# clean the metadata item number column values
+def clean_item_number(row: pd.Series, filter_by: list = []) -> None:
+    if row is not None:
+
+        # enforce lowercase and remove whitespace characters
+        item_str = str(row).lower()
+
+        # replace items with certain characters with None
+        if len(filter_by) > 0:
+            if any(x in item_str for x in filter_by):
+                return None
+
+        # define delimitor characters
+        del_chars = ["\\", "/", "(", ")"]
+        delimitor = "%"
+
+        # standardize delimitor characters
+        for c in del_chars:
+            if c in item_str:
+                item_str = item_str.replace(c, delimitor)
+
+        # return a delimitable string or the item itself
+        if delimitor in item_str:
+            return "|".join([x for x in item_str.split(delimitor) if x is not None and len(x) > 0])
+        else:
+            return item_str
+    else:
+        return None
+
+# clean the metadata drawing column values
+def clean_drawing(row: pd.Series, filter_by: list = []) -> None:
+    if row is not None:
+
+        # enforce lowercase and remove whitespace characters
+        item_str = str(row).lower()
+
+        # replace items with certain characters with None
+        if len(filter_by) > 0:
+            if any(x in item_str for x in filter_by):
+                return None
+
+        # return the remaining string
+        return item_str
+    else:
+        return None
+
+# clean the metadata revision column values
+def clean_revision(row: pd.Series, filter_by: list = []) -> None:
+    if row is not None:
+
+        # enforce lowercase
+        item_str = str(row).lower()
+
+        # replace items with certain characters with None
+        if len(filter_by) > 0:
+            if any(x in item_str for x in filter_by):
+                return None
+
+        # return the remaining string
+        return item_str
+    else:
+        return None
+
+# clean the metadata inspection date column values
+def clean_inspection_date(row: pd.Series, filter_by: list = []) -> None:
+    if row is not None:
+
+        # enforce lowercase
+        item_str = str(row).lower()
+
+        # replace items with certain characters with None
+        if len(filter_by) > 0:
+            if any(x in item_str for x in filter_by):
+                return None
+        
+        # return the date object if it can be converted
+        if "/" in item_str:
+            return strptime(item_str, "%m/%d/%Y").date()
+        else:
+            return None
+    else:
+        return None
+
+# clean the metadata inspector & operator column values
+def clean_inspector_operator(row: pd.Series, filter_by: list = []) -> None:
+    if row is not None:
+
+        # enforce lowercase
+        item_str = str(row).lower()
+
+        # replace items with certain characters with None
+        if len(filter_by) > 0:
+            if any(x in item_str for x in filter_by):
+                return None
+        
+        # remove certain characters
+        for x in [".", "(", ")", "{", "}", "[", "]", "<", ">"]:
+            if x in item_str:
+                item_str = item_str.replace(x, "")
+
+        # replace certain characters
+        for x in ["\\", "/", " ", "-", ","]:
+            if x in item_str:
+                item_str = item_str.replace(x, "%")
+        
+        # return a splitable string
+        if "%" in item_str:
+            arr = [str(x) for x in item_str.split("%") if x is not None and len(x) > 0]
+            if not any([x.isnumeric() for x in arr]):
+                return "|".join(arr)
+            else:
+                return None
+        else:
+            return None
+    else:
+        return None
+
+# clean the metadata disposition column values
+def clean_disposition(row: pd.Series, filter_by: list = []) -> None:
+    if row is not None:
+
+        # enforce lowercase
+        item_str = str(row).lower()
+
+        # replace items with certain characters with None
+        if len(filter_by) > 0:
+            if any(x in item_str for x in filter_by):
+                return None
+
+        # return the remaining string
+        return item_str
+    else:
+        return None
+
+# clean the metadata supplier column values
+def clean_supplier(row: pd.Series, filter_by: list = []) -> None:
+    if row is not None:
+
+        # enforce lowercase
+        item_str = str(row).lower()
+
+        # replace items with certain characters with None
+        if len(filter_by) > 0:
+            if any(x in item_str for x in filter_by):
+                return None
+
+        # return the remaining string
+        return item_str
+    else:
+        return None
+
+# clean the metadata receiver number column values
+def clean_receiver_number(row: pd.Series, filter_by: list = []) -> None:
+    if row is not None:
+
+        # enforce lowercase
+        item_str = str(row).lower()
+
+        # replace items with certain characters with None
+        if len(filter_by) > 0:
+            if any(x in item_str for x in filter_by):
+                return None
+
+        # replace certain characters
+        for x in ["-", "/", ","]:
+            if x in item_str:
+                item_str = item_str.replace(x, "%")
+
+        # return the remaining string
+        if "%" in item_str:
+            arr = [x for x in item_str.split("%") if x is not None and len(x) > 0]
+            i = 1
+            while i < len(arr):
+
+                # make sure both items are numeric
+                if arr[i - 1].isnumeric() and arr[i].isnumeric():
+
+                    # make sure the preceding number contains more digits than the following number
+                    if len(arr[i - 1]) > len(arr[i]):
+                        arr[i] = f"{arr[i - 1][:len(arr[i - 1]) - len(arr[i])]}{arr[i]}"
+                i += 1
+
+            return "|".join(arr)
+        else:
+            return item_str
+    else:
+        return None
+
+# clean the metadata purchase order column values
+def clean_purchase_order(row: pd.Series, filter_by: list = []) -> None:
+    if row is not None:
+
+        # enforce lowercase
+        item_str = str(row).lower()
+
+        # replace items with certain characters with None
+        if len(filter_by) > 0:
+            if any(x in item_str for x in filter_by):
+                return None
+
+        # replace certain characters
+        for x in ["-", "/", ","]:
+            if x in item_str:
+                item_str = item_str.replace(x, "%")
+
+        # only permit values with 3 letters at the beginning
+        if item_str[:3].isalpha():
+            if "%" in item_str:
+                arr = [x for x in item_str.split("%") if x is not None and len(x) > 1]
+                i = 1
+                while i < len(arr):
+                    if arr[i - 1][-3:].isnumeric() and arr[i].isnumeric():
+                        arr[i] = f"{arr[i - 1][:3]}{arr[i]}"
+                    else:
+                        return None
+                    i += 1
+                return "|".join(arr)
+            else:
+                return item_str
+    else:
+        return None
+
+# clean the metadata job order column values
+# clean the metadata full inspect quantity column values
+# clean the metadata received quantity column values
+# clean the metadata completed quantity column values
 
 # extract the contents of one electronic inspection record into a list of dictionaries
 def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, metadata_index: int, worksheet_names = []) -> tuple:
