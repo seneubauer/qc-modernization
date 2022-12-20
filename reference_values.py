@@ -1,7 +1,14 @@
 alias_dict = {
     "pass": "pass",
     "fail": "fail",
-    "empty": None
+    "empty": None,
+    "first_only": -int(0b100),
+    "middle_only": -int(0b010),
+    "last_only": -int(0b001),
+    "first_middle": -int(0b110),
+    "last_middle": -int(0b011),
+    "first_last": -int(0b101),
+    "first_middle_last": -int(0b111),
 }
 
 probe_base_length_mm = 205

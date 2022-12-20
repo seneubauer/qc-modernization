@@ -7,6 +7,7 @@ from os import listdir
 from os.path import isfile, join
 from pickle import dump, load
 from random import sample
+from numpy import NaN
 import pandas as pd
 
 # bring in config values
@@ -401,9 +402,184 @@ def clean_purchase_order(row: pd.Series, arg_dict: dict) -> pd.Series:
         return None
 
 # clean the metadata job order column values
+def clean_job_order(row: pd.Series, arg_dict: dict) -> pd.Series:
+    if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
+
+        # enforce lowercase
+        item_str = str(row).lower()
+
+        # convert to None if it is NaN
+        if item_str == "nan":
+            return None
+
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
+                return None
+
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
+
+        # standardize delimitor characters
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
+
+        # return the remaining string
+        return item_str
+    else:
+        return None
+
 # clean the metadata full inspect quantity column values
+def clean_full_inspect_qty(row: pd.Series, arg_dict: dict) -> pd.Series:
+    if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
+
+        # enforce lowercase
+        item_str = str(row).lower()
+
+        # convert to None if it is NaN
+        if item_str == "nan":
+            return NaN
+
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
+                return NaN
+
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
+
+        # standardize delimitor characters
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
+
+        # search for specific content
+        if any(x in item_str for x in ["1st", "first", "f", "middle", "last", "l"]):
+
+            # references 'first'
+            f = 0b000
+            if any(x in item_str for x in ["1st", "first", "f"]):
+                f = 0b100
+
+            # references 'middle'
+            m = 0b000
+            if any(x in item_str for x in ["middle"]):
+                m = 0b010
+
+            # references 'last'
+            l = 0b000
+            if any(x in item_str for x in ["last", "l"]):
+                l = 0b001
+
+            return -int(f | m | l)
+        else:
+            if item_str.isnumeric():
+                return item_str
+            else:
+                return NaN
+    else:
+        return NaN
+
 # clean the metadata received quantity column values
+def clean_received_qty(row: pd.Series, arg_dict: dict) -> pd.Series:
+    if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
+
+        # enforce lowercase
+        item_str = str(row).lower()
+
+        # convert to None if it is NaN
+        if item_str == "nan":
+            return NaN
+
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
+                return NaN
+
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
+
+        # standardize delimitor characters
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
+
+        # return the remaining string
+        if item_str.isnumeric():
+            return item_str
+        else:
+            return NaN
+    else:
+        return NaN
+
 # clean the metadata completed quantity column values
+def clean_completed_qty(row: pd.Series, arg_dict: dict) -> pd.Series:
+    if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
+
+        # enforce lowercase
+        item_str = str(row).lower()
+
+        # convert to np.NaN if it is NaN
+        if item_str == "nan":
+            return NaN
+
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
+                return NaN
+
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
+
+        # standardize delimitor characters
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
+
+        # return the remaining string
+        if item_str.isnumeric():
+            return item_str
+        else:
+            return NaN
+    else:
+        return NaN
 
 # extract the contents of one electronic inspection record into a list of dictionaries
 def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, metadata_index: int, worksheet_names: list = []) -> tuple:
