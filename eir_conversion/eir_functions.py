@@ -1,7 +1,7 @@
 # import dependencies
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
-from datetime import date, strptime
+from datetime import date, datetime
 from xlrd import xldate_as_datetime
 from os import listdir
 from os.path import isfile, join
@@ -14,46 +14,83 @@ from sys import path
 path.insert(0, "..")
 from reference_values import alias_dict
 
+# define a standard delimitor character
+standard_delimitor = "%"
+pretty_delimitor = "|"
+
 # clean the metadata item number column values
-def clean_item_number(row: pd.Series, filter_by: list = []) -> None:
+def clean_item_number(row: pd.Series, arg_dict: dict) -> pd.Series:
     if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
 
         # enforce lowercase and remove whitespace characters
         item_str = str(row).lower()
 
-        # replace items with certain characters with None
-        if len(filter_by) > 0:
-            if any(x in item_str for x in filter_by):
+        # convert to None if it is NaN
+        if item_str == "nan":
+            return None
+
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
                 return None
 
-        # define delimitor characters
-        del_chars = ["\\", "/", "(", ")"]
-        delimitor = "%"
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
 
         # standardize delimitor characters
-        for c in del_chars:
-            if c in item_str:
-                item_str = item_str.replace(c, delimitor)
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
 
         # return a delimitable string or the item itself
-        if delimitor in item_str:
-            return "|".join([x for x in item_str.split(delimitor) if x is not None and len(x) > 0])
+        if standard_delimitor in item_str:
+            return pretty_delimitor.join([x for x in item_str.split(standard_delimitor) if x is not None and len(x) > 0])
         else:
             return item_str
     else:
         return None
 
 # clean the metadata drawing column values
-def clean_drawing(row: pd.Series, filter_by: list = []) -> None:
+def clean_drawing(row: pd.Series, arg_dict: dict) -> pd.Series:
     if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
 
         # enforce lowercase and remove whitespace characters
         item_str = str(row).lower()
 
-        # replace items with certain characters with None
-        if len(filter_by) > 0:
-            if any(x in item_str for x in filter_by):
+        # convert to None if it is NaN
+        if item_str == "nan":
+            return None
+
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
                 return None
+
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
+
+        # standardize delimitor characters
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
 
         # return the remaining string
         return item_str
@@ -61,16 +98,37 @@ def clean_drawing(row: pd.Series, filter_by: list = []) -> None:
         return None
 
 # clean the metadata revision column values
-def clean_revision(row: pd.Series, filter_by: list = []) -> None:
+def clean_revision(row: pd.Series, arg_dict: dict) -> pd.Series:
     if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
 
         # enforce lowercase
         item_str = str(row).lower()
 
-        # replace items with certain characters with None
-        if len(filter_by) > 0:
-            if any(x in item_str for x in filter_by):
+        # convert to None if it is NaN
+        if item_str == "nan":
+            return None
+
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
                 return None
+
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
+
+        # standardize delimitor characters
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
 
         # return the remaining string
         return item_str
@@ -78,52 +136,84 @@ def clean_revision(row: pd.Series, filter_by: list = []) -> None:
         return None
 
 # clean the metadata inspection date column values
-def clean_inspection_date(row: pd.Series, filter_by: list = []) -> None:
+def clean_inspection_date(row: pd.Series, arg_dict: dict) -> pd.Series:
     if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
 
         # enforce lowercase
         item_str = str(row).lower()
 
-        # replace items with certain characters with None
-        if len(filter_by) > 0:
-            if any(x in item_str for x in filter_by):
+        # convert to None if it is NaN
+        if item_str == "nan":
+            return None
+
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
                 return None
-        
+
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
+
+        # standardize delimitor characters
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
+
         # return the date object if it can be converted
         if "/" in item_str:
-            return strptime(item_str, "%m/%d/%Y").date()
+            return datetime.strptime(item_str, "%m/%d/%Y").date()
         else:
             return None
     else:
         return None
 
 # clean the metadata inspector & operator column values
-def clean_inspector_operator(row: pd.Series, filter_by: list = []) -> None:
+def clean_inspector_operator(row: pd.Series, arg_dict: dict) -> pd.Series:
     if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
 
         # enforce lowercase
         item_str = str(row).lower()
 
-        # replace items with certain characters with None
-        if len(filter_by) > 0:
-            if any(x in item_str for x in filter_by):
-                return None
-        
-        # remove certain characters
-        for x in [".", "(", ")", "{", "}", "[", "]", "<", ">"]:
-            if x in item_str:
-                item_str = item_str.replace(x, "")
+        # convert to None if it is NaN
+        if item_str == "nan":
+            return None
 
-        # replace certain characters
-        for x in ["\\", "/", " ", "-", ","]:
-            if x in item_str:
-                item_str = item_str.replace(x, "%")
-        
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
+                return None
+
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
+
+        # standardize delimitor characters
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
+
         # return a splitable string
-        if "%" in item_str:
-            arr = [str(x) for x in item_str.split("%") if x is not None and len(x) > 0]
+        if standard_delimitor in item_str:
+            arr = [str(x) for x in item_str.split(standard_delimitor) if x is not None and len(x) > 0]
             if not any([x.isnumeric() for x in arr]):
-                return "|".join(arr)
+                return pretty_delimitor.join(arr)
             else:
                 return None
         else:
@@ -132,16 +222,37 @@ def clean_inspector_operator(row: pd.Series, filter_by: list = []) -> None:
         return None
 
 # clean the metadata disposition column values
-def clean_disposition(row: pd.Series, filter_by: list = []) -> None:
+def clean_disposition(row: pd.Series, arg_dict: dict) -> pd.Series:
     if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
 
         # enforce lowercase
         item_str = str(row).lower()
 
-        # replace items with certain characters with None
-        if len(filter_by) > 0:
-            if any(x in item_str for x in filter_by):
+        # convert to None if it is NaN
+        if item_str == "nan":
+            return None
+
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
                 return None
+
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
+
+        # standardize delimitor characters
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
 
         # return the remaining string
         return item_str
@@ -149,16 +260,37 @@ def clean_disposition(row: pd.Series, filter_by: list = []) -> None:
         return None
 
 # clean the metadata supplier column values
-def clean_supplier(row: pd.Series, filter_by: list = []) -> None:
+def clean_supplier(row: pd.Series, arg_dict: dict) -> pd.Series:
     if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
 
         # enforce lowercase
         item_str = str(row).lower()
 
-        # replace items with certain characters with None
-        if len(filter_by) > 0:
-            if any(x in item_str for x in filter_by):
+        # convert to None if it is NaN
+        if item_str == "nan":
+            return None
+
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
                 return None
+
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
+
+        # standardize delimitor characters
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
 
         # return the remaining string
         return item_str
@@ -166,25 +298,41 @@ def clean_supplier(row: pd.Series, filter_by: list = []) -> None:
         return None
 
 # clean the metadata receiver number column values
-def clean_receiver_number(row: pd.Series, filter_by: list = []) -> None:
+def clean_receiver_number(row: pd.Series, arg_dict: dict) -> pd.Series:
     if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
 
         # enforce lowercase
         item_str = str(row).lower()
 
-        # replace items with certain characters with None
-        if len(filter_by) > 0:
-            if any(x in item_str for x in filter_by):
+        # convert to None if it is NaN
+        if item_str == "nan":
+            return None
+
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
                 return None
 
-        # replace certain characters
-        for x in ["-", "/", ","]:
-            if x in item_str:
-                item_str = item_str.replace(x, "%")
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
+
+        # standardize delimitor characters
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
 
         # return the remaining string
-        if "%" in item_str:
-            arr = [x for x in item_str.split("%") if x is not None and len(x) > 0]
+        if standard_delimitor in item_str:
+            arr = [x for x in item_str.split(standard_delimitor) if x is not None and len(x) > 0]
             i = 1
             while i < len(arr):
 
@@ -196,33 +344,49 @@ def clean_receiver_number(row: pd.Series, filter_by: list = []) -> None:
                         arr[i] = f"{arr[i - 1][:len(arr[i - 1]) - len(arr[i])]}{arr[i]}"
                 i += 1
 
-            return "|".join(arr)
+            return pretty_delimitor.join(arr)
         else:
             return item_str
     else:
         return None
 
 # clean the metadata purchase order column values
-def clean_purchase_order(row: pd.Series, filter_by: list = []) -> None:
+def clean_purchase_order(row: pd.Series, arg_dict: dict) -> pd.Series:
     if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
 
         # enforce lowercase
         item_str = str(row).lower()
 
-        # replace items with certain characters with None
-        if len(filter_by) > 0:
-            if any(x in item_str for x in filter_by):
+        # convert to None if it is NaN
+        if item_str == "nan":
+            return None
+
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
                 return None
 
-        # replace certain characters
-        for x in ["-", "/", ","]:
-            if x in item_str:
-                item_str = item_str.replace(x, "%")
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
+
+        # standardize delimitor characters
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
 
         # only permit values with 3 letters at the beginning
         if item_str[:3].isalpha():
-            if "%" in item_str:
-                arr = [x for x in item_str.split("%") if x is not None and len(x) > 1]
+            if standard_delimitor in item_str:
+                arr = [x for x in item_str.split(standard_delimitor) if x is not None and len(x) > 1]
                 i = 1
                 while i < len(arr):
                     if arr[i - 1][-3:].isnumeric() and arr[i].isnumeric():
@@ -242,13 +406,13 @@ def clean_purchase_order(row: pd.Series, filter_by: list = []) -> None:
 # clean the metadata completed quantity column values
 
 # extract the contents of one electronic inspection record into a list of dictionaries
-def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, metadata_index: int, worksheet_names = []) -> tuple:
+def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, metadata_index: int, worksheet_names: list = []) -> tuple:
 
     # define the file path
     file_path = join(qc_folder, workbook_name)
 
     # open the workbook
-    wb = load_workbook(filename = file_path, read_only = True, data_only = True)
+    wb = load_workbook(filename=file_path, read_only = True, data_only = True)
 
     # initialize the output DataFrames
     metadata_df = pd.DataFrame()
@@ -300,7 +464,8 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
 
                 # limit the while loop
                 if i >= index_limit:
-                    print(f"Row search has exceeded index limit ({index_limit})")
+                    print(
+                        f"Row search has exceeded index limit ({index_limit})")
                     break
 
             # define the item count
@@ -335,7 +500,8 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
                         break
 
                     # define metadata
-                    data_type = str(type(cell_value)).replace("<class ", "").replace(">", "").replace("'", "").strip()
+                    data_type = str(type(cell_value)).replace(
+                        "<class ", "").replace(">", "").replace("'", "").strip()
                     feature = ws[f"{column_index}{feature_index}"].value
                     gauge = ws[f"{column_index}{gage_index}"].value
 
@@ -347,14 +513,16 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
                         gauges.append(gauge)
 
                         for x in range(item_count):
-                            measurements.append(ws[f"{column_index}{x + initial_i}"].value)
+                            measurements.append(
+                                ws[f"{column_index}{x + initial_i}"].value)
 
                     # increment the iterator
                     j += 1
 
                     # limit the while loop
                     if j >= index_limit:
-                        print(f"Column search has exceeded index limit ({index_limit})")
+                        print(
+                            f"Column search has exceeded index limit ({index_limit})")
                         break
 
                 # convert pass/fail to numerical data
@@ -379,9 +547,12 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
                     find_column = get_column_letter(anchor_column + x)
                     data_column = get_column_letter(anchor_column + x + 2)
                     if str(ws[f"{find_column}{anchor_row + 5}"].value).lower() == "item number":
-                        value0 = ws[f"{data_column}{anchor_row + 5}"].value			# item number
-                        value1 = ws[f"{data_column}{anchor_row + 6}"].value			# drawing number
-                        value2 = ws[f"{data_column}{anchor_row + 7}"].value			# revision
+                        # item number
+                        value0 = ws[f"{data_column}{anchor_row + 5}"].value
+                        # drawing number
+                        value1 = ws[f"{data_column}{anchor_row + 6}"].value
+                        # revision
+                        value2 = ws[f"{data_column}{anchor_row + 7}"].value
                         if value0 is not None:
                             section_1.append(value0)
                         else:
@@ -402,17 +573,23 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
                     find_column = get_column_letter(anchor_column + x)
                     data_column = get_column_letter(anchor_column + x + 1)
                     if str(ws[f"{find_column}{anchor_row + 5}"].value).lower() == "date":
-                        value0 = ws[f"{data_column}{anchor_row + 5}"].value			# date
-                        value1 = ws[f"{data_column}{anchor_row + 6}"].value			# inspector
-                        value2 = ws[f"{data_column}{anchor_row + 7}"].value			# disposition
-                        value3 = ws[f"{data_column}{anchor_row + 8}"].value			# supplier
+                        # date
+                        value0 = ws[f"{data_column}{anchor_row + 5}"].value
+                        # inspector
+                        value1 = ws[f"{data_column}{anchor_row + 6}"].value
+                        # disposition
+                        value2 = ws[f"{data_column}{anchor_row + 7}"].value
+                        # supplier
+                        value3 = ws[f"{data_column}{anchor_row + 8}"].value
                         if value0 is not None:
                             try:
                                 if type(value0) is int:
                                     value0 = xldate_as_datetime(value0, 0)
-                                section_2.append(date(value0.year, value0.month, value0.day))
+                                section_2.append(
+                                    date(value0.year, value0.month, value0.day))
                             except AttributeError:
-                                print(f"AttributeError in {ws.title} of {workbook_name}; {value0}")
+                                print(
+                                    f"AttributeError in {ws.title} of {workbook_name}; {value0}")
                         else:
                             section_2.append(alias_dict["empty"])
                         if value1 is not None:
@@ -435,10 +612,14 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
                     find_column = get_column_letter(anchor_column + x)
                     data_column = get_column_letter(anchor_column + x + 1)
                     if str(ws[f"{find_column}{anchor_row + 5}"].value).lower() == "recv. #":
-                        value0 = ws[f"{data_column}{anchor_row + 5}"].value			# receiver number
-                        value1 = ws[f"{data_column}{anchor_row + 6}"].value			# purchase order
-                        value2 = ws[f"{data_column}{anchor_row + 7}"].value			# job number
-                        value3 = ws[f"{data_column}{anchor_row + 8}"].value			# operator
+                        # receiver number
+                        value0 = ws[f"{data_column}{anchor_row + 5}"].value
+                        # purchase order
+                        value1 = ws[f"{data_column}{anchor_row + 6}"].value
+                        # job number
+                        value2 = ws[f"{data_column}{anchor_row + 7}"].value
+                        # operator
+                        value3 = ws[f"{data_column}{anchor_row + 8}"].value
                         if value0 is not None:
                             section_3.append(value0)
                         else:
@@ -463,9 +644,12 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
                     find_column = get_column_letter(anchor_column + x)
                     data_column = get_column_letter(anchor_column + x + 2)
                     if str(ws[f"{find_column}{anchor_row + 6}"].value).lower() == "qc full inspect interval":
-                        value0 = ws[f"{data_column}{anchor_row + 6}"].value			# qc full inspect quantity
-                        value1 = ws[f"{data_column}{anchor_row + 7}"].value			# released quantity
-                        value2 = ws[f"{data_column}{anchor_row + 8}"].value			# completed quantity
+                        # qc full inspect quantity
+                        value0 = ws[f"{data_column}{anchor_row + 6}"].value
+                        # released quantity
+                        value1 = ws[f"{data_column}{anchor_row + 7}"].value
+                        # completed quantity
+                        value2 = ws[f"{data_column}{anchor_row + 8}"].value
                         if value0 is not None:
                             section_4.append(value0)
                         else:
@@ -482,13 +666,17 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
 
                 # ensure the section lists have contents
                 if len(section_1) == 0:
-                    section_1 = [alias_dict["empty"], alias_dict["empty"], alias_dict["empty"]]
+                    section_1 = [alias_dict["empty"],
+                                 alias_dict["empty"], alias_dict["empty"]]
                 if len(section_2) == 0:
-                    section_2 = [alias_dict["empty"], alias_dict["empty"], alias_dict["empty"], alias_dict["empty"]]
+                    section_2 = [alias_dict["empty"], alias_dict["empty"],
+                                 alias_dict["empty"], alias_dict["empty"]]
                 if len(section_3) == 0:
-                    section_3 = [alias_dict["empty"], alias_dict["empty"], alias_dict["empty"], alias_dict["empty"]]
+                    section_3 = [alias_dict["empty"], alias_dict["empty"],
+                                 alias_dict["empty"], alias_dict["empty"]]
                 if len(section_4) == 0:
-                    section_4 = [alias_dict["empty"], alias_dict["empty"], alias_dict["empty"]]
+                    section_4 = [alias_dict["empty"],
+                                 alias_dict["empty"], alias_dict["empty"]]
 
                 try:
                     # store metadata in a DataFrame
@@ -527,8 +715,10 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
                         current_measurements_df[f"part_{x}"] = meas_list
                         x += 1
 
-                    metadata_df = pd.concat([metadata_df, current_metadata_df], axis = 0, ignore_index = True)
-                    measurements_df = pd.concat([measurements_df, current_measurements_df], axis = 0, ignore_index = True)
+                    metadata_df = pd.concat(
+                        [metadata_df, current_metadata_df], axis=0, ignore_index=True)
+                    measurements_df = pd.concat(
+                        [measurements_df, current_measurements_df], axis=0, ignore_index=True)
 
                 except IndexError:
                     print(f"IndexError in {ws.title} of {workbook_name}")
@@ -540,21 +730,21 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
     return (metadata_df, measurements_df)
 
 # extract the contents of multiple electronic inspection records into lists of dictionaries
-def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty_limit = 0, is_random = False, workbooks = []) -> tuple:
+def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty_limit: int = 0, is_random: bool = False, workbooks: list = []) -> tuple:
 
     # retrieve a list of the folder contents
     folder_contents = listdir(qc_folder)
 
     # filter the folder contents
     filtered_contents = list(filter(lambda item:
-                            isfile(join(qc_folder, item))
-                            and item[:1].lower() != "~"
-                            and item[:1].lower() != "_"
-                            and item[-len(file_extension):].lower() == file_extension
-                            and "template" not in item.lower()
-                            and "example" not in item.lower()
-                            and "mi" not in item.lower()
-                            and "qa1" not in item.lower(), folder_contents))
+                                    isfile(join(qc_folder, item))
+                                    and item[:1].lower() != "~"
+                                    and item[:1].lower() != "_"
+                                    and item[-len(file_extension):].lower() == file_extension
+                                    and "template" not in item.lower()
+                                    and "example" not in item.lower()
+                                    and "mi" not in item.lower()
+                                    and "qa1" not in item.lower(), folder_contents))
 
     # initialize the list of files
     files = []
