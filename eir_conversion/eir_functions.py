@@ -455,7 +455,7 @@ def clean_full_inspect_qty(row: pd.Series, arg_dict: dict) -> pd.Series:
         if item_str == "nan":
             return NaN
 
-        # reclassify characteristics as None if they contain a certain substring
+        # reclassify characteristics as np.NaN if they contain a certain substring
         if len(none_if_contains) > 0:
             if any(x in item_str for x in none_if_contains):
                 return NaN
@@ -515,7 +515,7 @@ def clean_received_qty(row: pd.Series, arg_dict: dict) -> pd.Series:
         if item_str == "nan":
             return NaN
 
-        # reclassify characteristics as None if they contain a certain substring
+        # reclassify characteristics as np.NaN if they contain a certain substring
         if len(none_if_contains) > 0:
             if any(x in item_str for x in none_if_contains):
                 return NaN
@@ -556,7 +556,7 @@ def clean_completed_qty(row: pd.Series, arg_dict: dict) -> pd.Series:
         if item_str == "nan":
             return NaN
 
-        # reclassify characteristics as None if they contain a certain substring
+        # reclassify characteristics as np.NaN if they contain a certain substring
         if len(none_if_contains) > 0:
             if any(x in item_str for x in none_if_contains):
                 return NaN
@@ -580,6 +580,143 @@ def clean_completed_qty(row: pd.Series, arg_dict: dict) -> pd.Series:
             return NaN
     else:
         return NaN
+
+# clean the measurement feature id column values
+def clean_feature_id(row: pd.Series, arg_dict: dict) -> pd.Series:
+    if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
+
+        # enforce lowercase
+        item_str = str(row).lower()
+
+        # convert to None if it is NaN
+        if item_str == "nan":
+            return None
+
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
+                return None
+
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
+
+        # standardize delimitor characters
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
+        
+        # return the item if it is numeric
+        if item_str.isnumeric():
+            return item_str
+        else:
+            return None
+    else:
+        return None
+
+# clean the measurement gauge column values
+def clean_gauge(row: pd.Series, arg_dict: dict) -> pd.Series:
+    if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
+
+        # enforce lowercase
+        item_str = str(row).lower()
+
+        # convert to np.NaN if it is NaN
+        if item_str == "nan":
+            return NaN
+
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
+                return NaN
+
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
+
+        # standardize delimitor characters
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
+
+        if item_str.isnumeric():
+            return NaN
+        else:
+            output = 0b00000000000000000000
+            for k in alias_dict["gauges"]:
+                if any(x in item_str for x in alias_dict["gauges"][k]["keys"]):
+
+                    # flip the appropriate bit
+                    output |= alias_dict["gauges"][k]["alias"]
+
+                    # make sure there is no caliper/idcaliper overlap
+                    if (output & 0b00000000000000001000 == 0b00000000000000001000) and (k == "id_caliper"):
+                        output &= 0b00000000000000001000
+                    
+            
+            if output != 0b00000000000000000000:
+                return int(output)
+            else:
+                return NaN
+    else:
+        return NaN
+
+# clean the measurement data type column values
+def clean_data_type(row: pd.Series, arg_dict: dict) -> pd.Series:
+    if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
+
+        # enforce lowercase
+        item_str = str(row).lower()
+
+        # convert to np.NaN if it is NaN
+        if item_str == "nan":
+            return None
+
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
+                return None
+
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
+
+        # standardize delimitor characters
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
+
+        # convert values
+        if item_str == "str":
+            return "pass_fail"
+        elif item_str == "float" or item_str == "int":
+            return "measured"
+    else:
+        return None
 
 # extract the contents of one electronic inspection record into a list of dictionaries
 def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, metadata_index: int, worksheet_names: list = []) -> tuple:

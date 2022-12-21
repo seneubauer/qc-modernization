@@ -1,24 +1,99 @@
 alias_dict = {
-    "pass": "pass",
-    "fail": "fail",
+    "pass": int(0x8001),            # hexadecimal -> 32,768
+    "fail": int(0x8000),            # hexadecimal -> 32,769
     "empty": None,
-    "first_only": -int(0b100),
-    "middle_only": -int(0b010),
-    "last_only": -int(0b001),
-    "first_middle": -int(0b110),
-    "last_middle": -int(0b011),
-    "first_last": -int(0b101),
-    "first_middle_last": -int(0b111),
+    "gauges": {
+        "cmm": {
+            "keys": ["cmm"],
+            "alias": int(0b00000000000000000001)
+        },
+        "comparator": {
+            "keys": ["comp"],
+            "alias": int(0b00000000000000000010)
+        },
+        "vision_system": {
+            "keys": ["scope"],
+            "alias": int(0b00000000000000000100)
+        },
+        "caliper": {
+            "keys": ["caliper", "cal"],
+            "alias": int(0b00000000000000001000)
+        },
+        "id_caliper": {
+            "keys": ["id"],
+            "alias": int(0b00000000000000010000)
+        },
+        "indicator": {
+            "keys": ["ind"],
+            "alias": int(0b00000000000000100000)
+        },
+        "profilometer": {
+            "keys": ["prof"],
+            "alias": int(0b00000000000001000000)
+        },
+        "visual": {
+            "keys": ["visual"],
+            "alias": int(0b00000000000010000000)
+        },
+        "plug": {
+            "keys": ["plug", "plg"],
+            "alias": int(0b00000000000100000000)
+        },
+        "height_gauge": {
+            "keys": ["height"],
+            "alias": int(0b00000000001000000000)
+        },
+        "feeler_gauge": {
+            "keys": ["feeler"],
+            "alias": int(0b00000000010000000000)
+        },
+        "bore_gauge": {
+            "keys": ["bore"],
+            "alias": int(0b00000000100000000000)
+        },
+        "thread_mic": {
+            "keys": ["thread"],
+            "alias": int(0b00000001000000000000)
+        },
+        "groove_mic": {
+            "keys": ["groove", "grv"],
+            "alias": int(0b00000010000000000000)
+        },
+        "blade_mic": {
+            "keys": ["blade"],
+            "alias": int(0b00000100000000000000)
+        },
+        "spring_gauge": {
+            "keys": ["spring"],
+            "alias": int(0b00001000000000000000)
+        },
+        "wilson": {
+            "keys": ["wilson"],
+            "alias": int(0b00010000000000000000)
+        },
+        "pushpull": {
+            "keys": ["pushpull"],
+            "alias": int(0b00100000000000000000)
+        },
+        "verify": {
+            "keys": ["verif"],
+            "alias": int(0b01000000000000000000)
+        },
+        "pins": {
+            "keys": ["pin"],
+            "alias": int(0b10000000000000000000)
+        }
+    }
 }
 
 probe_base_length_mm = 205
 probe_clearance_cube_mm = 10
 probe_dict = {
-    "PROBE_1X575": float(probe_clearance_cube_mm + probe_base_length_mm + 1 + 57.5),
-    "PROBE_3X70": float(probe_clearance_cube_mm + probe_base_length_mm + 3 + 70),
-    "PROBE_5X20": float(probe_clearance_cube_mm + probe_base_length_mm + 5 + 20),
-    "PROBE_5X50": float(probe_clearance_cube_mm + probe_base_length_mm + 5 + 50),
-    "PROBE_8X75": float(probe_clearance_cube_mm + probe_base_length_mm + 8 + 75),
-    "PROBE_DISC": float(probe_clearance_cube_mm + probe_base_length_mm + 1 + 44.5),
-    "PROBE_STAR": float(probe_clearance_cube_mm + probe_base_length_mm + 30 + 250)
+    "probe_1x575": float(probe_clearance_cube_mm + probe_base_length_mm + 1 + 57.5),
+    "probe_3x70": float(probe_clearance_cube_mm + probe_base_length_mm + 3 + 70),
+    "probe_5x20": float(probe_clearance_cube_mm + probe_base_length_mm + 5 + 20),
+    "probe_5x50": float(probe_clearance_cube_mm + probe_base_length_mm + 5 + 50),
+    "probe_8x75": float(probe_clearance_cube_mm + probe_base_length_mm + 8 + 75),
+    "probe_disc": float(probe_clearance_cube_mm + probe_base_length_mm + 1 + 44.5),
+    "probe_star": float(probe_clearance_cube_mm + probe_base_length_mm + 30 + 250)
 }
