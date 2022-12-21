@@ -5,83 +5,83 @@ alias_dict = {
     "gauges": {
         "cmm": {
             "keys": ["cmm"],
-            "alias": int(0b00000000000000000001)
+            "alias": 0b00000000000000000001
         },
         "comparator": {
             "keys": ["comp"],
-            "alias": int(0b00000000000000000010)
+            "alias": 0b00000000000000000010
         },
         "vision_system": {
             "keys": ["scope"],
-            "alias": int(0b00000000000000000100)
+            "alias": 0b00000000000000000100
         },
         "caliper": {
             "keys": ["caliper", "cal"],
-            "alias": int(0b00000000000000001000)
+            "alias": 0b00000000000000001000
         },
         "id_caliper": {
             "keys": ["id"],
-            "alias": int(0b00000000000000010000)
+            "alias": 0b00000000000000010000
         },
         "indicator": {
             "keys": ["ind"],
-            "alias": int(0b00000000000000100000)
+            "alias": 0b00000000000000100000
         },
         "profilometer": {
             "keys": ["prof"],
-            "alias": int(0b00000000000001000000)
+            "alias": 0b00000000000001000000
         },
         "visual": {
             "keys": ["visual"],
-            "alias": int(0b00000000000010000000)
+            "alias": 0b00000000000010000000
         },
         "plug": {
             "keys": ["plug", "plg"],
-            "alias": int(0b00000000000100000000)
+            "alias": 0b00000000000100000000
         },
         "height_gauge": {
             "keys": ["height"],
-            "alias": int(0b00000000001000000000)
+            "alias": 0b00000000001000000000
         },
         "feeler_gauge": {
             "keys": ["feeler"],
-            "alias": int(0b00000000010000000000)
+            "alias": 0b00000000010000000000
         },
         "bore_gauge": {
             "keys": ["bore"],
-            "alias": int(0b00000000100000000000)
+            "alias": 0b00000000100000000000
         },
         "thread_mic": {
             "keys": ["thread"],
-            "alias": int(0b00000001000000000000)
+            "alias": 0b00000001000000000000
         },
         "groove_mic": {
             "keys": ["groove", "grv"],
-            "alias": int(0b00000010000000000000)
+            "alias": 0b00000010000000000000
         },
         "blade_mic": {
             "keys": ["blade"],
-            "alias": int(0b00000100000000000000)
+            "alias": 0b00000100000000000000
         },
         "spring_gauge": {
             "keys": ["spring"],
-            "alias": int(0b00001000000000000000)
+            "alias": 0b00001000000000000000
         },
         "wilson": {
             "keys": ["wilson"],
-            "alias": int(0b00010000000000000000)
+            "alias": 0b00010000000000000000
         },
         "pushpull": {
             "keys": ["pushpull"],
-            "alias": int(0b00100000000000000000)
+            "alias": 0b00100000000000000000
         },
         "verify": {
             "keys": ["verif"],
-            "alias": int(0b01000000000000000000)
+            "alias": 0b01000000000000000000
         },
         "pins": {
             "keys": ["pin"],
-            "alias": int(0b10000000000000000000)
+            "alias": 0b10000000000000000000
         }
     }
 }

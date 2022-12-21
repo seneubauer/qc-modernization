@@ -662,14 +662,18 @@ def clean_gauge(row: pd.Series, arg_dict: dict) -> pd.Series:
             for k in alias_dict["gauges"]:
                 if any(x in item_str for x in alias_dict["gauges"][k]["keys"]):
 
+                    current_alias = alias_dict["gauges"][k]["alias"]
+                    cal_alias = alias_dict["gauges"]["caliper"]["alias"]
+
                     # flip the appropriate bit
-                    output |= alias_dict["gauges"][k]["alias"]
+                    output |= current_alias
 
                     # make sure there is no caliper/idcaliper overlap
-                    if (output & 0b00000000000000001000 == 0b00000000000000001000) and (k == "id_caliper"):
-                        output &= 0b00000000000000001000
-                    
-            
+                    if (output & cal_alias == cal_alias) and (k == "id_caliper"):
+                        output ^= cal_alias
+
+                    print(f"{item_str} -> {output:020b}")
+
             if output != 0b00000000000000000000:
                 return int(output)
             else:
