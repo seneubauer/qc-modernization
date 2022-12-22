@@ -1044,6 +1044,239 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
     # return the results
     return (metadata_df, measurements_df)
 
+# clean the metadata dataframe
+def clean_metadata(raw_df: pd.DataFrame) -> pd.DataFrame:
+
+    # create the functional object
+    func_obj = {
+        "item_number": {
+            "func": clean_item_number,
+            "args": {
+                "none_if_contains": [],
+                "remove_substrings": [" "],
+                "replace_delimitors": ["\\", "/", "(", ")"]
+            },
+            "target_data_type": "string"
+        },
+        "drawing": {
+            "func": clean_drawing,
+            "args": {
+                "none_if_contains": [" ", "."],
+                "remove_substrings": [],
+                "replace_delimitors": []
+            },
+            "target_data_type": "string"
+        },
+        "revision": {
+            "func": clean_revision,
+            "args": {
+                "none_if_contains": [" ", "-", "/"],
+                "remove_substrings": [],
+                "replace_delimitors": []
+            },
+            "target_data_type": "string"
+        },
+        "inspection_date": {
+            "func": clean_inspection_date,
+            "args": {
+                "none_if_contains": [],
+                "remove_substrings": [],
+                "replace_delimitors": []
+            },
+            "target_data_type": "datetime"
+        },
+        "inspector": {
+            "func": clean_inspector_operator,
+            "args": {
+                "none_if_contains": [],
+                "remove_substrings": [".", "(", ")", "{", "}", "[", "]", "<", ">"],
+                "replace_delimitors": ["\\", "/", " ", "-", ","]
+            },
+            "target_data_type": "string"
+        },
+        "disposition": {
+            "func": clean_disposition,
+            "args": {
+                "none_if_contains": [],
+                "remove_substrings": [],
+                "replace_delimitors": []
+            },
+            "target_data_type": "string"
+        },
+        "supplier": {
+            "func": clean_supplier,
+            "args": {
+                "none_if_contains": [],
+                "remove_substrings": [],
+                "replace_delimitors": []
+            },
+            "target_data_type": "string"
+        },
+        "receiver_number": {
+            "func": clean_receiver_number,
+            "args": {
+                "none_if_contains": ["no"],
+                "remove_substrings": [" "],
+                "replace_delimitors": ["-", "/", ","]
+            },
+            "target_data_type": "string"
+        },
+        "purchase_order": {
+            "func": clean_purchase_order,
+            "args": {
+                "none_if_contains": ["no"],
+                "remove_substrings": [" "],
+                "replace_delimitors": ["-", "/", ","]
+            },
+            "target_data_type": "string"
+        },
+        "job_order": {
+            "func": clean_job_order,
+            "args": {
+                "none_if_contains": [".", "-"],
+                "remove_substrings": [" "],
+                "replace_delimitors": []
+            },
+            "target_data_type": "string"
+        },
+        "operator": {
+            "func": clean_inspector_operator,
+            "args": {
+                "none_if_contains": [],
+                "remove_substrings": [".", "(", ")", "{", "}", "[", "]", "<", ">"],
+                "replace_delimitors": ["\\", "/", " ", "-", ","]
+            },
+            "target_data_type": "string"
+        },
+        "full_inspect_qty": {
+            "func": clean_full_inspect_qty,
+            "args": {
+                "none_if_contains": [],
+                "remove_substrings": [" "],
+                "replace_delimitors": []
+            },
+            "target_data_type": "float"
+        },
+        "received_qty": {
+            "func": clean_received_qty,
+            "args": {
+                "none_if_contains": [" ", "/"],
+                "remove_substrings": [],
+                "replace_delimitors": []
+            },
+            "target_data_type": "float"
+        },
+        "completed_qty": {
+            "func": clean_completed_qty,
+            "args": {
+                "none_if_contains": [" ", "/", "=", ".", "-"],
+                "remove_substrings": [],
+                "replace_delimitors": []
+            },
+            "target_data_type": "float"
+        }
+    }
+
+    # create a deep copy of the raw dataframe
+    std_df = raw_df.copy(deep = True)
+
+    # apply the functional object to standardize the 'unwanted' values
+    for k in func_obj:
+
+        # reference the object children
+        my_func = func_obj[k]["func"]
+        my_args = func_obj[k]["args"]
+
+        # apply the function to its column
+        if my_func is not None:
+            std_df.loc[:, k] = raw_df[k].apply(my_func, args = (my_args,))
+
+    # create a reduced dataframe from the standardized dataframe
+    red_df = std_df.loc[
+        (std_df["item_number"].isna() == False) & 
+        (std_df["drawing"].isna() == False) & 
+        (std_df["revision"].isna() == False), :
+    ]
+
+    # create a deep copy of the reduced dataframe
+    cln_df = red_df.copy(deep = True)
+
+    # fix data types
+    for k in func_obj:
+        target = func_obj[k]["target_data_type"]
+        if target == "datetime":
+            cln_df[k] = pd.to_datetime(cln_df[k], format = "%Y-%m-%d")
+        else:
+            cln_df = cln_df.astype({ k: target })
+
+    return cln_df
+
+# clean the measurements dataframe
+def clean_measurements(raw_df: pd.DataFrame) -> pd.DataFrame:
+    
+    # create the functional object
+    func_obj = {
+        "feature_id": {
+            "func": clean_feature_id,
+            "args": {
+                "none_if_contains": ["!", "#", "%", "&", "(", ")", "-", "/"],
+                "remove_substrings": [" ", "."],
+                "replace_delimitors": []
+            },
+            "target_data_type": "string"
+        },
+        "gauge": {
+            "func": clean_gauge,
+            "args": {
+                "none_if_contains": ["!", "#"],
+                "remove_substrings": [" ", ".", "/", "-"],
+                "replace_delimitors": []
+            },
+            "target_data_type": "string"
+        },
+        "data_type": {
+            "func": clean_data_type,
+            "args": {
+                "none_if_contains": [],
+                "remove_substrings": [],
+                "replace_delimitors": []
+            },
+            "target_data_type": "string"
+        }
+    }
+
+    # create a deep copy of the raw dataframe
+    std_df = raw_df.copy(deep = True)
+
+    # apply the functional object to standardize the 'unwanted' values
+    for k in func_obj:
+
+        # reference the object children
+        my_func = func_obj[k]["func"]
+        my_args = func_obj[k]["args"]
+
+        # apply the function to its column
+        if my_func is not None:
+            std_df.loc[:, k] = raw_df[k].apply(my_func, args = (my_args,))
+
+    # create a reduced dataframe from the standardized dataframe
+    red_df = std_df.loc[
+        (std_df["gauge"].isna() == False), :
+    ]
+
+    # create a deep copy of the reduced dataframe
+    cln_df = red_df.copy(deep = True)
+
+    # fix data types
+    for k in func_obj:
+        target = func_obj[k]["target_data_type"]
+        if target == "datetime":
+            cln_df[k] = pd.to_datetime(cln_df[k], format = "%Y-%m-%d")
+        else:
+            cln_df = cln_df.astype({ k: target })
+
+    return cln_df
+
 # extract the contents of multiple electronic inspection records into lists of dictionaries
 def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty_limit: int = 0, is_random: bool = False, workbooks: list = []) -> tuple:
 
@@ -1116,7 +1349,7 @@ def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty
     return (raw_metadata_df, raw_measurement_df)
 
 # save results to a binary file
-def to_raw_binary(destination_folder: str, file_name: str, data_object: tuple) -> None:
+def to_binary(destination_folder: str, file_name: str, data_object: tuple) -> None:
 
     # create, populate, then close the binary file
     my_file = open(join(destination_folder, file_name), "wb")
@@ -1124,22 +1357,36 @@ def to_raw_binary(destination_folder: str, file_name: str, data_object: tuple) -
     my_file.close()
 
 # save results to csv files
-def to_raw_csv(destination_folder: str, data_object: tuple) -> None:
+def to_csv(destination_folder: str, raw_data_object: tuple = None, cln_data_object: tuple = None) -> None:
 
-    # extract DataFrames from the input
-    raw_metadata_df, raw_measurements_df = data_object
-
-    # save metadata
-    raw_metadata_df.to_csv(join(destination_folder, "raw_metadata.csv"), index = False)
-    raw_measurements_df.to_csv(join(destination_folder, "raw_measurements.csv"), index = False)
+    # save raw results
+    if raw_data_object is not None:
+        raw_metadata_df, raw_measurements_df = raw_data_object
+        raw_metadata_df.to_csv(join(destination_folder, "raw_metadata.csv"), index = False)
+        raw_measurements_df.to_csv(join(destination_folder, "raw_measurements.csv"), index = False)
+    
+    # save clean results
+    if cln_data_object is not None:
+        cln_metadata_df, cln_measurements_df = cln_data_object
+        cln_metadata_df.to_csv(join(destination_folder, "cln_metadata.csv"), index = False)
+        cln_measurements_df.to_csv(join(destination_folder, "cln_measurements.csv"), index = False)
 
 # convert binary file to multiple csv files
-def raw_binary_to_csvs(binary_folder: str, binary_name: str, destination_folder: str, file_extension: str) -> None:
+def binary_to_csvs(binary_folder: str, destination_folder: str, raw_binary_name: str = None, cln_binary_name: str = None) -> None:
 
-    # open, read, then close the binary file
-    bin_file = open(join(binary_folder, binary_name), "rb")
-    file_contents = load(bin_file)
-    bin_file.close()
+    # open, read, then close the raw binary file
+    raw_data = None
+    if raw_binary_name is not None:
+        raw_bin_file = open(join(binary_folder, raw_binary_name), "rb")
+        raw_data = load(raw_bin_file)
+        raw_bin_file.close()
+
+    # open, read, then close the clean binary file
+    cln_data = None
+    if cln_binary_name is not None:
+        cln_bin_file = open(join(binary_folder, cln_binary_name), "rb")
+        cln_data = load(cln_bin_file)
+        cln_bin_file.close()
 
     # save the file contents to csv files
-    to_raw_csv(destination_folder, file_extension, file_contents)
+    to_csv(destination_folder, raw_data, cln_data)
