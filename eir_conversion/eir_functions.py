@@ -658,7 +658,7 @@ def clean_gauge(row: pd.Series, arg_dict: dict) -> pd.Series:
         if item_str.isnumeric():
             return NaN
         else:
-            output = 0b00000000000000000000
+            output = 0b000000000000000000000
             for k in alias_dict["gauges"]:
                 if any(x in item_str for x in alias_dict["gauges"][k]["keys"]):
 
@@ -672,9 +672,7 @@ def clean_gauge(row: pd.Series, arg_dict: dict) -> pd.Series:
                     if (output & cal_alias == cal_alias) and (k == "id_caliper"):
                         output ^= cal_alias
 
-                    print(f"{item_str} -> {output:020b}")
-
-            if output != 0b00000000000000000000:
+            if output != 0b000000000000000000000:
                 return int(output)
             else:
                 return NaN
