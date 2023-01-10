@@ -88,10 +88,10 @@ namespace sw_api
 					fixture_clearance output = new fixture_clearance
 					{
 						id = file_name,
-						py = py_data.SensorValue,
-						px = px_data.SensorValue,
-						ny = ny_data.SensorValue,
-						nx = nx_data.SensorValue
+						py = py_data.SensorValue * 1000,
+						px = px_data.SensorValue * 1000,
+						ny = ny_data.SensorValue * 1000,
+						nx = nx_data.SensorValue * 1000
 					};
 
 					// release the resources
