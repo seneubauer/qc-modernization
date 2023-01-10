@@ -622,6 +622,47 @@ def clean_feature_id(row: pd.Series, arg_dict: dict) -> pd.Series:
     else:
         return None
 
+# clean the measurement usl/lsl column values
+def clean_speclimits(row: pd.Series, arg_dict: dict) -> pd.Series:
+    if row is not None:
+
+        # retrieve the argument lists
+        none_if_contains = arg_dict["none_if_contains"]
+        remove_substrings = arg_dict["remove_substrings"]
+        replace_delimitors = arg_dict["replace_delimitors"]
+
+        # enforce lowercase
+        item_str = str(row).lower()
+
+        # convert to None if it is NaN
+        if item_str == "nan":
+            return None
+
+        # reclassify characteristics as None if they contain a certain substring
+        if len(none_if_contains) > 0:
+            if any(x in item_str for x in none_if_contains):
+                return None
+
+        # remove certain substrings from the characteristic
+        if len(remove_substrings) > 0:
+            for x in remove_substrings:
+                if x in item_str:
+                    item_str = item_str.replace(x, "")
+
+        # standardize delimitor characters
+        if len(replace_delimitors) > 0:
+            for x in replace_delimitors:
+                if x in item_str:
+                    item_str = item_str.replace(x, standard_delimitor)
+        
+        # return the item if it is numeric
+        if item_str.replace(".", "").isnumeric():
+            return item_str
+        else:
+            return None
+    else:
+        return None
+
 # clean the measurement gauge column values
 def clean_gauge(row: pd.Series, arg_dict: dict) -> pd.Series:
     if row is not None:
@@ -791,13 +832,17 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
 
                 # define iterator parameters
                 feature_index = 12
-                gage_index = 16
+                usl_index = 14
+                lsl_index = 15
+                gauge_index = 16
                 cell_value = "initial"
                 j = initial_j
 
                 # initialize the storage lists
                 data_types = []
                 features = []
+                usls = []
+                lsls = []
                 gauges = []
                 measurements = []
 
@@ -815,16 +860,19 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
                         break
 
                     # define metadata
-                    data_type = str(type(cell_value)).replace(
-                        "<class ", "").replace(">", "").replace("'", "").strip()
+                    data_type = str(type(cell_value)).replace("<class ", "").replace(">", "").replace("'", "").strip()
                     feature = ws[f"{column_index}{feature_index}"].value
-                    gauge = ws[f"{column_index}{gage_index}"].value
+                    usl = ws[f"{column_index}{usl_index}"].value
+                    lsl = ws[f"{column_index}{lsl_index}"].value
+                    gauge = ws[f"{column_index}{gauge_index}"].value
 
                     # only add data when the feature number is defined
                     if feature != 0:
 
                         data_types.append(data_type)
                         features.append(feature)
+                        usls.append(usl)
+                        lsls.append(lsl)
                         gauges.append(gauge)
 
                         for x in range(item_count):
@@ -1017,6 +1065,8 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
                     current_measurements_df = pd.DataFrame({
                         "metadata_id": [metadata_index for i in range(len(features))],
                         "feature_id": features,
+                        "usl": usls,
+                        "lsl": lsls,
                         "gauge": gauges,
                         "data_type": data_types
                     })
@@ -1225,6 +1275,24 @@ def clean_measurements(raw_df: pd.DataFrame) -> pd.DataFrame:
             },
             "target_data_type": "string"
         },
+        "usl": {
+            "func": clean_speclimits,
+            "args": {
+                "none_if_contains": [],
+                "remove_substrings": [" "],
+                "replace_delimitors": []
+            },
+            "target_data_type": "float"
+        },
+        "lsl": {
+            "func": clean_speclimits,
+            "args": {
+                "none_if_contains": [],
+                "remove_substrings": [" "],
+                "replace_delimitors": []
+            },
+            "target_data_type": "float"
+        },
         "gauge": {
             "func": clean_gauge,
             "args": {
@@ -1390,3 +1458,18 @@ def binary_to_csvs(binary_folder: str, destination_folder: str, raw_binary_name:
 
     # save the file contents to csv files
     to_csv(destination_folder, raw_data, cln_data)
+
+# clean csvs
+def clean_csvs(destination_folder: str) -> None:
+
+    # read raw csvs into dataframes
+    raw_metadata_df = pd.read_csv(join(destination_folder, "raw_metadata.csv"))
+    raw_measurements_df = pd.read_csv(join(destination_folder, "raw_measurements.csv"))
+
+    # clean the raw dataframes
+    clean_metadata_df = clean_metadata(raw_metadata_df)
+    clean_measurements_df = clean_measurements(raw_measurements_df)
+
+    # save the clean dataframes as csvs
+    clean_metadata_df.to_csv(join(destination_folder, "cln_metadata.csv"), index = False)
+    clean_measurements_df.to_csv(join(destination_folder, "cln_measurements.csv"), index = False)
