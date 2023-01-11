@@ -122,12 +122,12 @@ namespace sw_api
 			}
 		}
 
-		static clearance get_sensor_values_asm(string file_path, string file_name, string sensor_type, ref SldWorks app)
+		static clearance get_sensor_values_asm(string file_path, string file_name, string sensor_type, string id, ref SldWorks app)
 		{
 			// define the null object
 			clearance null_object = new clearance
 			{
-				id = file_name,
+				id = id,
 				py = 0,
 				px = 0,
 				ny = 0,
@@ -146,6 +146,9 @@ namespace sw_api
 			// extract the sensor features
 			try
 			{
+				Console.WriteLine($"Path: {file_path}");
+				Console.WriteLine($"Null: {sw_asm == null}");
+
 				Feature py_feature = (Feature)sw_asm.FeatureByName($"py{sensor_type}");
 				Feature px_feature = (Feature)sw_asm.FeatureByName($"px{sensor_type}");
 				Feature ny_feature = (Feature)sw_asm.FeatureByName($"ny{sensor_type}");
@@ -191,7 +194,7 @@ namespace sw_api
 				{
 					clearance output = new clearance
 					{
-						id = file_name,
+						id = id,
 						py = py_data.SensorValue * 1000,
 						px = px_data.SensorValue * 1000,
 						ny = ny_data.SensorValue * 1000,
@@ -247,13 +250,16 @@ namespace sw_api
 				string[] assembly_folders = Directory.GetDirectories(Path.Join(root_dir, "Parts"));
 				foreach (var dir in assembly_folders)
 				{
+					// get the part number
+					string? last_path_segment = dir.Split(new string[] { $"{Path.DirectorySeparatorChar}" }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+
 					// check if a 'Part-Fixture Assembly.sldasm' file exists in this folder
 					string file_name = "Part-Fixture Assembly.sldasm";
 					string file_path = Path.Join(dir, file_name);
-					if (File.Exists(file_path))
+					if (File.Exists(file_path) && last_path_segment != null)
 					{
-						assembly_data.Add(get_sensor_values_asm(file_path, file_name, "_asm", ref app));
-						Console.WriteLine($"Assembly: {dir}");
+						assembly_data.Add(get_sensor_values_asm(file_path, file_name, "_asm", last_path_segment, ref app));
+						Console.WriteLine($"Assembly: {last_path_segment}");
 					}
 				}
 
@@ -279,6 +285,21 @@ namespace sw_api
 				// close the solidworks application
 				app.CloseAllDocuments(true);
 				app.ExitApp();
+
+				// write the list of assembly clearances to a csv
+				using (var sw = new StreamWriter(Path.Join(output_dir, "assembly_clearances.csv")))
+				{
+					using (var csv = new CsvWriter(sw, CultureInfo.InvariantCulture))
+					{
+						csv.WriteHeader<clearance>();
+						csv.NextRecord();
+						foreach (var record in assembly_data)
+						{
+							csv.WriteRecord(record);
+							csv.NextRecord();
+						}
+					}
+				}
 				
 				// write the list of fixture clearances to a csv
 				using (var sw = new StreamWriter(Path.Join(output_dir, "fixture_clearances.csv")))

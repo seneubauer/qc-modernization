@@ -5,11 +5,11 @@ from os.path import join
 # import confidential values
 from sys import path
 path.insert(0, "..")
-from config import fix_root_dir, fix_path_dir
+from config import clr_root_dir, clr_path_dir
 
 # transform the arguments to an argument-friendly format
-arg_root_dir = "\"" + fix_root_dir + "\""
-arg_path_dir = "\"" + fix_path_dir + "\""
+arg_root_dir = "\"" + clr_root_dir + "\""
+arg_path_dir = "\"" + clr_path_dir + "\""
 arg_output_dir = "\"" + getcwd() + "\""
 
 # console argument
