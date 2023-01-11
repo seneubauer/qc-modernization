@@ -146,7 +146,9 @@ namespace sw_api
 			// extract the sensor features
 			try
 			{
-				Console.WriteLine($"Path: {file_path}");
+				// for some reason the assembly doc is always null
+				// it worked previously so now it's pretty confusing
+				// trying different combinations and checking file paths/names
 				Console.WriteLine($"Null: {sw_asm == null}");
 
 				Feature py_feature = (Feature)sw_asm.FeatureByName($"py{sensor_type}");
@@ -245,6 +247,13 @@ namespace sw_api
 			// only run the rest of the script if the solidworks application was properly started
 			if (app != null)
 			{
+				// // test the assembly reading
+				// var my_dir = "Q:\\Quality\\CMM\\1 CMM Hexagon\\Solid Models\\Parts\\23-2168";
+				// var test_file_name = "Part-Fixture Assembly.sldasm";
+				// var test_file_path = Path.Join(my_dir, test_file_name);
+				// var test_data = get_sensor_values_asm(test_file_path, test_file_name, "_asm", "23-2168", ref app);
+				// Console.WriteLine($"Output: {test_data.id}, {test_data.py}, {test_data.px}, {test_data.ny}, {test_data.nx}");
+
 				// get a list of the assembly clearances
 				List<clearance> assembly_data = new List<clearance>();
 				string[] assembly_folders = Directory.GetDirectories(Path.Join(root_dir, "Parts"));
