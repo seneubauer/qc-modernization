@@ -18,6 +18,8 @@ namespace sw_api
 	// define the macro class
 	public class sw_macro
 	{
+		static Dictionary<string, int> NegativeMap = new Dictionary<string, int>();
+
 		static clearance get_sensor_values_prt(string file_path, string file_name, string sensor_type, ref SldWorks app)
 		{
 			// define the null object
@@ -122,7 +124,7 @@ namespace sw_api
 			}
 		}
 
-		static clearance get_sensor_values_asm(string file_path, string file_name, string sensor_type, string id, ref SldWorks app)
+		static clearance get_sensor_values_asm(string file_path, string file_name, string sensor_type, string id, Dictionary<string, int> mapper, ref SldWorks app)
 		{
 			// define the null object
 			clearance null_object = new clearance
@@ -146,11 +148,6 @@ namespace sw_api
 			// extract the sensor features
 			try
 			{
-				// for some reason the assembly doc is always null
-				// it worked previously so now it's pretty confusing
-				// trying different combinations and checking file paths/names
-				Console.WriteLine($"Null: {sw_asm == null}");
-
 				Feature py_feature = (Feature)sw_asm.FeatureByName($"py{sensor_type}");
 				Feature px_feature = (Feature)sw_asm.FeatureByName($"px{sensor_type}");
 				Feature ny_feature = (Feature)sw_asm.FeatureByName($"ny{sensor_type}");
@@ -197,10 +194,10 @@ namespace sw_api
 					clearance output = new clearance
 					{
 						id = id,
-						py = py_data.SensorValue * 1000,
-						px = px_data.SensorValue * 1000,
-						ny = ny_data.SensorValue * 1000,
-						nx = nx_data.SensorValue * 1000
+						py = py_data.SensorValue * 1000 * mapper[py_data.GetDisplayDimension().GetLowerText()],
+						px = px_data.SensorValue * 1000 * mapper[px_data.GetDisplayDimension().GetLowerText()],
+						ny = ny_data.SensorValue * 1000 * mapper[ny_data.GetDisplayDimension().GetLowerText()],
+						nx = nx_data.SensorValue * 1000 * mapper[nx_data.GetDisplayDimension().GetLowerText()]
 					};
 
 					// release the resources
@@ -234,6 +231,10 @@ namespace sw_api
 		// define logic loop
 		static void Main(string[] args)
 		{
+			// define the negative map dictionary
+			NegativeMap.Add("n", -1);
+			NegativeMap.Add("", 1);
+
 			// interpret the initial arguments
 			string root_dir = args[0];
 			string path_dir = args[1];
@@ -251,7 +252,7 @@ namespace sw_api
 				// var my_dir = "Q:\\Quality\\CMM\\1 CMM Hexagon\\Solid Models\\Parts\\23-2168";
 				// var test_file_name = "Part-Fixture Assembly.sldasm";
 				// var test_file_path = Path.Join(my_dir, test_file_name);
-				// var test_data = get_sensor_values_asm(test_file_path, test_file_name, "_asm", "23-2168", ref app);
+				// var test_data = get_sensor_values_asm(test_file_path, test_file_name, "_asm", "23-2168", NegativeMap, ref app);
 				// Console.WriteLine($"Output: {test_data.id}, {test_data.py}, {test_data.px}, {test_data.ny}, {test_data.nx}");
 
 				// get a list of the assembly clearances
@@ -267,7 +268,7 @@ namespace sw_api
 					string file_path = Path.Join(dir, file_name);
 					if (File.Exists(file_path) && last_path_segment != null)
 					{
-						assembly_data.Add(get_sensor_values_asm(file_path, file_name, "_asm", last_path_segment, ref app));
+						assembly_data.Add(get_sensor_values_asm(file_path, file_name, "_asm", last_path_segment, NegativeMap, ref app));
 						Console.WriteLine($"Assembly: {last_path_segment}");
 					}
 				}
