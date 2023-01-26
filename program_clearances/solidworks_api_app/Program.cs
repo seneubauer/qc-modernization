@@ -13,6 +13,8 @@ namespace sw_api
 		public double px { get; set; }
 		public double ny { get; set; }
 		public double nx { get; set; }
+		public string? anchor_dir { get; set; }
+		public double anchor_val { get; set; }
 	}
 
 	// define the macro class
@@ -84,6 +86,15 @@ namespace sw_api
 				if (ny != null) { ny_data = (DimensionSensorData)ny.GetSensorFeatureData(); }
 				if (nx != null) { nx_data = (DimensionSensorData)nx.GetSensorFeatureData(); }
 
+				// get the anchor metric
+				Feature sw_comments_feature = (Feature)sw_part.FeatureByName("Comments");
+				CommentFolder sw_comment_folder = (CommentFolder)sw_comments_feature.GetSpecificFeature2();
+				object[] sw_comments = (object[])sw_comment_folder.GetComments();
+				string raw_comment = ((Comment)sw_comments[0]).Text;
+				string[] comment_split = raw_comment.Split(",");
+				string anchor_dir = comment_split[0];
+				double anchor_val = double.Parse(comment_split[1]);
+
 				// create the output object
 				if (py_data != null && px_data != null && ny_data != null && nx_data != null)
 				{
@@ -93,11 +104,13 @@ namespace sw_api
 						py = py_data.SensorValue * 1000,
 						px = px_data.SensorValue * 1000,
 						ny = ny_data.SensorValue * 1000,
-						nx = nx_data.SensorValue * 1000
+						nx = nx_data.SensorValue * 1000,
+						anchor_dir = anchor_dir,
+						anchor_val = anchor_val
 					};
 
 					// release the resources
-					app.CloseDoc(file_name + ".sldprt");
+					app.CloseAllDocuments(true);
 
 					// return the results
 					return output;
@@ -105,7 +118,7 @@ namespace sw_api
 				else
 				{
 					// release the resources
-					app.CloseDoc(file_name + ".sldprt");
+					app.CloseAllDocuments(true);
 
 					// return the null result
 					return null_object;
@@ -117,7 +130,7 @@ namespace sw_api
 				Console.WriteLine($"{file_name}: {e.Message}");
 
 				// release the resources
-				app.CloseDoc(file_name + ".sldprt");
+				app.CloseAllDocuments(true);
 
 				// return null results
 				return null_object;
@@ -201,7 +214,7 @@ namespace sw_api
 					};
 
 					// release the resources
-					app.CloseDoc(file_name + ".sldasm");
+					app.CloseAllDocuments(true);
 
 					// return the results
 					return output;
@@ -209,7 +222,7 @@ namespace sw_api
 				else
 				{
 					// release the resources
-					app.CloseDoc(file_name + ".sldasm");
+					app.CloseAllDocuments(true);
 
 					// return the null result
 					return null_object;
@@ -221,7 +234,7 @@ namespace sw_api
 				Console.WriteLine($"{file_name}: {e.Message}");
 
 				// release the resources
-				app.CloseDoc(file_name + ".sldasm");
+				app.CloseAllDocuments(true);
 
 				// return null results
 				return null_object;
@@ -248,15 +261,8 @@ namespace sw_api
 			// only run the rest of the script if the solidworks application was properly started
 			if (app != null)
 			{
-				// // test the assembly reading
-				// var my_dir = "Q:\\Quality\\CMM\\1 CMM Hexagon\\Solid Models\\Parts\\23-2168";
-				// var test_file_name = "Part-Fixture Assembly.sldasm";
-				// var test_file_path = Path.Join(my_dir, test_file_name);
-				// var test_data = get_sensor_values_asm(test_file_path, test_file_name, "_asm", "23-2168", NegativeMap, ref app);
-				// Console.WriteLine($"Output: {test_data.id}, {test_data.py}, {test_data.px}, {test_data.ny}, {test_data.nx}");
-
 				// get a list of the assembly clearances
-				List<clearance> assembly_data = new List<clearance>();
+				List<clearance> part_data = new List<clearance>();
 				string[] assembly_folders = Directory.GetDirectories(Path.Join(root_dir, "Parts"));
 				foreach (var dir in assembly_folders)
 				{
@@ -264,12 +270,12 @@ namespace sw_api
 					string? last_path_segment = dir.Split(new string[] { $"{Path.DirectorySeparatorChar}" }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
 
 					// check if a 'Part-Fixture Assembly.sldasm' file exists in this folder
-					string file_name = "Part-Fixture Assembly.sldasm";
-					string file_path = Path.Join(dir, file_name);
+					string file_name = "Part-Fixture Assembly";
+					string file_path = Path.Join(dir, file_name + ".sldasm");
 					if (File.Exists(file_path) && last_path_segment != null)
 					{
-						assembly_data.Add(get_sensor_values_asm(file_path, file_name, "_asm", last_path_segment, NegativeMap, ref app));
-						Console.WriteLine($"Assembly: {last_path_segment}");
+						part_data.Add(get_sensor_values_asm(file_path, file_name, "_asm", last_path_segment, NegativeMap, ref app));
+						Console.WriteLine($"Part: {last_path_segment}");
 					}
 				}
 
@@ -296,21 +302,21 @@ namespace sw_api
 				app.CloseAllDocuments(true);
 				app.ExitApp();
 
-				// write the list of assembly clearances to a csv
-				using (var sw = new StreamWriter(Path.Join(output_dir, "assembly_clearances.csv")))
+				// write the list of part clearances to a csv
+				using (var sw = new StreamWriter(Path.Join(output_dir, "part_clearances.csv")))
 				{
 					using (var csv = new CsvWriter(sw, CultureInfo.InvariantCulture))
 					{
 						csv.WriteHeader<clearance>();
 						csv.NextRecord();
-						foreach (var record in assembly_data)
+						foreach (var record in part_data)
 						{
 							csv.WriteRecord(record);
 							csv.NextRecord();
 						}
 					}
 				}
-				
+
 				// write the list of fixture clearances to a csv
 				using (var sw = new StreamWriter(Path.Join(output_dir, "fixture_clearances.csv")))
 				{
