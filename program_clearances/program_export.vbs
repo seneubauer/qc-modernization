@@ -16,7 +16,6 @@ else
     dim pc_dmis
     set pc_dmis = CreateObject("PCDLRN.Application")
     pc_dmis.visible = False
-    msgbox("pc-dmis has been initialized")
 
     ' iterate through all the subfolders in the source directory
     dim file_name
@@ -36,8 +35,5 @@ else
 
     ' close the pc-dmis instance
     pc_dmis.quit
-
-    ' signal the all clear
-    msgbox("Script completed")
 
 end if
