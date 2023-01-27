@@ -21,7 +21,7 @@ def extract_probe_info(file_path:str) -> dict:
     # read the file contents
     with open(file_path, "r", encoding = "utf-8") as file:
         file_contents = file.read()
-    
+
     # instantiate a beautifulsoup object
     bs = BeautifulSoup(file_contents, "xml")
 
@@ -54,9 +54,10 @@ def extract_probe_info(file_path:str) -> dict:
             output_dict["drawing"] = str(feature.find_all("DataField")[0].get("Value"))
             output_dict["revision"] = str(feature.find_all("DataField")[1].get("Value"))
         elif feature_type == "Recall Alignment":
-            output_dict["fixture"] = str(feature.find_all("DataField")[2].get("Value"))
+            if str(feature.find_all("DataField")[0].get("Value")).lower() == "external":
+                output_dict["fixture"] = str(feature.find_all("DataField")[2].get("Value"))
         elif feature_type == "Load Probe":
-            current_probe = str(feature.find_all("DataField")[0].get("Value"))
+            current_probe = str(feature.find_all("DataField")[0].get("Value")).lower()
             probe_length = probe_dict[current_probe]
         elif feature_type == "Set Active Tip":
             tip_str = str(feature.find_all("DataField")[0].get("Value"))
@@ -85,6 +86,6 @@ def extract_probe_info(file_path:str) -> dict:
             measurement_index += 1
             if measurement_index == measurement_count:
                 break
-    
+
     # return the modified output dictionary
     return output_dict
