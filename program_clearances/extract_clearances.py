@@ -14,7 +14,7 @@ pcdmis_arg_source = pc_raw_source.replace(" ", "%")
 pcdmis_arg_export = pc_raw_export.replace(" ", "%")
 sldwks_arg_root_dir = f"\"{clr_root_dir}\""
 sldwks_arg_path_dir = f"\"{clr_path_dir}\""
-sldwks_arg_output_dir = f"\"{getcwd()}\""
+sldwks_arg_output_dir = f"\"{join(getcwd(), 'data')}\""
 
 # console arguments
 pcdmis_arg = f"program_export.vbs {pcdmis_arg_source} {pcdmis_arg_export}"
@@ -72,4 +72,4 @@ df = pd.DataFrame({
 })
 
 # save to file
-df.to_csv("path_clearances.csv", index = False)
+df.to_csv(join("data", "path_clearances.csv"), index = False)
