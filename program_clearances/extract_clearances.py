@@ -3,6 +3,7 @@ from os import system, getcwd, listdir
 from os.path import join, isfile
 from clearance_functions import extract_probe_info
 import pandas as pd
+import datetime
 
 # import confidential values
 from sys import path
@@ -37,6 +38,7 @@ all_files = listdir(pc_raw_export)
 filtered_files = list(filter(lambda item: isfile(join(pc_raw_export, item)) and item[-len(ext):].lower() == ext, all_files))
 
 # initialize the target lists
+name_arr = []
 drawing_arr = []
 revision_arr = []
 fixture_arr = []
@@ -48,10 +50,13 @@ nx_arr = []
 # iterate through the available files
 for file in filtered_files:
 
+    print(file)
+
     # extract the current program's data
     data = extract_probe_info(join(pc_raw_export, file))
 
     # assemble lists
+    name_arr.append(f"{data['drawing']} - {data['revision']}")
     drawing_arr.append(data["drawing"])
     revision_arr.append(data["revision"])
     fixture_arr.append(data["fixture"])
@@ -70,6 +75,14 @@ df = pd.DataFrame({
     "ny": ny_arr,
     "nx": nx_arr
 })
+
+# add static columns to the dataframe
+df["developer_notes"] = ""
+df["operator_notes"] = ""
+df["requires_attn"] = 0
+df["requires_proof"] = 1
+df["start_date"] = datetime.date.strftime(datetime.date(1900, 1, 1))
+df["finish_date"] = ""
 
 # save to file
 df.to_csv(join("data", "path_clearances.csv"), index = False)

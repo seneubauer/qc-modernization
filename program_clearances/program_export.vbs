@@ -26,6 +26,7 @@ else
         for each file in fso.GetFolder(folder.Path).Files
             if LCase(file.type) = "pc-dmis measurement routine file" then
                 file_name = fso.buildpath(export_dir, Split(file.name, ".")(0) + ".xml")
+                WScript.Echo file_name
                 set part = pc_dmis.partprograms.open(file.path, "Offline")
                 part.exporttoxml(file_name)
                 part.close

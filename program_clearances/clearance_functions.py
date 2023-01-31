@@ -1,6 +1,5 @@
 # import dependencies
 from bs4 import BeautifulSoup
-from os.path import join
 from math import sin, cos, pi
 
 # import confidential information

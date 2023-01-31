@@ -5,16 +5,30 @@ using System.Globalization;
 
 namespace sw_api
 {
-	// define the data object
-	public class clearance
+	// define the data objects
+	public class fixture
 	{
 		public string? id { get; set; }
 		public double py { get; set; }
 		public double px { get; set; }
 		public double ny { get; set; }
 		public double nx { get; set; }
+		public string? developer_notes { get; set; }
+		public string? operator_notes { get; set; }
 		public string? anchor_dir { get; set; }
 		public double anchor_val { get; set; }
+	}
+
+	public class part
+	{
+		public string? id { get; set; }
+		public double py { get; set; }
+		public double px { get; set; }
+		public double ny { get; set; }
+		public double nx { get; set; }
+		public string? revision { get; set; }
+		public string? developer_notes { get; set; }
+		public string? operator_notes { get; set; }
 	}
 
 	// define the macro class
@@ -22,10 +36,10 @@ namespace sw_api
 	{
 		static Dictionary<string, int> NegativeMap = new Dictionary<string, int>();
 
-		static clearance get_sensor_values_prt(string file_path, string file_name, string sensor_type, ref SldWorks app)
+		static fixture get_sensor_values_fixture(string file_path, string file_name, string sensor_type, ref SldWorks app)
 		{
 			// define the null object
-			clearance null_object = new clearance
+			fixture null_object = new fixture
 			{
 				id = file_name,
 				py = 0,
@@ -98,7 +112,7 @@ namespace sw_api
 				// create the output object
 				if (py_data != null && px_data != null && ny_data != null && nx_data != null)
 				{
-					clearance output = new clearance
+					fixture output = new fixture
 					{
 						id = file_name,
 						py = py_data.SensorValue * 1000,
@@ -137,10 +151,10 @@ namespace sw_api
 			}
 		}
 
-		static clearance get_sensor_values_asm(string file_path, string file_name, string sensor_type, string id, Dictionary<string, int> mapper, ref SldWorks app)
+		static part get_sensor_values_part(string file_path, string file_name, string sensor_type, string id, Dictionary<string, int> mapper, ref SldWorks app)
 		{
 			// define the null object
-			clearance null_object = new clearance
+			part null_object = new part
 			{
 				id = id,
 				py = 0,
@@ -201,12 +215,26 @@ namespace sw_api
 				if (ny != null) { ny_data = (DimensionSensorData)ny.GetSensorFeatureData(); }
 				if (nx != null) { nx_data = (DimensionSensorData)nx.GetSensorFeatureData(); }
 
+				// extract the revision
+				object[] sw_components = (object[])sw_asm.GetComponents(true);
+				string? revision = "";
+				foreach (var obj in sw_components)
+				{
+					Component2 sw_component = (Component2)obj;
+					if (sw_component.Name2.Contains("_"))
+					{
+						revision = sw_component.Name2.Split("_").Last().Trim();
+						break;
+					}
+				}
+
 				// create the output object
 				if (py_data != null && px_data != null && ny_data != null && nx_data != null)
 				{
-					clearance output = new clearance
+					part output = new part
 					{
 						id = id,
+						revision = revision,
 						py = py_data.SensorValue * 1000 * mapper[py_data.GetDisplayDimension().GetLowerText()],
 						px = px_data.SensorValue * 1000 * mapper[px_data.GetDisplayDimension().GetLowerText()],
 						ny = ny_data.SensorValue * 1000 * mapper[ny_data.GetDisplayDimension().GetLowerText()],
@@ -262,7 +290,7 @@ namespace sw_api
 			if (app != null)
 			{
 				// get a list of the assembly clearances
-				List<clearance> part_data = new List<clearance>();
+				List<part> part_data = new List<part>();
 				string[] assembly_folders = Directory.GetDirectories(Path.Join(root_dir, "Parts"));
 				foreach (var dir in assembly_folders)
 				{
@@ -274,13 +302,13 @@ namespace sw_api
 					string file_path = Path.Join(dir, file_name + ".sldasm");
 					if (File.Exists(file_path) && last_path_segment != null)
 					{
-						part_data.Add(get_sensor_values_asm(file_path, file_name, "_asm", last_path_segment, NegativeMap, ref app));
+						part_data.Add(get_sensor_values_part(file_path, file_name, "_asm", last_path_segment, NegativeMap, ref app));
 						Console.WriteLine($"Part: {last_path_segment}");
 					}
 				}
 
 				// get a list of the fixture clearances
-				List<clearance> fixture_data = new List<clearance>();
+				List<fixture> fixture_data = new List<fixture>();
 				string[] fixture_folders = Directory.GetDirectories(Path.Join(root_dir, "Fixtures"));
 				foreach (var dir in fixture_folders)
 				{
@@ -292,7 +320,7 @@ namespace sw_api
 						{
 							var file_name = Path.GetFileName(file_names[0]).Split(".")[0];
 							var file_path = Path.Join(path_dir, file_name, file_name + ".sldprt");
-							fixture_data.Add(get_sensor_values_prt(file_path, file_name, "", ref app));
+							fixture_data.Add(get_sensor_values_fixture(file_path, file_name, "", ref app));
 							Console.WriteLine($"Fixture: {file_name}");
 						}
 					}
@@ -303,11 +331,11 @@ namespace sw_api
 				app.ExitApp();
 
 				// write the list of part clearances to a csv
-				using (var sw = new StreamWriter(Path.Join(output_dir, "part_clearances.csv")))
+				using (var sw = new StreamWriter(Path.Join(output_dir, "part_data.csv")))
 				{
 					using (var csv = new CsvWriter(sw, CultureInfo.InvariantCulture))
 					{
-						csv.WriteHeader<clearance>();
+						csv.WriteHeader<part>();
 						csv.NextRecord();
 						foreach (var record in part_data)
 						{
@@ -318,11 +346,11 @@ namespace sw_api
 				}
 
 				// write the list of fixture clearances to a csv
-				using (var sw = new StreamWriter(Path.Join(output_dir, "fixture_clearances.csv")))
+				using (var sw = new StreamWriter(Path.Join(output_dir, "fixture_data.csv")))
 				{
 					using (var csv = new CsvWriter(sw, CultureInfo.InvariantCulture))
 					{
-						csv.WriteHeader<clearance>();
+						csv.WriteHeader<fixture>();
 						csv.NextRecord();
 						foreach (var record in fixture_data)
 						{
