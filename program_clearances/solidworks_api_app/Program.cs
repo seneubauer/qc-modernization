@@ -223,7 +223,7 @@ namespace sw_api
 					Component2 sw_component = (Component2)obj;
 					if (sw_component.Name2.Contains("_"))
 					{
-						revision = sw_component.Name2.Split("_").Last().Trim();
+						revision = sw_component.Name2.Split("_").Last().Trim().Split("-").First();
 						break;
 					}
 				}

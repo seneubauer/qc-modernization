@@ -1,7 +1,6 @@
 if WScript.Arguments.Count = 0 then
     msgbox("no arguments")
 else
-
     ' bring in the initial arguments
     dim source_dir
     dim export_dir
@@ -26,7 +25,7 @@ else
         for each file in fso.GetFolder(folder.Path).Files
             if LCase(file.type) = "pc-dmis measurement routine file" then
                 file_name = fso.buildpath(export_dir, Split(file.name, ".")(0) + ".xml")
-                WScript.Echo file_name
+                WScript.echo file_name
                 set part = pc_dmis.partprograms.open(file.path, "Offline")
                 part.exporttoxml(file_name)
                 part.close
