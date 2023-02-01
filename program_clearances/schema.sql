@@ -29,7 +29,8 @@ create table parts
 	px float not null,
 	ny float not null,
 	nx float not null,
-	revision text not null,
+	revision varchar(10) not null,
+	item varchar(30) not null,
 	developer_notes text,
 	operator_notes text,
 	constraint parts_pk primary key (id)
