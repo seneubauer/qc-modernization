@@ -12,7 +12,7 @@ from config import pc_raw_source, pc_raw_export, clr_root_dir, clr_path_dir
 
 # define steps in use
 pcdmis_export = False
-sldwks_import = True
+sldwks_import = False
 pcdmis_import = True
 
 # transform arguments to a Windows friendly format
@@ -50,6 +50,7 @@ if pcdmis_import:
     drawing_arr = []
     revision_arr = []
     fixture_arr = []
+    item_arr = []
     py_arr = []
     px_arr = []
     ny_arr = []
@@ -68,6 +69,7 @@ if pcdmis_import:
         drawing_arr.append(data["drawing"])
         revision_arr.append(data["revision"])
         fixture_arr.append(data["fixture"])
+        item_arr.append(data["item"])
         py_arr.append(data["py"])
         px_arr.append(data["px"])
         ny_arr.append(data["ny"])
@@ -79,6 +81,7 @@ if pcdmis_import:
         "drawing": drawing_arr,
         "revision": revision_arr,
         "fixture": fixture_arr,
+        "item": item_arr,
         "py": py_arr,
         "px": px_arr,
         "ny": ny_arr,
@@ -90,7 +93,7 @@ if pcdmis_import:
     df["operator_notes"] = ""
     df["requires_attn"] = 0
     df["requires_proof"] = 1
-    df["start_date"] = datetime.date.strftime(datetime.date(1900, 1, 1))
+    df["start_date"] = datetime.date.strftime(datetime.date(1900, 1, 1), "%Y-%m-%d")
     df["finish_date"] = ""
 
     # save to file

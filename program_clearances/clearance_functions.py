@@ -29,6 +29,7 @@ def extract_probe_info(file_path:str) -> dict:
         "drawing": "empty",
         "revision": "empty",
         "fixture": "empty",
+        "item": "empty",
         "py": 0,
         "px": 0,
         "ny": 0,
@@ -52,6 +53,7 @@ def extract_probe_info(file_path:str) -> dict:
         if feature_type == "File Header":
             output_dict["drawing"] = str(feature.find_all("DataField")[0].get("Value"))
             output_dict["revision"] = str(feature.find_all("DataField")[1].get("Value"))
+            output_dict["item"] = str(feature.find_all("DataField")[2].get("Value"))
         elif feature_type == "Recall Alignment":
             if str(feature.find_all("DataField")[0].get("Value")).lower() == "external":
                 output_dict["fixture"] = str(feature.find_all("DataField")[2].get("Value"))
