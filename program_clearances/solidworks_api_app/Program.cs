@@ -222,7 +222,7 @@ namespace sw_api
 				foreach (var obj in sw_components)
 				{
 					Component2 sw_component = (Component2)obj;
-					if (sw_component.Name2.Contains("_"))
+					if (sw_component.Name2.Contains("_REV_"))
 					{
 						revision = sw_component.Name2.Split("_").Last().Trim().Split("-").First();
 						break;
