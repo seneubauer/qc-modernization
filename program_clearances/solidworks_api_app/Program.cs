@@ -27,6 +27,7 @@ namespace sw_api
 		public double ny { get; set; }
 		public double nx { get; set; }
 		public string? revision { get; set; }
+		public string? item { get; set; }
 		public string? developer_notes { get; set; }
 		public string? operator_notes { get; set; }
 	}
@@ -228,6 +229,12 @@ namespace sw_api
 					}
 				}
 
+				// get the anchor metric
+				Feature sw_comments_feature = (Feature)sw_asm.FeatureByName("Comments");
+				CommentFolder sw_comment_folder = (CommentFolder)sw_comments_feature.GetSpecificFeature2();
+				object[] sw_comments = (object[])sw_comment_folder.GetComments();
+				string item = ((Comment)sw_comments[0]).Text;
+
 				// create the output object
 				if (py_data != null && px_data != null && ny_data != null && nx_data != null)
 				{
@@ -235,6 +242,7 @@ namespace sw_api
 					{
 						id = id,
 						revision = revision,
+						item = item,
 						py = py_data.SensorValue * 1000 * mapper[py_data.GetDisplayDimension().GetLowerText()],
 						px = px_data.SensorValue * 1000 * mapper[px_data.GetDisplayDimension().GetLowerText()],
 						ny = ny_data.SensorValue * 1000 * mapper[ny_data.GetDisplayDimension().GetLowerText()],
@@ -280,7 +288,7 @@ namespace sw_api
 			string root_dir = args[0];
 			string path_dir = args[1];
 			string output_dir = args[2];
-			
+
 			// initialize the solidworks application
 			Type? app_type = Type.GetTypeFromProgID("SldWorks.Application.30");
 			SldWorks? app = null;
@@ -319,9 +327,10 @@ namespace sw_api
 						if (file_names.Count > 0)
 						{
 							var file_name = Path.GetFileName(file_names[0]).Split(".")[0];
+							var visible_name = new DirectoryInfo(dir).Name;
 							var file_path = Path.Join(path_dir, file_name, file_name + ".sldprt");
-							fixture_data.Add(get_sensor_values_fixture(file_path, file_name, "", ref app));
-							Console.WriteLine($"Fixture: {file_name}");
+							fixture_data.Add(get_sensor_values_fixture(file_path, visible_name, "", ref app));
+							Console.WriteLine($"Fixture: {visible_name}");
 						}
 					}
 				}

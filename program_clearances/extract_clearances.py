@@ -69,7 +69,6 @@ if pcdmis_import:
         drawing_arr.append(data["drawing"])
         revision_arr.append(data["revision"])
         fixture_arr.append(data["fixture"])
-        item_arr.append(data["item"])
         py_arr.append(data["py"])
         px_arr.append(data["px"])
         ny_arr.append(data["ny"])
@@ -81,7 +80,6 @@ if pcdmis_import:
         "drawing": drawing_arr,
         "revision": revision_arr,
         "fixture": fixture_arr,
-        "item": item_arr,
         "py": py_arr,
         "px": px_arr,
         "ny": ny_arr,
@@ -97,4 +95,4 @@ if pcdmis_import:
     df["finish_date"] = ""
 
     # save to file
-    df.to_csv(join("data", "path_clearances.csv"), index = False)
+    df.to_csv(join("data", "program_data.csv"), index = False)
