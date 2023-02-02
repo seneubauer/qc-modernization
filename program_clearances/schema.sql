@@ -30,10 +30,21 @@ create table parts
 	ny float not null,
 	nx float not null,
 	revision varchar(10) not null,
-	item varchar(30) not null,
+	item varchar(20) not null,
 	developer_notes text,
 	operator_notes text,
 	constraint parts_pk primary key (id)
+);
+
+-- create a table for requested programs
+create table requests
+(
+	id int not null unique,
+	drawing varchar(20) not null unique,
+	item varchar(20) not null unique,
+	request_date date not null,
+	notes text,
+	constraint requests_pk primary key (id)
 );
 
 -- create a table for programs
@@ -44,7 +55,7 @@ create table programs
 	px float not null,
 	ny float not null,
 	nx float not null,
-	name varchar(30) not null unique,
+	name varchar(20) not null unique,
 	part varchar(20) foreign key references parts(id),
 	fixture varchar(20) foreign key references fixtures(id),
 	developer_notes text,
