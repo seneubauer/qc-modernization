@@ -1,142 +1,174 @@
 # import dependencies
-from sqlalchemy import create_engine, ForeignKey, UniqueConstraint, Column, Integer, Text, Float, Boolean
-from sqlalchemy_utils import database_exists, create_database
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.engine.base import Engine
 from os.path import join
 import pandas as pd
+import datetime
 
 # instantiate the base
 Base = declarative_base()
 
-# define the tables
-class Direction_Types(Base):
-    __tablename__ = "dir_types"
-    uid = Column(Text, nullable = False, unique = True, primary_key = True)
+# connect to the mssql server
+def db_connect(conn_str:str) -> dict:
 
-class Fixtures(Base):
-    __tablename__ = "fixtures"
-    uid = Column(Text, nullable = False, unique = True, primary_key = True)
-    anchor_dir = Column(Text, ForeignKey("dir_types.uid"), nullable = False)
-    anchor_val = Column(Float, nullable = False)
-    py = Column(Float, nullable = False)
-    px = Column(Float, nullable = False)
-    ny = Column(Float, nullable = False)
-    nx = Column(Float, nullable = False)
+    # create the engine
+    engine = create_engine(conn_str, echo = False)
 
-class Parts(Base):
-    __tablename__ = "parts"
-    uid = Column(Text, nullable = False, unique = True, primary_key = True)
-    py = Column(Float, nullable = False)
-    px = Column(Float, nullable = False)
-    ny = Column(Float, nullable = False)
-    nx = Column(Float, nullable = False)
+    # reflect the existing database into tables
+    Base = automap_base()
+    Base.prepare(engine, reflect = True)
 
-class Programs(Base):
-    __tablename__ = "programs"
-    uid = Column(Integer, nullable = False, unique = True, primary_key = True)
-    drawing = Column(Text, ForeignKey("parts.uid"), nullable = False)
-    revision = Column(Text, nullable = False)
-    fixture = Column(Text, ForeignKey("fixtures.uid"), nullable = True)
-    py = Column(Float, nullable = False)
-    px = Column(Float, nullable = False)
-    ny = Column(Float, nullable = False)
-    nx = Column(Float, nullable = False)
-    requires_attention = Column(Boolean, nullable = False)
-    operator_notes = Column(Text)
-    developer_notes = Column(Text)
-    __tableargs__ = (
-        UniqueConstraint(drawing, revision)
-    )
+    # assign the tables to variables
+    dir_types = Base.classes.dir_types
+    fixtures = Base.classes.fixtures
+    parts = Base.classes.parts
+    requests = Base.classes.requests
+    programs = Base.classes.programs
 
-# create the database and its tables
-def db_create(db_path:str) -> Engine:
-
-    # create the database if it doesn't already exist
-    engine = create_engine(f"sqlite:///{db_path}", echo = False)
-    if not database_exists(engine.url):
-        create_database(engine.url)
-
-    # create the tables
-    Base.metadata.create_all(engine)
-
-    # return the database engine
-    return engine
+    # return the object dictionary
+    return {
+        "engine": engine,
+        "tables": [dir_types, fixtures, parts, requests, programs]
+    }
 
 # populate the database's tables
-def db_populate(data_path:str, engine:Engine):
+def db_populate(data_path:str, engine:Engine, tables:list):
 
     # import the cleaned data
-    fixture_df = pd.read_csv(join(data_path, "fixture_clearances.csv"))
-    part_df = pd.read_csv(join(data_path, "part_clearances.csv"))
-    path_df = pd.read_csv(join(data_path, "path_clearances.csv"))
-
-    # relfect the database
-    base = automap_base()
-    base.prepare(engine, reflect = True)
+    fixture_df = pd.read_csv(join(data_path, "fixture_data.csv"))
+    part_df = pd.read_csv(join(data_path, "part_data.csv"))
+    path_df = pd.read_csv(join(data_path, "program_data.csv"))
 
     # instantiate the database tables
-    dir_types = base.classes.dir_types
-    fixtures = base.classes.fixtures
-    parts = base.classes.parts
-    programs = base.classes.programs
+    dir_types = tables[0]
+    fixtures = tables[1]
+    parts = tables[2]
+    programs = tables[4]
 
     # create the session
     session = Session(engine)
 
-    # add the direction types
-    my_query = session.query(dir_types.uid).filter(dir_types.uid == "py").first()
-    if my_query is None:
-        session.add(dir_types(uid = "py"))
-        session.add(dir_types(uid = "px"))
-        session.add(dir_types(uid = "ny"))
-        session.add(dir_types(uid = "nx"))
+    my_query = session.query(*[dir_types.id, dir_types.dir_type]).all()
+    dir_dict = {}
+    for t in my_query:
+        dir_dict[t[1]] = t[0]
 
     # add data from the fixture dataframe
     for index, row in fixture_df.iterrows():
 
-        my_uid = str(row["id"])
-        my_anchor_dir = str(row["anchor_dir"])
+        my_id = str(row["id"])
+        my_anchor_dir = dir_dict[str(row["anchor_dir"])]
         my_anchor_val = float(row["anchor_val"])
         my_py = float(row["py"])
         my_px = float(row["px"])
         my_ny = float(row["ny"])
         my_nx = float(row["nx"])
-        my_query = session.query(fixtures.uid).filter(fixtures.uid == my_uid).first()
 
-        if my_query is None:
-            session.add(fixtures(uid = my_uid, anchor_dir = my_anchor_dir, anchor_val = my_anchor_val, py = my_py, px = my_px, ny = my_ny, nx = my_nx))
+        if session.query(fixtures.id).filter(fixtures.id == my_id).first() is None:
+            session.add(fixtures(
+                id = my_id,
+                anchor_dir = my_anchor_dir,
+                anchor_val = my_anchor_val,
+                py = my_py,
+                px = my_px,
+                ny = my_ny,
+                nx = my_nx,
+                developer_notes = "",
+                operator_notes = ""
+            ))
+        else:
+            session.query(fixtures).filter(fixtures.id == my_id).update({
+                "anchor_dir": my_anchor_dir,
+                "anchor_val": my_anchor_val,
+                "py": my_py,
+                "px": my_px,
+                "ny": my_ny,
+                "nx": my_nx
+            })
 
     # add data from the part dataframe
     for index, row in part_df.iterrows():
 
-        my_uid = str(row["id"])
+        my_id = str(row["id"])
+        my_revision = str(row["revision"])
+        my_item = str(row["item"])
         my_py = float(row["py"])
         my_px = float(row["px"])
         my_ny = float(row["ny"])
         my_nx = float(row["nx"])
-        my_query = session.query(parts.uid).filter(parts.uid == my_uid).first()
 
-        if my_query is None:
-            session.add(parts(uid = my_uid, py = my_py, px = my_px, ny = my_ny, nx = my_nx))
+        if session.query(parts.id).filter(parts.id == my_id).first() is None:
+            session.add(parts(
+                id = my_id,
+                revision = my_revision,
+                item = my_item,
+                py = my_py,
+                px = my_px,
+                ny = my_ny,
+                nx = my_nx,
+                developer_notes = "",
+                operator_notes = ""
+            ))
+        else:
+            session.query(parts).filter(parts.id == my_id).update({
+                "py": my_py,
+                "px": my_px,
+                "ny": my_ny,
+                "nx": my_nx,
+                "revision": my_revision,
+                "item": my_item
+            })
 
     # add data from the paths/program dataframe
     index = 0
     for index, row in path_df.iterrows():
 
-        my_drawing = str(row["drawing"])
-        my_revision = str(row["revision"])
+        my_name = str(row["name"])
+        my_part = str(row["drawing"])
         my_fixture = str(row["fixture"])
         my_py = float(row["py"])
         my_px = float(row["px"])
         my_ny = float(row["ny"])
         my_nx = float(row["nx"])
-        my_query = session.query(*[programs.drawing, programs.revision]).filter(programs.drawing == my_drawing).filter(programs.revision == my_revision).first()
+        my_attn = int(row["requires_attn"])
+        my_proof = int(row["requires_proof"])
+        my_start = datetime.date(int(row["start_year"]), int(row["start_month"]), int(row["start_day"]))
+        my_finish = datetime.date(int(row["finish_year"]), int(row["finish_month"]), int(row["finish_day"]))
 
-        if my_query is None:
-            session.add(programs(uid = index, drawing = my_drawing, revision = my_revision, fixture = my_fixture, py = my_py, px = my_px, ny = my_ny, nx = my_nx, requires_attention = False))
+        if session.query(*[programs.id, programs.name]).filter(programs.id == index).filter(programs.name == my_name).first() is None:
+            session.add(programs(
+                id = index,
+                py = my_py,
+                px = my_px,
+                ny = my_ny,
+                nx = my_nx,
+                name = my_name,
+                part = my_part,
+                fixture = my_fixture,
+                requires_attn = my_attn,
+                requires_proof = my_proof,
+                start_date = my_start,
+                finish_date = my_finish,
+                developer_notes = "",
+                operator_notes = ""
+            ))
+        else:
+            session.query(programs).filter(programs.id == my_id).update({
+                "py": my_py,
+                "px": my_px,
+                "ny": my_ny,
+                "nx": my_nx,
+                "name": my_name,
+                "part": my_part,
+                "fixture": my_fixture,
+                "requires_attn": my_attn,
+                "requires_proof": my_proof,
+                "start_date": my_start,
+                "finish_date": my_finish
+            })
 
         index += 1
     
