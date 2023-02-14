@@ -37,8 +37,46 @@ namespace sw_api
 	{
 		static Dictionary<string, int> NegativeMap = new Dictionary<string, int>();
 
+		static SldWorks? manage_memory(SldWorks in_app, Type? app_type, long reset_threshold)
+		{
+			var proc = System.Diagnostics.Process.GetProcessById(in_app.GetProcessID());
+			var mb_used = (proc.PrivateMemorySize64 / 1024) / 1024;
+
+			// solidworks is using too much memory (ty for the persistent memory leak, SW/SWAPI)
+			if (mb_used >= reset_threshold)
+			{
+				// close all documents used by solidworks
+				in_app.CloseAllDocuments(true);
+
+				// exit the app using the api
+				in_app.ExitApp();
+
+				// kill the application
+				proc.Kill();
+
+				// alert the user
+				Console.WriteLine("Restarting Solidworks...");
+
+				// restart the application
+				if (app_type != null)
+				{
+					return (SldWorks?)Activator.CreateInstance(app_type);
+				}
+				else
+				{
+					return in_app;
+				}
+			}
+			else
+			{
+				return in_app;
+			}
+		}
+
 		static fixture get_sensor_values_fixture(string file_path, string file_name, string sensor_type, ref SldWorks app)
 		{
+			string doc_name = Path.GetFileName(file_path);
+
 			// define the null object
 			fixture null_object = new fixture
 			{
@@ -125,7 +163,7 @@ namespace sw_api
 					};
 
 					// release the resources
-					app.CloseAllDocuments(true);
+					app.QuitDoc(doc_name);
 
 					// return the results
 					return output;
@@ -133,7 +171,7 @@ namespace sw_api
 				else
 				{
 					// release the resources
-					app.CloseAllDocuments(true);
+					app.QuitDoc(doc_name);
 
 					// return the null result
 					return null_object;
@@ -145,7 +183,7 @@ namespace sw_api
 				Console.WriteLine($"{file_name}: {e.Message}");
 
 				// release the resources
-				app.CloseAllDocuments(true);
+				app.QuitDoc(doc_name);
 
 				// return null results
 				return null_object;
@@ -154,6 +192,8 @@ namespace sw_api
 
 		static part get_sensor_values_part(string file_path, string file_name, string sensor_type, string id, Dictionary<string, int> mapper, ref SldWorks app)
 		{
+			string doc_name = Path.GetFileName(file_path);
+
 			// define the null object
 			part null_object = new part
 			{
@@ -250,7 +290,7 @@ namespace sw_api
 					};
 
 					// release the resources
-					app.CloseAllDocuments(true);
+					app.QuitDoc(doc_name);
 
 					// return the results
 					return output;
@@ -258,7 +298,7 @@ namespace sw_api
 				else
 				{
 					// release the resources
-					app.CloseAllDocuments(true);
+					app.QuitDoc(doc_name);
 
 					// return the null result
 					return null_object;
@@ -270,7 +310,7 @@ namespace sw_api
 				Console.WriteLine($"{file_name}: {e.Message}");
 
 				// release the resources
-				app.CloseAllDocuments(true);
+				app.QuitDoc(doc_name);
 
 				// return null results
 				return null_object;
@@ -283,6 +323,9 @@ namespace sw_api
 			// define the negative map dictionary
 			NegativeMap.Add("n", -1);
 			NegativeMap.Add("", 1);
+
+			// define the memory threshold
+			long mb_threshold = 4000;
 
 			// interpret the initial arguments
 			string root_dir = args[0];
@@ -308,11 +351,14 @@ namespace sw_api
 					// check if a 'Part-Fixture Assembly.sldasm' file exists in this folder
 					string file_name = "Part-Fixture Assembly";
 					string file_path = Path.Join(dir, file_name + ".sldasm");
-					if (File.Exists(file_path) && last_path_segment != null)
+					if (File.Exists(file_path) && last_path_segment != null && app != null)
 					{
 						part_data.Add(get_sensor_values_part(file_path, file_name, "_asm", last_path_segment, NegativeMap, ref app));
 						Console.WriteLine($"Part: {last_path_segment}");
 					}
+
+					// inspect the memory leak
+					if (app != null) { app = manage_memory(app, app_type, mb_threshold); }
 				}
 
 				// get a list of the fixture clearances
@@ -324,20 +370,26 @@ namespace sw_api
 					if (attr.HasFlag(FileAttributes.Directory))
 					{
 						var file_names = Directory.GetFiles(dir).Where(name => name.ToLower().EndsWith(".lnk")).Where(name => !name.Contains("-")).ToList();
-						if (file_names.Count > 0)
+						if (file_names.Count > 0 && app != null)
 						{
 							var file_name = Path.GetFileName(file_names[0]).Split(".")[0];
 							var visible_name = new DirectoryInfo(dir).Name;
-							var file_path = Path.Join(path_dir, file_name, file_name + ".sldprt");
+							var file_path = Path.Join(path_dir, visible_name, file_name + ".sldprt");
 							fixture_data.Add(get_sensor_values_fixture(file_path, visible_name, "", ref app));
 							Console.WriteLine($"Fixture: {visible_name}");
 						}
 					}
+
+					// inspect the memory leak
+					if (app != null) { app = manage_memory(app, app_type, mb_threshold); }
 				}
 
-				// close the solidworks application
+				// close the solidworks application with swapi
 				app.CloseAllDocuments(true);
 				app.ExitApp();
+
+				// actually close the application
+				System.Diagnostics.Process.GetProcessById(app.GetProcessID()).Kill();
 
 				// write the list of part clearances to a csv
 				using (var sw = new StreamWriter(Path.Join(output_dir, "part_data.csv")))

@@ -3,7 +3,6 @@ from os import system, getcwd, listdir
 from os.path import join, isfile
 from clearance_functions import extract_probe_info
 import pandas as pd
-import datetime
 
 # import confidential values
 from sys import path
@@ -91,8 +90,12 @@ if pcdmis_import:
     df["operator_notes"] = ""
     df["requires_attn"] = 0
     df["requires_proof"] = 1
-    df["start_date"] = datetime.date.strftime(datetime.date(1900, 1, 1), "%Y-%m-%d")
-    df["finish_date"] = ""
+    df["start_year"] = 1900
+    df["start_month"] = 1
+    df["start_day"] = 1
+    df["finish_year"] = 1900
+    df["finish_month"] = 1
+    df["finish_day"] = 1
 
     # save to file
     df.to_csv(join("data", "program_data.csv"), index = False)

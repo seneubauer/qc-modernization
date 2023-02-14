@@ -46,6 +46,8 @@ def extract_probe_info(file_path:str) -> dict:
     measurement_count = len([x for x in feature_list if "(CONTACT)" in str(x)])
     prev_x = 0
     prev_y = 0
+    prev_b = 0
+    is_first = True
 
     # extract elements
     for feature in feature_list:
@@ -64,24 +66,42 @@ def extract_probe_info(file_path:str) -> dict:
             tip_str = str(feature.find_all("DataField")[0].get("Value"))
             A, B = [float(x) * pi / 180 for x in tip_str[3:].split("B")]
 
+            # calculate raw distances
             distance = probe_length * sin(A)
             dist_x = round(distance * sin(B), 4)
             dist_y = round(-distance * cos(B), 4)
 
+            # calculate the rotation distance
+            if not is_first:
+
+                # +90 is between the B angles
+                if B > 90 and prev_b < 90:
+                    output_dict["px"] = max(output_dict["px"], distance)
+
+                # -90 is between the B angles
+                if B < -90 and prev_b > -90:
+                    output_dict["nx"] = max(output_dict["nx"], distance)
+
+                # 0 is between the B angles
+                if (B > 0 and prev_b < 0) or (B < 0 and prev_b > 0):
+                    output_dict["ny"] = max(output_dict["ny"], distance)
+
             # assign the +/- x distances
             if dist_x >= 0:
-                output_dict["nx"] = max([output_dict["nx"], combine_distances(dist_x, prev_x)])
-            else:
                 output_dict["px"] = max([output_dict["px"], combine_distances(dist_x, prev_x)])
+            else:
+                output_dict["nx"] = max([output_dict["nx"], combine_distances(dist_x, prev_x)])
 
             # assign the +/- y distances
             if dist_y >= 0:
-                output_dict["ny"] = max([output_dict["ny"], combine_distances(dist_y, prev_y)])
-            else:
                 output_dict["py"] = max([output_dict["py"], combine_distances(dist_y, prev_y)])
-            
+            else:
+                output_dict["ny"] = max([output_dict["ny"], combine_distances(dist_y, prev_y)])
+
             prev_x = dist_x
             prev_y = dist_y
+            prev_b = B
+            is_first = False
 
         elif "(CONTACT)" in feature_type:
             measurement_index += 1

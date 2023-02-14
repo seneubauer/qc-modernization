@@ -68,7 +68,6 @@ create table requests
 -- create a table for programs
 create table programs
 (
-	id int not null unique,
 	py float not null,
 	px float not null,
 	ny float not null,
@@ -82,7 +81,7 @@ create table programs
 	requires_proof bit not null,
 	start_date date not null,
 	finish_date date,
-	constraint programs_pk primary key (id)
+	constraint programs_pk primary key (name)
 );
 
 -- create a table for the workspace layout groups

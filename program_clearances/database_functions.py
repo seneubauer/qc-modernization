@@ -40,7 +40,7 @@ def db_populate(data_path:str, engine:Engine, tables:list):
     # import the cleaned data
     fixture_df = pd.read_csv(join(data_path, "fixture_data.csv"))
     part_df = pd.read_csv(join(data_path, "part_data.csv"))
-    path_df = pd.read_csv(join(data_path, "program_data.csv"))
+    program_df = pd.read_csv(join(data_path, "program_data.csv"))
 
     # instantiate the database tables
     dir_types = tables[0]
@@ -122,30 +122,32 @@ def db_populate(data_path:str, engine:Engine, tables:list):
                 "item": my_item
             })
 
-    # add data from the paths/program dataframe
-    index = 0
-    for index, row in path_df.iterrows():
+    # add data from the program dataframe
+    for index, row in program_df.iterrows():
 
-        my_name = str(row["name"])
-        my_part = str(row["drawing"])
-        my_fixture = str(row["fixture"])
+        my_id = str(row["name"])
         my_py = float(row["py"])
         my_px = float(row["px"])
         my_ny = float(row["ny"])
         my_nx = float(row["nx"])
-        my_attn = int(row["requires_attn"])
-        my_proof = int(row["requires_proof"])
-        my_start = datetime.date(int(row["start_year"]), int(row["start_month"]), int(row["start_day"]))
-        my_finish = datetime.date(int(row["finish_year"]), int(row["finish_month"]), int(row["finish_day"]))
 
-        if session.query(*[programs.id, programs.name]).filter(programs.id == index).filter(programs.name == my_name).first() is None:
+        if session.query(programs.id).filter(programs.id == my_id).first() is None:
+
+            # retrieve the remainder of the requried data
+            my_part = str(row["drawing"])
+            my_fixture = str(row["fixture"])
+            my_attn = int(row["requires_attn"])
+            my_proof = int(row["requires_proof"])
+            my_start = datetime.date(int(row["start_year"]), int(row["start_month"]), int(row["start_day"]))
+            my_finish = datetime.date(int(row["finish_year"]), int(row["finish_month"]), int(row["finish_day"]))
+
+            # add the new records
             session.add(programs(
-                id = index,
                 py = my_py,
                 px = my_px,
                 ny = my_ny,
                 nx = my_nx,
-                name = my_name,
+                id = my_id,
                 part = my_part,
                 fixture = my_fixture,
                 requires_attn = my_attn,
@@ -161,17 +163,8 @@ def db_populate(data_path:str, engine:Engine, tables:list):
                 "px": my_px,
                 "ny": my_ny,
                 "nx": my_nx,
-                "name": my_name,
-                "part": my_part,
-                "fixture": my_fixture,
-                "requires_attn": my_attn,
-                "requires_proof": my_proof,
-                "start_date": my_start,
-                "finish_date": my_finish
             })
 
-        index += 1
-    
     # commit the changes
     session.commit()
 
