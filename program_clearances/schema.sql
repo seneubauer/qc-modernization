@@ -57,10 +57,12 @@ create table parts
 -- create a table for requested programs
 create table requests
 (
-	id int not null unique,
-	drawing varchar(20) not null unique,
-	item varchar(20) not null unique,
+	id int identity(0, 1) not null unique,
+	drawing varchar(20) not null,
+	item varchar(20) not null,
+	revision varchar(10) not null,
 	request_date date not null,
+	completed bit not null,
 	notes text,
 	constraint requests_pk primary key (id)
 );
@@ -87,15 +89,16 @@ create table programs
 -- create a table for the workspace layout groups
 create table workspace_layout_groups
 (
-	id int not null unique,
+	id int identity(0, 1) not null unique,
 	group_name varchar(30) unique,
+	constraint workspace_layout_groups_pk primary key(id)
 );
 
 -- create a table for workspace layout assignments
 create table workspace_layout_assignments
 (
 	id int identity(0, 1) not null unique,
-	program_id varchar(20) foreign key references programs(name),
+	program_id varchar(20) foreign key references programs(id),
 	anchor_col int foreign key references workspace_columns(id),
 	anchor_row int foreign key references workspace_rows(id),
 	group_id int foreign key references workspace_layout_groups(id),

@@ -10,8 +10,8 @@ path.insert(0, "..")
 from config import pc_raw_source, pc_raw_export, clr_root_dir, clr_path_dir
 
 # define steps in use
-pcdmis_export = True
-sldwks_import = True
+pcdmis_export = False
+sldwks_import = False
 pcdmis_import = True
 
 # transform arguments to a Windows friendly format

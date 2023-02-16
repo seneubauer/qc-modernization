@@ -9,7 +9,7 @@ from reference_values import probe_dict
 
 # combine probe distances
 def combine_distances(current:float, previous:float) -> float:
-    if (current >= 0 and previous < 0) or (previous >= 0 and current < 0):
+    if (current >= 0 and previous <= 0) or (previous >= 0 and current <= 0):
         return abs(current) + abs(previous)
     else:
         return current
@@ -75,28 +75,28 @@ def extract_probe_info(file_path:str) -> dict:
             if not is_first:
 
                 # +90 is between the B angles
-                if B > 90 and prev_b < 90:
+                if B >= 90 * pi / 180 and prev_b <= 90 * pi / 180:
                     output_dict["px"] = max(output_dict["px"], distance)
 
                 # -90 is between the B angles
-                if B < -90 and prev_b > -90:
+                if B <= -90 * pi / 180 and prev_b >= -90 * pi / 180:
                     output_dict["nx"] = max(output_dict["nx"], distance)
 
                 # 0 is between the B angles
-                if (B > 0 and prev_b < 0) or (B < 0 and prev_b > 0):
+                if (B >= 0 and prev_b <= 0) or (B <= 0 and prev_b >= 0):
                     output_dict["ny"] = max(output_dict["ny"], distance)
 
             # assign the +/- x distances
             if dist_x >= 0:
-                output_dict["px"] = max([output_dict["px"], combine_distances(dist_x, prev_x)])
-            else:
                 output_dict["nx"] = max([output_dict["nx"], combine_distances(dist_x, prev_x)])
+            else:
+                output_dict["px"] = max([output_dict["px"], combine_distances(dist_x, prev_x)])
 
             # assign the +/- y distances
             if dist_y >= 0:
-                output_dict["py"] = max([output_dict["py"], combine_distances(dist_y, prev_y)])
-            else:
                 output_dict["ny"] = max([output_dict["ny"], combine_distances(dist_y, prev_y)])
+            else:
+                output_dict["py"] = max([output_dict["py"], combine_distances(dist_y, prev_y)])
 
             prev_x = dist_x
             prev_y = dist_y
