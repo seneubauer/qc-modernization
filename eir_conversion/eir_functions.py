@@ -9,6 +9,7 @@ from pickle import dump, load
 from random import sample
 from numpy import NaN
 import pandas as pd
+import csv
 
 # bring in config values
 from sys import path
@@ -171,7 +172,9 @@ def clean_inspection_date(row: pd.Series, arg_dict: dict) -> pd.Series:
 
         # return the date object if it can be converted
         if "/" in item_str:
-            return datetime.strptime(item_str, "%m/%d/%Y").date()
+            return datetime.strptime(item_str, "%Y/%m/%d").date()
+        elif "-" in item_str:
+            return datetime.strptime(item_str, "%Y-%m-%d").date()
         else:
             return None
     else:
@@ -217,6 +220,8 @@ def clean_inspector_operator(row: pd.Series, arg_dict: dict) -> pd.Series:
                 return pretty_delimitor.join(arr)
             else:
                 return None
+        elif len(item_str) > 0:
+            return item_str
         else:
             return None
     else:
@@ -615,7 +620,7 @@ def clean_feature_id(row: pd.Series, arg_dict: dict) -> pd.Series:
                     item_str = item_str.replace(x, standard_delimitor)
         
         # return the item if it is numeric
-        if item_str.isnumeric():
+        if len(item_str) > 0:
             return item_str
         else:
             return None
@@ -1432,7 +1437,7 @@ def to_csv(destination_folder: str, raw_data_object: tuple = None, cln_data_obje
         raw_metadata_df, raw_measurements_df = raw_data_object
         raw_metadata_df.to_csv(join(destination_folder, "raw_metadata.csv"), index = False)
         raw_measurements_df.to_csv(join(destination_folder, "raw_measurements.csv"), index = False)
-    
+
     # save clean results
     if cln_data_object is not None:
         cln_metadata_df, cln_measurements_df = cln_data_object
@@ -1473,3 +1478,88 @@ def clean_csvs(destination_folder: str) -> None:
     # save the clean dataframes as csvs
     clean_metadata_df.to_csv(join(destination_folder, "cln_metadata.csv"), index = False)
     clean_measurements_df.to_csv(join(destination_folder, "cln_measurements.csv"), index = False)
+
+def make_uid(row, args):
+    id = ""
+    if row["feature_id"] == "":
+        id = ""
+    else:
+        id = f".{row['feature_id']}"
+    return f"{row.name}{id}.{args['item']}.{args['drawing']}.{args['revision']}_{args['date']}"
+
+# convert bulk dataframes into individual files
+def to_individuals(cln_metadata_df:pd.DataFrame, cln_measurements_df:pd.DataFrame, output_dir:str) -> None:
+    
+    # add nominals to the measurements dataframe
+    cln_measurements_df["nominal"] = (cln_measurements_df.usl + cln_measurements_df.lsl) / 2
+
+    # define the header columns
+    columns = [
+        "feature_id",
+        "gauge",
+        "data_type",
+        "nominal",
+        "usl",
+        "lsl"
+    ]
+    columns.extend([x for x in cln_measurements_df.columns.tolist() if "part" in str(x)])
+
+    # replace nan values
+    cln_metadata_df = cln_metadata_df.fillna("")
+    cln_measurements_df = cln_measurements_df.fillna("")
+
+    # iterate through the metadata dataframe
+    for index, row in cln_metadata_df.iterrows():
+
+        # get the corresponding slice from measurements
+        temp_df = cln_measurements_df.loc[cln_measurements_df["metadata_id"] == row["id"], columns]
+
+        # redefine the feature_id column
+        meas_date = ""
+        if "/" in str(row["inspection_date"]):
+            the_date = datetime.strptime(str(row["inspection_date"]), "%Y/%m/%d %H:%M:%S").date()
+            meas_date = f"{the_date.year}.{the_date.month}.{the_date.day}"
+        else:
+            the_date = datetime.strptime(str(row["inspection_date"]), "%Y-%m-%d %H:%M:%S").date()
+            meas_date = f"{the_date.year}.{the_date.month}.{the_date.day}"
+
+        args = {
+            "item": row["item_number"],
+            "drawing": row["drawing"],
+            "revision": row["revision"],
+            "date": meas_date
+        }
+
+        temp_df["feature_id"] = temp_df.apply(make_uid, axis = 1, args = (args,))
+
+        # create the individual csv file
+        with open(join(output_dir, f"dataset_{row['id']}.csv"), "w", newline = "") as file:
+
+            # insantiate the csv writer object
+            csv_writer = csv.writer(file)
+
+            # write the metadata rows
+            csv_writer.writerow(["item_number", row["item_number"]])
+            csv_writer.writerow(["drawing", row["drawing"]])
+            csv_writer.writerow(["revision", row["revision"]])
+            csv_writer.writerow(["inspection_date", row["inspection_date"]])
+            csv_writer.writerow(["inspector", row["inspector"]])
+            csv_writer.writerow(["disposition", row["disposition"]])
+            csv_writer.writerow(["supplier", row["supplier"]])
+            csv_writer.writerow(["receiver_number", row["receiver_number"]])
+            csv_writer.writerow(["purchase_order", row["purchase_order"]])
+            csv_writer.writerow(["job_order", row["job_order"]])
+            csv_writer.writerow(["operator", row["operator"]])
+            csv_writer.writerow(["full_inspect_qty", row["full_inspect_qty"]])
+            csv_writer.writerow(["received_qty", row["received_qty"]])
+            csv_writer.writerow(["completed_qty", row["completed_qty"]])
+
+            # write the separating row
+            csv_writer.writerow([""])
+
+            # write the measurement header row
+            csv_writer.writerow(columns)
+
+            # write the measurements
+            for i, r in temp_df.iterrows():
+                csv_writer.writerow(r.tolist())

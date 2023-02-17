@@ -1,5 +1,5 @@
 # import functions
-from eir_functions import scrape_all, to_binary, to_csv, binary_to_csvs, clean_metadata, clean_measurements, clean_csvs
+from eir_functions import scrape_all, to_binary, to_csv, binary_to_csvs, clean_metadata, clean_measurements, clean_csvs, to_individuals
 
 # bring in config values
 from sys import path
@@ -16,7 +16,7 @@ if clean_existing_raw:
 
     # clean the raw csvs
     clean_csvs(eir_cleaned_destination_csv)
-    
+
 else:
 
     # specify targeted data
@@ -63,3 +63,6 @@ else:
 
         # saves to csv files
         to_csv(eir_cleaned_destination_csv, raw_results_all, (cln_metadata_df, cln_measurements_df))
+
+        # saves as individual files
+        to_individuals(cln_metadata_df, cln_measurements_df, eir_cleaned_destination_csv)
