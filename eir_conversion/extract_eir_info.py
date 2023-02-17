@@ -20,7 +20,7 @@ if clean_existing_raw:
 else:
 
     # specify targeted data
-    scraped_workbook_qty = 10           # sets a limit on how many workbooks will be scraped, if 0 then no limit
+    scraped_workbook_qty = 0            # sets a limit on how many workbooks will be scraped, if 0 then no limit
     randomize_workbooks = True          # will select workbooks at random, only use if qty is > 0
     overwrite_targeted_workbooks = []   # if list is empty then scrape_all will use the quantity/randomized parameters
 
