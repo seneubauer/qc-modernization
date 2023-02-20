@@ -1,3 +1,6 @@
+# import dependencies
+from os.path import join
+
 # import functions
 from eir_functions import scrape_all, to_binary, to_csv, binary_to_csvs, clean_metadata, clean_measurements, clean_csvs, to_individuals
 
@@ -9,7 +12,7 @@ from config import eir_raw_source, eir_cleaned_destination_csv, eir_cleaned_dest
 # toggle routine steps
 save_load_binary = False
 save_csv = False
-clean_existing_raw = True
+clean_existing_raw = False
 
 # cleans existing raw data
 if clean_existing_raw:
@@ -21,7 +24,7 @@ else:
 
     # specify targeted data
     scraped_workbook_qty = 0            # sets a limit on how many workbooks will be scraped, if 0 then no limit
-    randomize_workbooks = True          # will select workbooks at random, only use if qty is > 0
+    randomize_workbooks = False         # will select workbooks at random, if qty = 0 then set this to False
     overwrite_targeted_workbooks = []   # if list is empty then scrape_all will use the quantity/randomized parameters
 
     # scrape all the relevant data from the electronic inspection workbooks
@@ -33,36 +36,41 @@ else:
         is_random = randomize_workbooks,
         workbooks = overwrite_targeted_workbooks)
 
-    # saves results to then loads from a binary file
-    if save_load_binary:
+    raw_metadata_df, raw_measurements_df = raw_results_all
+    if (raw_metadata_df is not None) and (raw_measurements_df is not None):
 
-        # binary file name
-        raw_bin_file_name = "raw_results_all.pkl"
-        cln_bin_file_name = "cln_results_all.pkl"
+        # saves results to then loads from a binary file
+        if save_load_binary:
 
-        # saves raw results to binary
-        to_binary(eir_cleaned_destination_bin, raw_bin_file_name, raw_results_all)
+            # binary file name
+            raw_bin_file_name = "raw_results_all.pkl"
+            cln_bin_file_name = "cln_results_all.pkl"
 
-        # saves cleaned results to binary
-        raw_metadata_df, raw_measurements_df = raw_results_all
-        cln_metadata_df = clean_metadata(raw_metadata_df)
-        cln_measurements_df = clean_measurements(raw_measurements_df)
-        to_binary(eir_cleaned_destination_bin, cln_bin_file_name, (cln_metadata_df, cln_measurements_df))
+            # saves raw results to binary
+            to_binary(eir_cleaned_destination_bin, raw_bin_file_name, raw_results_all)
 
-        # loads from binary and resaves to csv if the results aren't already being converted directly to csv
-        if not save_csv:
-            binary_to_csvs(eir_cleaned_destination_bin, eir_cleaned_destination_csv, raw_bin_file_name, cln_bin_file_name)
+            # saves cleaned results to binary
+            raw_metadata_df, raw_measurements_df = raw_results_all
+            cln_metadata_df = clean_metadata(raw_metadata_df)
+            cln_measurements_df = clean_measurements(raw_measurements_df)
+            to_binary(eir_cleaned_destination_bin, cln_bin_file_name, (cln_metadata_df, cln_measurements_df))
 
-    # saves results directly to csv files
-    if save_csv:
+            # loads from binary and resaves to csv if the results aren't already being converted directly to csv
+            if not save_csv:
+                binary_to_csvs(eir_cleaned_destination_bin, eir_cleaned_destination_csv, raw_bin_file_name, cln_bin_file_name)
 
-        # extract then clean the raw results
-        raw_metadata_df, raw_measurements_df = raw_results_all
-        cln_metadata_df = clean_metadata(raw_metadata_df)
-        cln_measurements_df = clean_measurements(raw_measurements_df)
+        # saves results directly to csv files
+        if save_csv:
 
-        # saves to csv files
-        to_csv(eir_cleaned_destination_csv, raw_results_all, (cln_metadata_df, cln_measurements_df))
+            # extract then clean the raw results
+            raw_metadata_df, raw_measurements_df = raw_results_all
+            cln_metadata_df = clean_metadata(raw_metadata_df)
+            cln_measurements_df = clean_measurements(raw_measurements_df)
 
-        # saves as individual files
-        to_individuals(cln_metadata_df, cln_measurements_df, eir_cleaned_destination_csv)
+            # saves to csv files
+            to_csv(eir_cleaned_destination_csv, raw_results_all, (cln_metadata_df, cln_measurements_df))
+
+            # saves as individual files
+            to_individuals(cln_metadata_df, cln_measurements_df, join(eir_cleaned_destination_csv, "_individual_files"))
+    else:
+        print("Extracted data is null")

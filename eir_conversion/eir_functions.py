@@ -1415,11 +1415,14 @@ def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty
             measurements_list.append(measurements_df)
 
     # concatenate the DataFrame lists
-    raw_metadata_df = pd.concat(metadata_list, axis = 0, ignore_index = True)
-    raw_measurement_df = pd.concat(measurements_list, axis = 0, ignore_index = True)
+    if (len(metadata_list) > 0) and (len(measurements_list) > 0):
+        raw_metadata_df = pd.concat(metadata_list, axis = 0, ignore_index = True)
+        raw_measurement_df = pd.concat(measurements_list, axis = 0, ignore_index = True)
 
-    # return the results
-    return (raw_metadata_df, raw_measurement_df)
+        # return the results
+        return (raw_metadata_df, raw_measurement_df)
+    else:
+        return (None, None)
 
 # save results to a binary file
 def to_binary(destination_folder: str, file_name: str, data_object: tuple) -> None:
@@ -1479,13 +1482,16 @@ def clean_csvs(destination_folder: str) -> None:
     clean_metadata_df.to_csv(join(destination_folder, "cln_metadata.csv"), index = False)
     clean_measurements_df.to_csv(join(destination_folder, "cln_measurements.csv"), index = False)
 
+    # saves as individual files
+    to_individuals(clean_metadata_df, clean_measurements_df, join(destination_folder, "_individual_files"))
+
 def make_uid(row, args):
     id = ""
     if row["feature_id"] == "":
         id = ""
     else:
         id = f".{row['feature_id']}"
-    return f"{row.name}{id}.{args['item']}.{args['drawing']}.{args['revision']}_{args['date']}"
+    return f"{row.name}{id}.{args['item']}.{args['drawing']}.{args['revision']}"
 
 # convert bulk dataframes into individual files
 def to_individuals(cln_metadata_df:pd.DataFrame, cln_measurements_df:pd.DataFrame, output_dir:str) -> None:
@@ -1514,23 +1520,15 @@ def to_individuals(cln_metadata_df:pd.DataFrame, cln_measurements_df:pd.DataFram
         # get the corresponding slice from measurements
         temp_df = cln_measurements_df.loc[cln_measurements_df["metadata_id"] == row["id"], columns]
 
-        # redefine the feature_id column
-        meas_date = ""
-        if "/" in str(row["inspection_date"]):
-            the_date = datetime.strptime(str(row["inspection_date"]), "%Y/%m/%d %H:%M:%S").date()
-            meas_date = f"{the_date.year}.{the_date.month}.{the_date.day}"
-        else:
-            the_date = datetime.strptime(str(row["inspection_date"]), "%Y-%m-%d %H:%M:%S").date()
-            meas_date = f"{the_date.year}.{the_date.month}.{the_date.day}"
-
         args = {
             "item": row["item_number"],
             "drawing": row["drawing"],
-            "revision": row["revision"],
-            "date": meas_date
+            "revision": row["revision"]
         }
 
-        temp_df["feature_id"] = temp_df.apply(make_uid, axis = 1, args = (args,))
+        print(temp_df.shape)
+        print(temp_df.apply(make_uid, axis = 1, args = (args,)).shape)
+        # temp_df["feature_id"] = temp_df.apply(make_uid, axis = 1, args = (args,))
 
         # create the individual csv file
         with open(join(output_dir, f"dataset_{row['id']}.csv"), "w", newline = "") as file:
