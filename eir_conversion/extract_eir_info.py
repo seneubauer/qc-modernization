@@ -11,7 +11,7 @@ from config import eir_raw_source, eir_cleaned_destination_csv, eir_cleaned_dest
 
 # toggle routine steps
 save_load_binary = False
-save_csv = False
+save_csv = True
 clean_existing_raw = False
 
 # cleans existing raw data
@@ -23,8 +23,8 @@ if clean_existing_raw:
 else:
 
     # specify targeted data
-    scraped_workbook_qty = 0            # sets a limit on how many workbooks will be scraped, if 0 then no limit
-    randomize_workbooks = False         # will select workbooks at random, if qty = 0 then set this to False
+    scraped_workbook_qty = 25           # sets a limit on how many workbooks will be scraped, if 0 then no limit
+    randomize_workbooks = True          # will select workbooks at random, if qty = 0 then set this to False
     overwrite_targeted_workbooks = []   # if list is empty then scrape_all will use the quantity/randomized parameters
 
     # scrape all the relevant data from the electronic inspection workbooks

@@ -825,8 +825,7 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
 
                 # limit the while loop
                 if i >= index_limit:
-                    print(
-                        f"Row search has exceeded index limit ({index_limit})")
+                    print(f"Row search has exceeded index limit ({index_limit})")
                     break
 
             # define the item count
@@ -881,16 +880,14 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
                         gauges.append(gauge)
 
                         for x in range(item_count):
-                            measurements.append(
-                                ws[f"{column_index}{x + initial_i}"].value)
+                            measurements.append(ws[f"{column_index}{x + initial_i}"].value)
 
                     # increment the iterator
                     j += 1
 
                     # limit the while loop
                     if j >= index_limit:
-                        print(
-                            f"Column search has exceeded index limit ({index_limit})")
+                        print(f"Column search has exceeded index limit ({index_limit})")
                         break
 
                 # convert pass/fail to numerical data
@@ -953,11 +950,9 @@ def scrape_one(qc_folder: str, anchor_search_term: str, workbook_name: str, meta
                             try:
                                 if type(value0) is int:
                                     value0 = xldate_as_datetime(value0, 0)
-                                section_2.append(
-                                    date(value0.year, value0.month, value0.day))
+                                section_2.append(date(value0.year, value0.month, value0.day))
                             except AttributeError:
-                                print(
-                                    f"AttributeError in {ws.title} of {workbook_name}; {value0}")
+                                print(f"AttributeError in {ws.title} of {workbook_name}; {value0}")
                         else:
                             section_2.append(alias_dict["empty"])
                         if value1 is not None:
@@ -1389,6 +1384,8 @@ def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty
     metadata_index = 0
 
     # iterate through the directory contents
+    file_index = 1
+    arr_size = len(files)
     for item in files:
 
         # conditional break
@@ -1402,7 +1399,7 @@ def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty
             iterator_count += 1
 
         # interpret the current workbook
-        print(f"Current: {item}")
+        print(f"{file_index}/{arr_size}: {item}")
         metadata_df, measurements_df = scrape_one(qc_folder, anchor_search_term, item, metadata_index)
 
         # advance the metadata index
@@ -1413,6 +1410,9 @@ def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty
             metadata_list.append(metadata_df)
         if measurements_df is not None:
             measurements_list.append(measurements_df)
+        
+        # advance the file index
+        file_index += 1
 
     # concatenate the DataFrame lists
     if (len(metadata_list) > 0) and (len(measurements_list) > 0):
@@ -1526,9 +1526,7 @@ def to_individuals(cln_metadata_df:pd.DataFrame, cln_measurements_df:pd.DataFram
             "revision": row["revision"]
         }
 
-        print(temp_df.shape)
-        print(temp_df.apply(make_uid, axis = 1, args = (args,)).shape)
-        # temp_df["feature_id"] = temp_df.apply(make_uid, axis = 1, args = (args,))
+        temp_df["feature_id"] = temp_df.apply(make_uid, axis = 1, args = (args,))
 
         # create the individual csv file
         with open(join(output_dir, f"dataset_{row['id']}.csv"), "w", newline = "") as file:
