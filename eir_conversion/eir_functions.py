@@ -172,9 +172,11 @@ def clean_inspection_date(row: pd.Series, arg_dict: dict) -> pd.Series:
 
         # return the date object if it can be converted
         if "/" in item_str:
-            return datetime.strptime(item_str, "%Y/%m/%d").date()
+            my_date = datetime.strptime(item_str, "%Y/%m/%d").date()
+            return f"{my_date.year}-{my_date.month}-{my_date.day}"
         elif "-" in item_str:
-            return datetime.strptime(item_str, "%Y-%m-%d").date()
+            my_date = datetime.strptime(item_str, "%Y-%m-%d").date()
+            return f"{my_date.year}-{my_date.month}-{my_date.day}"
         else:
             return None
     else:
@@ -1357,6 +1359,8 @@ def scrape_all(qc_folder: str, anchor_search_term: str, file_extension: str, qty
                                     and item[:1].lower() != "~"
                                     and item[:1].lower() != "_"
                                     and item[-len(file_extension):].lower() == file_extension
+                                    and "copy" not in item.lower()
+                                    and "and" not in item.lower()
                                     and "template" not in item.lower()
                                     and "example" not in item.lower()
                                     and "mi" not in item.lower()

@@ -1,6 +1,6 @@
 alias_dict = {
-    "pass": int(0x8001),            # hexadecimal -> 32,768
-    "fail": int(0x8000),            # hexadecimal -> 32,769
+    "pass": 1,
+    "fail": 0,
     "empty": None,
     "gauges": {
         "mating_part": {
