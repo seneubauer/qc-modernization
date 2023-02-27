@@ -20,6 +20,14 @@ from reference_values import alias_dict
 standard_delimitor = "%"
 pretty_delimitor = "|"
 
+# check if a string is a float
+def is_float(input_str):
+    try:
+        float(input_str)
+        return True
+    except ValueError:
+        return False
+
 # clean the metadata item number column values
 def clean_item_number(row: pd.Series, arg_dict: dict) -> pd.Series:
     if row is not None:
@@ -661,9 +669,9 @@ def clean_speclimits(row: pd.Series, arg_dict: dict) -> pd.Series:
             for x in replace_delimitors:
                 if x in item_str:
                     item_str = item_str.replace(x, standard_delimitor)
-        
+
         # return the item if it is numeric
-        if item_str.replace(".", "").isnumeric():
+        if is_float(item_str):
             return item_str
         else:
             return None
@@ -1344,6 +1352,11 @@ def clean_measurements(raw_df: pd.DataFrame) -> pd.DataFrame:
             cln_df[k] = pd.to_datetime(cln_df[k], format = "%Y-%m-%d")
         else:
             cln_df = cln_df.astype({ k: target })
+            # try:
+            #     cln_df = cln_df.astype({ k: target })
+            # except ValueError:
+            #     print("ValueError...")
+            #     print(k)
 
     return cln_df
 
@@ -1530,7 +1543,7 @@ def to_individuals(cln_metadata_df:pd.DataFrame, cln_measurements_df:pd.DataFram
             "revision": row["revision"]
         }
 
-        temp_df["feature_id"] = temp_df.apply(make_uid, axis = 1, args = (args,))
+        temp_df["feature_id"] = temp_df.apply(make_uid, axis = 1, result_type = "reduce", args = (args,))
 
         # create the individual csv file
         with open(join(output_dir, f"dataset_{row['id']}.csv"), "w", newline = "") as file:

@@ -1,5 +1,6 @@
 # import dependencies
 from os.path import join
+import pandas as pd
 
 # import functions
 from eir_functions import scrape_all, to_binary, to_csv, binary_to_csvs, clean_metadata, clean_measurements, clean_csvs, to_individuals
@@ -11,8 +12,8 @@ from config import eir_raw_source, eir_cleaned_destination_csv, eir_cleaned_dest
 
 # toggle routine steps
 save_load_binary = False
-save_csv = True
-clean_existing_raw = False
+save_csv = False
+clean_existing_raw = True
 
 # cleans existing raw data
 if clean_existing_raw:
@@ -23,8 +24,8 @@ if clean_existing_raw:
 else:
 
     # specify targeted data
-    scraped_workbook_qty = 25           # sets a limit on how many workbooks will be scraped, if 0 then no limit
-    randomize_workbooks = True          # will select workbooks at random, if qty = 0 then set this to False
+    scraped_workbook_qty = 0            # sets a limit on how many workbooks will be scraped, if 0 then no limit
+    randomize_workbooks = False         # will select workbooks at random, if qty = 0 then set this to False
     overwrite_targeted_workbooks = []   # if list is empty then scrape_all will use the quantity/randomized parameters
 
     # scrape all the relevant data from the electronic inspection workbooks
@@ -64,6 +65,10 @@ else:
 
             # extract then clean the raw results
             raw_metadata_df, raw_measurements_df = raw_results_all
+
+            raw_metadata_df.to_csv(join(eir_cleaned_destination_csv, "raw_metadata_df.csv"), index = False)
+            raw_measurements_df.to_csv(join(eir_cleaned_destination_csv, "raw_measurements_df.csv"), index = False)
+
             cln_metadata_df = clean_metadata(raw_metadata_df)
             cln_measurements_df = clean_measurements(raw_measurements_df)
 
