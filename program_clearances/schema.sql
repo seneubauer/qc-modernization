@@ -22,6 +22,13 @@ create table workspace_rows
 	constraint row_pk primary key (id)
 );
 
+-- create an enumeration table for workspace assignment types
+create table workspace_assignment_types
+(
+	id varchar(20) not null unique,
+	constraint workspace_assignment_type_pk primary key (id)
+);
+
 -- create a table for fixtures
 create table fixtures
 (
@@ -98,6 +105,9 @@ create table workspace_layout_groups
 create table workspace_layout_assignments
 (
 	id int identity(0, 1) not null unique,
+	id_type varchar(20) foreign key references workspace_assignment_types(id),
+	fixture_id varchar(20) foreign key references fixtures(id),
+	part_id varchar(20) foreign key references parts(id),
 	program_id varchar(20) foreign key references programs(id),
 	anchor_col int foreign key references workspace_columns(id),
 	anchor_row int foreign key references workspace_rows(id),
