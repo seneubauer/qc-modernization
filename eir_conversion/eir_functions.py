@@ -1537,6 +1537,9 @@ def to_individuals(cln_metadata_df:pd.DataFrame, cln_measurements_df:pd.DataFram
         # get the corresponding slice from measurements
         temp_df = cln_measurements_df.loc[cln_measurements_df["metadata_id"] == row["id"], columns]
 
+        # make sure pass/fail limits are correct
+        temp_df.loc[temp_df["data_type"] == "pass_fail", ["nominal", "usl", "lsl"]] = 0
+
         args = {
             "item": row["item_number"],
             "drawing": row["drawing"],
