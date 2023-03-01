@@ -1,5 +1,15 @@
 -- enumeration tables
 
+create table disposition_types
+(
+    id varchar(32) not null,
+
+    -- primary key and unique constraints
+    constraint pk_disposition_types primary key (id),
+    constraint uc_disposition_types unique (id)
+);
+-- pass, fail, rework...
+
 create table location_types
 (
     id varchar(32) not null,
@@ -164,11 +174,14 @@ create table inspection_reports
     id integer not null,
     day_started date not null,
     day_finished date,
-    verdict boolean,
 
     -- primary key and unique constraints
     constraint pk_inspection_reports primary key (id),
     constraint uc_inspection_reports unique (id),
+
+    -- one inspection report relates to one disposition type
+    disposition varchar(32) not null,
+    constraint fk_disposition foreign key (disposition) references disposition_types(id),
 
     -- many inspection reports relate to one part
     part_id integer not null,

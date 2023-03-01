@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <!-- set the metadata -->
+    <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- set the title -->
+    <title>QA1 Quality Portal</title>
+
+    <!-- link to reset css -->
+    <link rel="stylesheet" href="/static/css/reset.css">
+
+    <!-- link to bootstrap css -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx"
+          crossorigin="anonymous">
+    
+    <!-- link to style css -->
+    <link rel="stylesheet" href="/static/css/style.css">
+
+    <!-- import js libraries -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+
+<body>
+
+    <!-- header -->
+    <div class="container-fullwidth">
+        <div class="col-md-12">
+            <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3">
+                <div class="container-fluid">
+                    <a class="navbar-brand" href="/">Home</a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDarkDropdown" aria-controls="navbarNavDarkDropdown" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse justify-content-end" id="navbarNavDarkDropdown">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Bulk Data
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-dark">
+                                    <li><a class="dropdown-item" href="/data_entry">Entry</a></li>
+                                    <li><a class="dropdown-item" href="#">Viewer</a></li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Analysis & Visualization
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-dark">
+                                    <li><a class="dropdown-item" href="#">Exploratory Analysis</a></li>
+                                    <li><a class="dropdown-item" href="#">Generic Plotting</a></li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Deep Learning
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-dark">
+                                    <li><a class="dropdown-item" href="#">Supervised</a></li>
+                                    <li><a class="dropdown-item" href="#">Unsupervised</a></li>
+                                    <li><a class="dropdown-item" href="#">Neural Networks</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <!-- body -->
+    <div class="container">
+        <div class="row my-2">
+            <div class="col-md-12">
+                <h6>Create Inspection Report</h6>
+                <div class="input-group input-group-sm my-2">
+                    <span class="input-group-text" id="input-create_ir_drawing">Drawing</span>
+                    <input type="text" class="form-control" aria-describedby="input-create_ir_drawing">
+                </div>
+                <div class="input-group input-group-sm my-2">
+                    <span class="input-group-text" id="input-create_ir_revision">Revision</span>
+                    <input type="text" class="form-control" aria-describedby="input-create_ir_revision">
+                </div>
+                <div class="input-group input-group-sm my-2">
+                    <span class="input-group-text" id="input-create_ir_item">Item</span>
+                    <input type="text" class="form-control" aria-describedby="input-create_ir_item">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- import bootstrap js library -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa"
+            crossorigin="anonymous"></script>
+    
+    <!-- import local js scripts -->
+    <script src="/static/js/logic.js"></script>
+
+</body>
+
+</html>
