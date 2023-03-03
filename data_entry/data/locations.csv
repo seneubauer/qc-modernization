@@ -1,0 +1,7 @@
+id,description,location_type_id
+ws10,workstation 10,work_station
+ws25,workstation 25,work_station
+pad_25,concrete pad 25,machine_pad
+wfh,working from home,working_remote
+wr,working remote,working_remote
+pad_32,concrete pad 32,machine_pad

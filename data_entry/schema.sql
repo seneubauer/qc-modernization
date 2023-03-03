@@ -1,3 +1,26 @@
+-- database reset
+drop table inspection_receiver_numbers;
+drop table inspection_purchase_orders;
+drop table employee_projects;
+drop table gauges;
+drop table inspection_reports;
+drop table parts;
+drop table machines;
+drop table employees;
+drop table locations;
+drop table departments;
+drop table projects;
+drop table receiver_numbers;
+drop table purchase_orders;
+drop table job_orders;
+drop table project_types;
+drop table specification_types;
+drop table characteristic_types;
+drop table gauge_types;
+drop table machine_types;
+drop table location_types;
+drop table disposition_types;
+
 -- enumeration tables
 
 create table disposition_types
@@ -72,6 +95,33 @@ create table project_types
 
 -- record tables
 
+create table job_orders
+(
+    id varchar(32) not null,
+
+    -- primary key and unique constraints
+    constraint pk_job_orders primary key (id),
+    constraint uc_job_orders unique (id)
+);
+
+create table purchase_orders
+(
+    id varchar(32) not null,
+
+    -- primary key and unique constraints
+    constraint pk_purchase_orders primary key (id),
+    constraint uc_purchase_orders unique (id)
+);
+
+create table receiver_numbers
+(
+    id varchar(32) not null,
+
+    -- primary key and unique constraints
+    constraint pk_receiver_numbers primary key (id),
+    constraint uc_receiver_numbers unique (id)
+);
+
 create table projects
 (
     id varchar(32) not null,
@@ -110,7 +160,6 @@ create table locations
 
     -- one location relates to one location type
     location_type_id varchar(32) not null,
-    constraint uc_location_type unique (location_type_id),
     constraint fk_location_type foreign key (location_type_id) references location_types(id)
 );
 -- john doe's work station, machine pad for NKZ, conference room AB12...
@@ -164,9 +213,11 @@ create table parts
     item varchar(32) not null,
 
     -- primary key and unique constraints
-    constraint pk_parts primary key (drawing, revision, item),
-    constraint uc_parts unique (drawing, revision, item),
-    constraint uc_parts_id unique (id)
+    constraint pk_parts_id primary key (id),
+    constraint uc_parts_id unique (id),
+
+    -- part identifiers are unique
+    constraint uc_parts unique (drawing, revision, item)
 );
 
 create table inspection_reports
@@ -178,6 +229,10 @@ create table inspection_reports
     -- primary key and unique constraints
     constraint pk_inspection_reports primary key (id),
     constraint uc_inspection_reports unique (id),
+
+    -- one inspection report can relate to one job order
+    job_order_id varchar(32),
+    constraint fk_job_order_ins foreign key (job_order_id) references job_orders(id),
 
     -- one inspection report relates to one disposition type
     disposition varchar(32) not null,
@@ -214,7 +269,27 @@ create table gauges
 
 create table employee_projects
 (
+    id serial not null unique,
     employee_id integer not null references employees(id) on update cascade,
     project_id varchar(32) not null references projects(id) on update cascade,
-    constraint fk_employee_project primary key (employee_id, project_id)
+    constraint pk_employee_project primary key (id),
+    constraint uc_employee_project unique (employee_id, project_id)
+);
+
+create table inspection_purchase_orders
+(
+    id serial not null unique,
+    inspection_id integer not null references inspection_reports(id) on update cascade,
+    purchase_order_id varchar(32) not null references purchase_orders(id) on update cascade,
+    constraint pk_inspection_purchase_orders primary key (id),
+    constraint uc_inspection_purchase_orders unique (inspection_id, purchase_order_id)
+);
+
+create table inspection_receiver_numbers
+(
+    id serial not null unique,
+    inspection_id integer not null references inspection_reports(id) on update cascade,
+    receiver_number_id varchar(32) not null references receiver_numbers(id) on update cascade,
+    constraint pk_inspection_receiver_numbers primary key (id),
+    constraint uc_inspection_receiver_numbers unique (inspection_id, receiver_number_id)
 );

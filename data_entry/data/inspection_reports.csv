@@ -1,0 +1,3 @@
+id,day_started,day_finished,job_order_id,disposition,part_id
+0,2023-01-01,2023-01-01,SEN0002345,pass,1
+1,2023-01-01,2023-01-01,SEN0004567,deviated,2
