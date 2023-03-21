@@ -2,6 +2,7 @@
 drop table inspection_receiver_numbers;
 drop table inspection_purchase_orders;
 drop table employee_projects;
+drop table characteristics;
 drop table gauges;
 drop table inspection_reports;
 drop table parts;
@@ -263,6 +264,36 @@ create table gauges
     -- one gauge can relate to one location
     location_id varchar(32),
     constraint fk_location_gauge foreign key (location_id) references locations(id)
+);
+
+create table characteristics
+(
+    id serial not null,
+    name varchar(32) not null,
+    nominal decimal not null,
+    usl decimal not null,
+    lsl decimal not null,
+    measured decimal,
+
+    -- primary key and unique constraints
+    constraint pk_characteristics primary key (id),
+    constraint uc_characteristics unique (id),
+
+    -- one characteristic relates to one specification type
+    specification_type_id varchar(32) not null,
+    constraint fk_specification_type_id foreign key (specification_type_id) references specification_types(id),
+
+    -- one characteristic relates to one characteristic type
+    characteristic_type_id varchar(32) not null,
+    constraint fk_characteristic_type_id foreign key (characteristic_type_id) references characteristic_types(id),
+
+    -- many characteristics can relate to one part
+    part_id integer not null,
+    constraint fk_part_id foreign key (part_id) references parts(id),
+
+    -- one characteristic relates to one gauge
+    gauge_id varchar(32) not null,
+    constraint fk_gauge_id foreign key (gauge_id) references gauges(id)
 );
 
 -- linking tables

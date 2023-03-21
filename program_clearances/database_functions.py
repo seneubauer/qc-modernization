@@ -77,7 +77,10 @@ def db_populate(data_path:str, engine:Engine, tables:list):
                 ny = my_ny,
                 nx = my_nx,
                 developer_notes = "",
-                operator_notes = ""
+                operator_notes = "",
+                last_replaced_date = datetime.date(2023, 1, 1),
+                evaluation = 0,
+                run_count = 0
             ))
         else:
             session.query(fixtures).filter(fixtures.id == my_id).update({

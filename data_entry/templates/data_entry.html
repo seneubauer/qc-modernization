@@ -82,31 +82,137 @@
     </nav>
 
     <!-- body -->
-    <div class="container">
+    <div class="container-fluid">
         <div class="row my-2">
-            <div class="col-md-12">
-                <h6>Create Inspection Report</h6>
-                <div class="input-group input-group-sm my-2">
-                    <span class="input-group-text" id="input-create_ir_drawing">Drawing</span>
-                    <input type="text" class="form-control" aria-describedby="input-create_ir_drawing">
-                </div>
-                <div class="input-group input-group-sm my-2">
-                    <span class="input-group-text" id="input-create_ir_revision">Revision</span>
-                    <input type="text" class="form-control" aria-describedby="input-create_ir_revision">
-                </div>
-                <div class="input-group input-group-sm my-2">
-                    <span class="input-group-text" id="input-create_ir_item">Item</span>
-                    <input type="text" class="form-control" aria-describedby="input-create_ir_item">
-                </div>
+            <div class="col-md-2">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">Inspection Reports</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="ir_row">
+                                <a class="ir_row_item" onclick="return check()">
+                                    <p>7006000, A, 1234-123</p>
+                                    <p>P.O., R.N., J.O.</p>
+                                </a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
+    <!-- <div class="container">
+        <div class="row my-2">
+            <div class="col-md-12">
+                <h4>Create Inspection Report</h4>
+                <div class="accordion" id="ir_accordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading_scratch">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_scratch" aria-expanded="true" aria-controls="collapse_scratch">
+                                From Scratch...
+                            </button>
+                        </h2>
+                        <div id="collapse_scratch" class="accordion-collapse collapse show" aria-labelledby="heading_scratch" data-bs-parent="#ir_accordion">
+                            <div class="accordion-body">
+                                <div class="input-group input-group-sm my-2">
+                                    <span class="input-group-text" id="scratch_label_ir_drawing">Drawing</span>
+                                    <input type="text" class="form-control" aria-describedby="scratch_label_ir_drawing" id="scratch_input_ir_drawing">
+                                </div>
+                                <div class="input-group input-group-sm my-2">
+                                    <span class="input-group-text" id="scratch_label_ir_revision">Revision</span>
+                                    <input type="text" class="form-control" aria-describedby="scratch_label_ir_revision" id="scratch_input_ir_revision">
+                                </div>
+                                <div class="input-group input-group-sm my-2">
+                                    <span class="input-group-text" id="scratch_label_ir_item">Item</span>
+                                    <input type="text" class="form-control" aria-describedby="scratch_label_ir_item" id="scratch_input_ir_item">
+                                </div>
+                                <div class="input-group input-group-sm my-2">
+                                    <span class="input-group-text" id="scratch_label_ir_joborder">Job Order</span>
+                                    <select class="form-select" aria-describedby="scratch_label_ir_joborder" id="scratch_select_ir_joborder"></select>
+                                    <input type="text" class="form-control" aria-describedby="scratch_label_ir_joborder" id="scratch_input_ir_joborder">
+                                    <button class="btn btn-outline-secondary" type="button" id="scratch_create_ir_joborder">Create</button>
+                                </div>
+                                <div class="input-group input-group-sm my-2">
+                                    <span class="input-group-text" id="scratch_label_ir_purchaseorder">Purchase Order</span>
+                                    <select class="form-select" aria-describedby="scratch_label_ir_purchaseorder" id="scratch_select_ir_purchaseorder"></select>
+                                    <input type="text" class="form-control" aria-describedby="scratch_label_ir_purchaseorder" id="scratch_input_ir_purchaseorder">
+                                    <button class="btn btn-outline-secondary" type="button" id="scratch_create_ir_purchaseorder">Create</button>
+                                </div>
+                                <div class="input-group input-group-sm my-2">
+                                    <span class="input-group-text" id="scratch_label_ir_receivernumber">Receiver Number</span>
+                                    <select class="form-select" aria-describedby="scratch_label_ir_receivernumber" id="scratch_select_ir_receivernumber"></select>
+                                    <input type="text" class="form-control" aria-describedby="scratch_label_ir_receivernumber" id="scratch_input_ir_receivernumber">
+                                    <button class="btn btn-outline-secondary" type="button" id="scratch_create_ir_receivernumber">Create</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading_template">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_template" aria-expanded="false" aria-controls="collapse_template">
+                                From Template...
+                            </button>
+                        </h2>
+                        <div id="collapse_template" class="accordion-collapse collapse" aria-labelledby="heading_template" data-bs-parent="#ir_accordion">
+                            <div class="accordion-body">
+                                <div class="input-group input-group-sm my-2">
+                                    <span class="input-group-text" id="template_label_ir_drawing">Drawing</span>
+                                    <select class="form-select" aria-describedby="template_label_ir_drawing" id="template_select_ir_drawing"></select>
+                                </div>
+                                <div class="input-group input-group-sm my-2">
+                                    <span class="input-group-text" id="template_label_ir_revision">Revision</span>
+                                    <select class="form-select" aria-describedby="template_label_ir_revision" id="template_select_ir_revision"></select>
+                                </div>
+                                <div class="input-group input-group-sm my-2">
+                                    <span class="input-group-text" id="template_label_ir_item">Item</span>
+                                    <select class="form-select" aria-describedby="template_label_ir_item" id="template_select_ir_item"></select>
+                                </div>
+                                <div class="input-group input-group-sm my-2">
+                                    <span class="input-group-text" id="template_label_ir_joborder">Job Order</span>
+                                    <select class="form-select" aria-describedby="template_label_ir_joborder" id="template_select_ir_joborder"></select>
+                                    <input type="text" class="form-control" aria-describedby="template_label_ir_joborder" id="template_input_ir_joborder">
+                                    <button class="btn btn-outline-secondary" type="button" id="template_create_ir_joborder">Create</button>
+                                </div>
+                                <div class="input-group input-group-sm my-2">
+                                    <span class="input-group-text" id="template_label_ir_purchaseorder">Purchase Order</span>
+                                    <select class="form-select" aria-describedby="template_label_ir_purchaseorder" id="template_select_ir_purchaseorder"></select>
+                                    <input type="text" class="form-control" aria-describedby="template_label_ir_purchaseorder" id="template_input_ir_purchaseorder">
+                                    <button class="btn btn-outline-secondary" type="button" id="template_create_ir_purchaseorder">Create</button>
+                                </div>
+                                <div class="input-group input-group-sm my-2">
+                                    <span class="input-group-text" id="template_label_ir_receivernumber">Receiver Number</span>
+                                    <select class="form-select" aria-describedby="template_label_ir_receivernumber" id="template_select_ir_receivernumber"></select>
+                                    <input type="text" class="form-control" aria-describedby="template_label_ir_receivernumber" id="template_input_ir_receivernumber">
+                                    <button class="btn btn-outline-secondary" type="button" id="template_create_ir_receivernumber">Create</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row my-2">
+            <div class="col-md-6">
+                <h4>Characteristics</h4>
+            </div>
+            <div class="col-md-6">
+                <div class="btn-toolbar justify-content-end" role="toolbar">
+                    <button type="button" class="btn btn-outline-dark me-1">Add</button>
+                    <button type="button" class="btn btn-outline-dark ms-1">Remove</button>
+                </div>
+            </div>
+        </div>
+    </div> -->
 
     <!-- import bootstrap js library -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
             integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa"
             crossorigin="anonymous"></script>
-    
+
     <!-- import local js scripts -->
     <script src="/static/js/logic.js"></script>
 
