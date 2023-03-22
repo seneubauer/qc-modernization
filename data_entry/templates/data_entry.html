@@ -29,7 +29,7 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 
-<body>
+<body class="bg-light">
 
     <!-- header -->
     <nav class="navbar navbar-dark bg-dark">
@@ -82,131 +82,128 @@
     </nav>
 
     <!-- body -->
-    <div class="container-fluid">
-        <div class="row my-2">
-            <div class="col-md-2">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th scope="col">Inspection Reports</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="ir_row">
-                                <a class="ir_row_item" onclick="return check()">
-                                    <p>7006000, A, 1234-123</p>
-                                    <p>P.O., R.N., J.O.</p>
-                                </a>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    <!-- <div class="container">
+    <div class="container">
+
+        <!-- choosing an inspection report -->
         <div class="row my-2">
             <div class="col-md-12">
-                <h4>Create Inspection Report</h4>
-                <div class="accordion" id="ir_accordion">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="heading_scratch">
-                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_scratch" aria-expanded="true" aria-controls="collapse_scratch">
-                                From Scratch...
-                            </button>
-                        </h2>
-                        <div id="collapse_scratch" class="accordion-collapse collapse show" aria-labelledby="heading_scratch" data-bs-parent="#ir_accordion">
-                            <div class="accordion-body">
-                                <div class="input-group input-group-sm my-2">
-                                    <span class="input-group-text" id="scratch_label_ir_drawing">Drawing</span>
-                                    <input type="text" class="form-control" aria-describedby="scratch_label_ir_drawing" id="scratch_input_ir_drawing">
-                                </div>
-                                <div class="input-group input-group-sm my-2">
-                                    <span class="input-group-text" id="scratch_label_ir_revision">Revision</span>
-                                    <input type="text" class="form-control" aria-describedby="scratch_label_ir_revision" id="scratch_input_ir_revision">
-                                </div>
-                                <div class="input-group input-group-sm my-2">
-                                    <span class="input-group-text" id="scratch_label_ir_item">Item</span>
-                                    <input type="text" class="form-control" aria-describedby="scratch_label_ir_item" id="scratch_input_ir_item">
-                                </div>
-                                <div class="input-group input-group-sm my-2">
-                                    <span class="input-group-text" id="scratch_label_ir_joborder">Job Order</span>
-                                    <select class="form-select" aria-describedby="scratch_label_ir_joborder" id="scratch_select_ir_joborder"></select>
-                                    <input type="text" class="form-control" aria-describedby="scratch_label_ir_joborder" id="scratch_input_ir_joborder">
-                                    <button class="btn btn-outline-secondary" type="button" id="scratch_create_ir_joborder">Create</button>
-                                </div>
-                                <div class="input-group input-group-sm my-2">
-                                    <span class="input-group-text" id="scratch_label_ir_purchaseorder">Purchase Order</span>
-                                    <select class="form-select" aria-describedby="scratch_label_ir_purchaseorder" id="scratch_select_ir_purchaseorder"></select>
-                                    <input type="text" class="form-control" aria-describedby="scratch_label_ir_purchaseorder" id="scratch_input_ir_purchaseorder">
-                                    <button class="btn btn-outline-secondary" type="button" id="scratch_create_ir_purchaseorder">Create</button>
-                                </div>
-                                <div class="input-group input-group-sm my-2">
-                                    <span class="input-group-text" id="scratch_label_ir_receivernumber">Receiver Number</span>
-                                    <select class="form-select" aria-describedby="scratch_label_ir_receivernumber" id="scratch_select_ir_receivernumber"></select>
-                                    <input type="text" class="form-control" aria-describedby="scratch_label_ir_receivernumber" id="scratch_input_ir_receivernumber">
-                                    <button class="btn btn-outline-secondary" type="button" id="scratch_create_ir_receivernumber">Create</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="heading_template">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_template" aria-expanded="false" aria-controls="collapse_template">
-                                From Template...
-                            </button>
-                        </h2>
-                        <div id="collapse_template" class="accordion-collapse collapse" aria-labelledby="heading_template" data-bs-parent="#ir_accordion">
-                            <div class="accordion-body">
-                                <div class="input-group input-group-sm my-2">
-                                    <span class="input-group-text" id="template_label_ir_drawing">Drawing</span>
-                                    <select class="form-select" aria-describedby="template_label_ir_drawing" id="template_select_ir_drawing"></select>
-                                </div>
-                                <div class="input-group input-group-sm my-2">
-                                    <span class="input-group-text" id="template_label_ir_revision">Revision</span>
-                                    <select class="form-select" aria-describedby="template_label_ir_revision" id="template_select_ir_revision"></select>
-                                </div>
-                                <div class="input-group input-group-sm my-2">
-                                    <span class="input-group-text" id="template_label_ir_item">Item</span>
-                                    <select class="form-select" aria-describedby="template_label_ir_item" id="template_select_ir_item"></select>
-                                </div>
-                                <div class="input-group input-group-sm my-2">
-                                    <span class="input-group-text" id="template_label_ir_joborder">Job Order</span>
-                                    <select class="form-select" aria-describedby="template_label_ir_joborder" id="template_select_ir_joborder"></select>
-                                    <input type="text" class="form-control" aria-describedby="template_label_ir_joborder" id="template_input_ir_joborder">
-                                    <button class="btn btn-outline-secondary" type="button" id="template_create_ir_joborder">Create</button>
-                                </div>
-                                <div class="input-group input-group-sm my-2">
-                                    <span class="input-group-text" id="template_label_ir_purchaseorder">Purchase Order</span>
-                                    <select class="form-select" aria-describedby="template_label_ir_purchaseorder" id="template_select_ir_purchaseorder"></select>
-                                    <input type="text" class="form-control" aria-describedby="template_label_ir_purchaseorder" id="template_input_ir_purchaseorder">
-                                    <button class="btn btn-outline-secondary" type="button" id="template_create_ir_purchaseorder">Create</button>
-                                </div>
-                                <div class="input-group input-group-sm my-2">
-                                    <span class="input-group-text" id="template_label_ir_receivernumber">Receiver Number</span>
-                                    <select class="form-select" aria-describedby="template_label_ir_receivernumber" id="template_select_ir_receivernumber"></select>
-                                    <input type="text" class="form-control" aria-describedby="template_label_ir_receivernumber" id="template_input_ir_receivernumber">
-                                    <button class="btn btn-outline-secondary" type="button" id="template_create_ir_receivernumber">Create</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <h4 class="mt-3">Choose An Inspection Report...</h4>
             </div>
         </div>
         <div class="row my-2">
-            <div class="col-md-6">
-                <h4>Characteristics</h4>
-            </div>
-            <div class="col-md-6">
-                <div class="btn-toolbar justify-content-end" role="toolbar">
-                    <button type="button" class="btn btn-outline-dark me-1">Add</button>
-                    <button type="button" class="btn btn-outline-dark ms-1">Remove</button>
+
+            <!-- select an existing report -->
+            <div class="col-md-4">
+                <div class="d-grid">
+                    <button class="btn btn-dark" type="button" id="existing_report_button" data-bs-toggle="offcanvas" data-bs-target="#existing_reports" aria-controls="select_existing_report">
+                        Select Existing Report
+                    </button>
                 </div>
             </div>
+            <div class="offcanvas offcanvas-start bg-light" data-bs-scroll="true" tabindex="-1" id="existing_reports" aria-labelledby="existing_report_label">
+                <div class="offcanvas-header">
+                    <h5 class="offcanvas-title" id="existing_report_label">Existing Reports</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body">
+                    <div class="input-group mb-3">
+                        <label class="input-group-text" id="label_type_major" for="existing_report_filter_type">Filter</label>
+                        <select class="form-select bg-light" id="existing_report_filter_type">
+                            <option value="0" selected>None</option>
+                            <option value="1">Drawing</option>
+                            <option value="2">Item Number</option>
+                        </select>
+                        <input type="text" class="form-control bg-light" id="existing_report_filter_term" aria-describedby="existing_report_apply_filter">
+                        <button class="btn btn-outline-secondary" type="button" id="existing_report_filter_apply">Apply</button> 
+                    </div>
+                    <div class="input-group mb-3">
+                        <label class="input-group-text" id="label_type_major" for="existing_report_start_date">Date Span</label>
+                        <input id="existing_report_start_date" class="form-control bg-light" type="date">
+                        <input id="existing_report_stop_date" class="form-control bg-light" type="date">
+                        <div class="input-group-text">
+                            <input class="form-check-input-mt-0" type="checkbox" id="existing_report_use_date" value="">
+                        </div>
+                    </div>
+                    <table class="table table-sm table-hover table-light" id="existing_reports_table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Drawing</th>
+                                <th scope="col">Item Number</th>
+                                <th scope="col">Revision</th>
+                                <th scope="col">Started</th>
+                                <th scope="col">Finished</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+
+            <!-- select an existing template -->
+            <div class="col-md-4">
+                <div class="d-grid">
+                    <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#select_existing_template" aria-controls="select_existing_template">
+                        Select Existing Template
+                    </button>
+                </div>
+            </div>
+            <div class="offcanvas offcanvas-start" data-bs-scroll="true" tabindex="-1" id="select_existing_template" aria-labelledby="select_existing_template_label">
+                <div class="offcanvas-header">
+                    <h5 class="offcanvas-title" id="select_existing_template_label">Existing Templates</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body">
+                    <p>a table of all the existing inspection reports with a filtering option to reduce scrolling</p>
+                </div>
+            </div>
+
+            <!-- create a new report -->
+            <div class="col-md-4">
+                <div class="d-grid">
+                    <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#create_new_report" aria-controls="create_new_report">
+                        Create New Report
+                    </button>
+                </div>
+            </div>
+            <div class="offcanvas offcanvas-start" data-bs-scroll="true" tabindex="-1" id="create_new_report" aria-labelledby="create_new_report_label">
+                <div class="offcanvas-header">
+                    <h5 class="offcanvas-title" id="create_new_report_label">New Report</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body">
+                    <p>an input form to create a new inspection report</p>
+                </div>
+            </div>
+
         </div>
-    </div> -->
+
+        <!-- editing an inspection report -->
+        <div class="row my-2">
+            <div class="col-md-12">
+                <h4 class="mt-3">Edit The Inspection Report...</h4>
+            </div>
+        </div>
+        <div class="row my-2">
+            <!-- 
+                inspection report id
+                inspection report start/finish dates
+                inspection report disposition
+                inspection report associated job order
+                inspection report associated purchase order(s)
+                inspection report associated receiver number(s)
+
+                associated part's characteristic name
+                associated part's characteristic nominal
+                associated part's characteristic usl
+                associated part's characteristic lsl
+                associated part's characteristic measured
+
+                associated part's characteristic gauge (from id)
+                associated part's characteristic specification type (from id)
+            -->
+
+            
+        </div>
+    </div>
 
     <!-- import bootstrap js library -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
@@ -214,7 +211,7 @@
             crossorigin="anonymous"></script>
 
     <!-- import local js scripts -->
-    <script src="/static/js/logic.js"></script>
+    <script src="/static/js/data_entry.js"></script>
 
 </body>
 
