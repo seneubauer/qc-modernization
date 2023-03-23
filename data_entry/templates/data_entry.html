@@ -85,17 +85,12 @@
     <div class="container">
 
         <!-- choosing an inspection report -->
-        <div class="row my-2">
-            <div class="col-md-12">
-                <h4 class="mt-3">Choose An Inspection Report...</h4>
-            </div>
-        </div>
-        <div class="row my-2">
+        <div class="row my-2 mt-3">
 
             <!-- select an existing report -->
             <div class="col-md-4">
                 <div class="d-grid">
-                    <button class="btn btn-dark" type="button" id="existing_report_button" data-bs-toggle="offcanvas" data-bs-target="#existing_reports" aria-controls="select_existing_report">
+                    <button class="btn btn-secondary" type="button" id="existing_report_button" data-bs-toggle="offcanvas" data-bs-target="#existing_reports" aria-controls="select_existing_report">
                         Select Existing Report
                     </button>
                 </div>
@@ -141,7 +136,7 @@
             <!-- select an existing template -->
             <div class="col-md-4">
                 <div class="d-grid">
-                    <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#select_existing_template" aria-controls="select_existing_template">
+                    <button class="btn btn-secondary" type="button" data-bs-toggle="offcanvas" data-bs-target="#select_existing_template" aria-controls="select_existing_template">
                         Select Existing Template
                     </button>
                 </div>
@@ -159,7 +154,7 @@
             <!-- create a new report -->
             <div class="col-md-4">
                 <div class="d-grid">
-                    <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#create_new_report" aria-controls="create_new_report">
+                    <button class="btn btn-secondary" type="button" data-bs-toggle="offcanvas" data-bs-target="#create_new_report" aria-controls="create_new_report">
                         Create New Report
                     </button>
                 </div>
@@ -178,30 +173,94 @@
 
         <!-- editing an inspection report -->
         <div class="row my-2">
-            <div class="col-md-12">
-                <h4 class="mt-3">Edit The Inspection Report...</h4>
-            </div>
-        </div>
-        <div class="row my-2">
             <!-- 
                 inspection report id
                 inspection report start/finish dates
                 inspection report disposition
+                inspeciton report creator
                 inspection report associated job order
                 inspection report associated purchase order(s)
                 inspection report associated receiver number(s)
 
-                associated part's characteristic name
-                associated part's characteristic nominal
-                associated part's characteristic usl
-                associated part's characteristic lsl
-                associated part's characteristic measured
+                associated part's characteristics name
+                associated part's characteristics nominal
+                associated part's characteristics usl
+                associated part's characteristics lsl
+                associated part's characteristics measured
 
-                associated part's characteristic gauge (from id)
-                associated part's characteristic specification type (from id)
+                associated part's characteristics gauge (from id)
+                associated part's characteristics specification type (from id)
             -->
+            <form class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label" for="report_id">Report ID</label>
+                    <input class="form-control" id="report_id" type="number" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_creator">Operator (Employee ID)</label>
+                    <input class="form-control" id="report_creator" type="number">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_disposition">Disposition</label>
+                    <select class="form-select" id="report_disposition"></select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_job_order">Job Order</label>
+                    <select class="form-select" id="report_job_order">
+                        <option value="default" selected>N/A</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_start_date">Start Date</label>
+                    <input class="form-control" id="report_start_date" type="date">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_finish_date">Finish Date</label>
+                    <input class="form-control" id="report_finish_date" type="date">
+                </div>
 
-            
+                <div class="col-md-6">
+                    <div class="d-grid">
+                        <button class="btn btn-secondary" type="button" id="view_edit_receiver_numbers" data-bs-toggle="modal" data-bs-target="#receiver_number_modal">
+                            View/Edit Receiver Number Associations
+                        </button>
+                    </div>
+                    <div class="modal fade" id="receiver_number_modal" tabindex="-1" aria-labelledby="receiver_number_modal_label" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-light">
+                                    <h1 class="modal-title fs-5" id="receiver_number_modal_label">Receiver Number Associations</h1>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body bg-light">
+                                    <div class="input-group mb-3">
+                                        <input type="text" class="form-control" id="current_receiver_number" aria-describedby="add_receiver_number">
+                                        <button class="btn btn-outline-secondary" type="button" id="add_receiver_number">Add</button>
+                                        <button class="btn btn-outline-secondary" type="button" id="remove_receiver_number">Remove</button>
+                                    </div>
+                                    <div class="list-group" id="receiver_number_group">
+                                        <a></a>
+                                    </div>
+                                </div>
+                                <div class="modal-footer bg-light">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-grid">
+                        <button class="btn btn-secondary" type="button" id="view_edit_purchase_orders">
+                            View/Edit Purchase Order Associations
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-md-12">
+                    <label class="form-label" for="data_entry_accordion">Characteristics</label>
+                </div>
+            </form>
         </div>
     </div>
 

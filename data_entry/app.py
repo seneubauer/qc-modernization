@@ -53,6 +53,99 @@ app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 def data_entry_route():
     return render_template("data_entry.html")
 
+@app.route("/get_disposition_types/")
+def get_disposition_types():
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(disposition_types.id).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "id": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or database query"
+        }
+
+@app.route("/get_job_orders/")
+def get_job_orders():
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(job_orders.id).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "id": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or database query"
+        }
+
+@app.route("/get_receiver_numbers/<int:report_id>/")
+def get_receiver_numbers(report_id:int):
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(receiver_numbers.id)\
+        .join(inspection_receiver_numbers, (receiver_numbers.id == inspection_receiver_numbers.receiver_number_id))\
+        .join(inspection_reports, (inspection_reports.id == inspection_receiver_numbers.inspection_id))\
+        .filter(inspection_reports.id == report_id).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "id": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or database query"
+        }
+
 @app.route("/get_inspection_reports/<int:filter_type>/<string:filter_term>/<string:use_date_span>/<int:start_day>/<int:start_month>/<int:start_year>/<int:stop_day>/<int:stop_month>/<int:stop_year>/")
 def get_inspection_reports(filter_type:int, filter_term:str, use_date_span:str, start_day:int, start_month:int, start_year:int, stop_day:int, stop_month:int, stop_year:int):
 

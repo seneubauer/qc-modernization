@@ -8,19 +8,42 @@ let existing_report_start_date = d3.select("#existing_report_start_date");
 let existing_report_stop_date = d3.select("#existing_report_stop_date");
 let existing_report_use_date = d3.select("#existing_report_use_date");
 
+let report_id = d3.select("#report_id");
+let report_creator = d3.select("#report_creator");
+let report_disposition = d3.select("#report_disposition");
+let report_job_order = d3.select("#report_job_order");
+let report_start_date = d3.select("#report_start_date");
+let report_finish_date = d3.select("#report_finish_date");
+
+let receiver_number_view_edit = d3.select("#view_edit_receiver_numbers");
+let receiver_number_current = d3.select("#current_receiver_number");
+let receiver_number_add = d3.select("#add_receiver_number");
+let receiver_number_remove = d3.select("#remove_receiver_number");
+let receiver_number_group = d3.select("#receiver_number_group");
+
 // add events
 existing_report_button.on("click", update_existing_reports_panel);
 existing_report_filter_apply.on("click", update_existing_reports_panel);
+
+receiver_number_view_edit.on("click", show_receiver_number_modal);
+
 
 init();
 
 // initialization function
 function init()
 {
+    // populate selectors
+    populate_disposition_types();
+    populate_job_orders();
+
     // set initial values
-    existing_report_start_date.property("value", "2023-01-01");
-    existing_report_stop_date.property("value", "2023-02-01");
+    existing_report_start_date.property("value", "1970-01-01");
+    existing_report_stop_date.property("value", "1970-01-01");
     existing_report_use_date.property("checked", false);
+
+    report_start_date.property("value", "1970-01-01");
+    report_finish_date.property("value", "1970-01-01");
 }
 
 // update the existing reports panel
@@ -84,7 +107,117 @@ function update_existing_reports_panel()
     });
 }
 
+// 
 function inspection_report_selected(drawing)
 {
+    
     console.log(drawing);
+}
+
+
+// user selected the view/edit receiver number associations
+function show_receiver_number_modal()
+{
+    // get the report id
+    let report_id_value = 1; //report_id.property("value");
+
+    // populate the list
+    if (report_id_value != "") {
+        console.log(report_id_value);
+        get_report_receiver_numbers(report_id_value);
+    }
+}
+
+// user selected a receiver number from the group
+function reciever_number_selected(receiver_number_id)
+{
+    receiver_number_current.property("value", receiver_number_id);
+}
+
+
+// populate job orders selector
+function populate_job_orders()
+{
+    // define the route
+    let route = "/get_job_orders/";
+
+    // query the flask server
+    d3.json(route).then(function (returned_object) {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // populate the select control
+            report_job_order.selectAll("option")
+                .data(dataset)
+                .enter()
+                .append("option")
+                .text((x) => x.id);
+        }
+        else {
+
+            // log the error message
+            console.log(returned_object.response);
+        }
+    });
+}
+
+// populate receiver numbers list group from an inspection report id
+function get_report_receiver_numbers(report_id)
+{
+    // define the route
+    let route = `/get_receiver_numbers/${report_id}/`;
+
+    // query the flask server
+    d3.json(route).then(function (returned_object) {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // populate the select control
+            receiver_number_group.selectAll("a")
+                .data(dataset)
+                .enter()
+                .append("a")
+                .attr("href", "#")
+                .attr("class", "list-group-item list-group-item-action")
+                .text((x) => x.id)
+                .on("click", (p, x) => reciever_number_selected(x.id));
+        }
+        else {
+
+            // log the error message
+            console.log(returned_object.response);
+        }
+    });
+}
+
+// populate disposition type selector
+function populate_disposition_types()
+{
+    // define the route
+    let route = "/get_disposition_types/";
+
+    // query the flask server
+    d3.json(route).then(function (returned_object) {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // populate the select control
+            report_disposition.selectAll("option")
+                .data(dataset)
+                .enter()
+                .append("option")
+                .text((x) => x.id);
+        }
+        else {
+
+            // log the error message
+            console.log(returned_object.response);
+        }
+    });
 }

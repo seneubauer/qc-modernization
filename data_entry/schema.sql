@@ -235,9 +235,13 @@ create table inspection_reports
     job_order_id varchar(32),
     constraint fk_job_order_ins foreign key (job_order_id) references job_orders(id),
 
+    -- one inspection report can relate to one employee
+    employee_id integer,
+    constraint fk_employee_ins foreign key (employee_id) references employees(id),
+
     -- one inspection report relates to one disposition type
     disposition varchar(32) not null,
-    constraint fk_disposition foreign key (disposition) references disposition_types(id),
+    constraint fk_disposition_ins foreign key (disposition) references disposition_types(id),
 
     -- many inspection reports relate to one part
     part_id integer not null,
@@ -286,6 +290,10 @@ create table characteristics
     -- one characteristic relates to one characteristic type
     characteristic_type_id varchar(32) not null,
     constraint fk_characteristic_type_id foreign key (characteristic_type_id) references characteristic_types(id),
+
+    -- one characteristic can relate to one employee
+    employee_id integer,
+    constraint fk_employee_char foreign key (employee_id) references employees(id),
 
     -- many characteristics can relate to one part
     part_id integer not null,
