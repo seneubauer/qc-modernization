@@ -53,8 +53,40 @@ app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 def data_entry_route():
     return render_template("data_entry.html")
 
-@app.route("/get_disposition_types/")
-def get_disposition_types():
+
+
+@app.route("/get_all_employee_ids/")
+def get_all_employees():
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(employees.id).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "id": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or database query"
+        }
+
+@app.route("/get_all_disposition_types/")
+def get_all_disposition_types():
 
     # open the database session
     session = Session(engine)
@@ -83,8 +115,68 @@ def get_disposition_types():
             "response": "error within the flask server or database query"
         }
 
-@app.route("/get_job_orders/")
-def get_job_orders():
+@app.route("/get_all_item_numbers/")
+def get_all_item_numbers():
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(parts.item).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "id": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or database query"
+        }
+
+@app.route("/get_all_drawings/")
+def get_all_drawings():
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(parts.drawing).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "id": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or database query"
+        }
+
+@app.route("/get_all_job_orders/")
+def get_all_job_orders():
 
     # open the database session
     session = Session(engine)
@@ -113,8 +205,95 @@ def get_job_orders():
             "response": "error within the flask server or database query"
         }
 
-@app.route("/get_receiver_numbers/<int:report_id>/")
-def get_receiver_numbers(report_id:int):
+@app.route("/get_all_receiver_numbers/")
+def get_all_receiver_numbers():
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(receiver_numbers.id).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "id": id[0]
+            })
+        
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or database query"
+        }
+
+@app.route("/inspection_report_drawing_changed/<string:drawing>/")
+def inspection_report_drawing_changed(drawing:str):
+
+    # open the database connection
+    session = Session(engine)
+
+    # query the database
+    results = session.query(parts.item)\
+        .filter(parts.drawing == drawing).all()
+    
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for item in results:
+            output_arr.append({
+                "id": item[0]
+            })
+        
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or database query"
+        }
+
+@app.route("/assign_receiver_number_association/<int:report_id>/<string:receiver_number>")
+def assign_receiver_number_association(report_id:int, receiver_number:str):
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    exists_result = session.query(inspection_receiver_numbers.id)\
+        .filter(and_(inspection_receiver_numbers.inspection_id == report_id, inspection_receiver_numbers.receiver_number_id == receiver_number)).all()
+
+    added = False
+    if len(exists_result) > 0:
+        added = False
+    else:
+        session.add(inspection_receiver_numbers(inspection_id = report_id, receiver_number_id = receiver_number))
+        session.commit()
+        added = True
+
+    # close the session
+    session.close()
+
+    return {
+        "status": "ok",
+        "response": added
+    }
+
+@app.route("/get_receiver_numbers_from_report_id/<int:report_id>/")
+def get_receiver_numbers_from_report_id(report_id:int):
 
     # open the database session
     session = Session(engine)
@@ -160,7 +339,10 @@ def get_inspection_reports(filter_type:int, filter_term:str, use_date_span:str, 
         parts.revision,
         parts.item,
         inspection_reports.day_started,
-        inspection_reports.day_finished
+        inspection_reports.day_finished,
+        inspection_reports.employee_id,
+        inspection_reports.disposition,
+        inspection_reports.job_order_id
     ]
 
     # open the database session
@@ -186,13 +368,23 @@ def get_inspection_reports(filter_type:int, filter_term:str, use_date_span:str, 
     results_list = results.all()
     output_data = []
     if len(results_list) > 0:
-        for id, drawing, revision, item, started, finished, in results_list:
+        for id, drawing, revision, item, started, finished, employee_id, disposition, job_order_id in results_list:
             output_data.append({
+                "report_id": id,
                 "drawing": drawing,
                 "item_number": item,
                 "revision": revision.upper(),
+                "start_year": started.year,
+                "start_month": started.month,
+                "start_day": started.day,
+                "finish_year": finished.year,
+                "finish_month": finished.month,
+                "finish_day": finished.day,
                 "started": f"{started.month:02}/{started.day:02}/{started.year:04}",
-                "finished": f"{finished.month:02}/{finished.day:02}/{finished.year:04}"
+                "finished": f"{finished.month:02}/{finished.day:02}/{finished.year:04}",
+                "employee": employee_id,
+                "disposition": disposition,
+                "job_order": job_order_id
             })
 
         return {

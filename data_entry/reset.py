@@ -140,7 +140,7 @@ for i, r in parts_df.iterrows():
 session.commit()
 
 for i, r in inspection_reports_df.iterrows():
-    session.add(inspection_reports(id = r["id"], day_started = r["day_started"], day_finished = r["day_finished"], job_order_id = r["job_order_id"], disposition = r["disposition"], part_id = r["part_id"]))
+    session.add(inspection_reports(id = r["id"], employee_id = r["employee_id"], day_started = r["day_started"], day_finished = r["day_finished"], job_order_id = r["job_order_id"], disposition = r["disposition"], part_id = r["part_id"]))
 session.commit()
 
 for i, r in gauges_df.iterrows():

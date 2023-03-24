@@ -205,10 +205,20 @@
                     <select class="form-select" id="report_disposition"></select>
                 </div>
                 <div class="col-md-4">
+                    <label class="form-label" for="report_item_number">Item Number</label>
+                    <select class="form-select" id="report_item_number"></select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_drawing">Drawing</label>
+                    <select class="form-select" id="report_drawing"></select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_revision">Revision</label>
+                    <input class="form-control" id="report_revision" type="text">
+                </div>
+                <div class="col-md-4">
                     <label class="form-label" for="report_job_order">Job Order</label>
-                    <select class="form-select" id="report_job_order">
-                        <option value="default" selected>N/A</option>
-                    </select>
+                    <select class="form-select" id="report_job_order"></select>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="report_start_date">Start Date</label>
@@ -218,7 +228,6 @@
                     <label class="form-label" for="report_finish_date">Finish Date</label>
                     <input class="form-control" id="report_finish_date" type="date">
                 </div>
-
                 <div class="col-md-6">
                     <div class="d-grid">
                         <button class="btn btn-secondary" type="button" id="view_edit_receiver_numbers" data-bs-toggle="modal" data-bs-target="#receiver_number_modal">
@@ -234,13 +243,11 @@
                                 </div>
                                 <div class="modal-body bg-light">
                                     <div class="input-group mb-3">
-                                        <input type="text" class="form-control" id="current_receiver_number" aria-describedby="add_receiver_number">
+                                        <select class="form-select" id="current_receiver_number" aria-describedby="add_receiver_number"></select>
                                         <button class="btn btn-outline-secondary" type="button" id="add_receiver_number">Add</button>
                                         <button class="btn btn-outline-secondary" type="button" id="remove_receiver_number">Remove</button>
                                     </div>
-                                    <div class="list-group" id="receiver_number_group">
-                                        <a></a>
-                                    </div>
+                                    <div class="list-group" id="receiver_number_group"></div>
                                 </div>
                                 <div class="modal-footer bg-light">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

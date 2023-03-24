@@ -11,6 +11,9 @@ let existing_report_use_date = d3.select("#existing_report_use_date");
 let report_id = d3.select("#report_id");
 let report_creator = d3.select("#report_creator");
 let report_disposition = d3.select("#report_disposition");
+let report_item_number = d3.select("#report_item_number");
+let report_drawing = d3.select("#report_drawing");
+let report_revision = d3.select("#report_revision");
 let report_job_order = d3.select("#report_job_order");
 let report_start_date = d3.select("#report_start_date");
 let report_finish_date = d3.select("#report_finish_date");
@@ -27,15 +30,17 @@ existing_report_filter_apply.on("click", update_existing_reports_panel);
 
 receiver_number_view_edit.on("click", show_receiver_number_modal);
 
+report_drawing.on("change", drawing_changed);
 
 init();
+
+// #region page initialization
 
 // initialization function
 function init()
 {
     // populate selectors
-    populate_disposition_types();
-    populate_job_orders();
+    populate_dropdowns();
 
     // set initial values
     existing_report_start_date.property("value", "1970-01-01");
@@ -45,6 +50,84 @@ function init()
     report_start_date.property("value", "1970-01-01");
     report_finish_date.property("value", "1970-01-01");
 }
+
+// populate dropdowns
+function populate_dropdowns()
+{
+    // get the employee ids
+    d3.json("/get_all_employee_ids").then(function (returned_object) {
+        if (returned_object.status == "ok") {
+            report_creator.selectAll("option")
+                .data(returned_object.response)
+                .enter()
+                .append("option")
+                .text((x) => x.id);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+
+    // get the dispositions
+    d3.json("/get_all_disposition_types/").then(function (returned_object) {
+        if (returned_object.status == "ok") {
+            report_disposition.selectAll("option")
+                .data(returned_object.response)
+                .enter()
+                .append("option")
+                .text((x) => x.id);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+
+    // get the item numbers
+    d3.json("/get_all_item_numbers/").then(function (returned_object) {
+        if (returned_object.status == "ok") {
+            report_item_number.selectAll("option")
+                .data(returned_object.response)
+                .enter()
+                .append("option")
+                .text((x) => x.id);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+
+    // get the drawing numbers
+    d3.json("/get_all_drawings/").then(function (returned_object) {
+        if (returned_object.status == "ok") {
+            report_drawing.selectAll("option")
+                .data(returned_object.response)
+                .enter()
+                .append("option")
+                .text((x) => x.id);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+
+    // get the job orders
+    d3.json("/get_all_job_orders/").then(function (returned_object) {
+        if (returned_object.status == "ok") {
+            report_job_order.selectAll("option")
+                .data(returned_object.response)
+                .enter()
+                .append("option")
+                .text((x) => x.id);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
+// #endregion
+
+// #region existing report
 
 // update the existing reports panel
 function update_existing_reports_panel()
@@ -83,7 +166,7 @@ function update_existing_reports_panel()
                 .data(dataset)
                 .enter()
                 .append("tr")
-                .on("click", (p, data) => inspection_report_selected(data.drawing));
+                .on("click", (p, data) => inspection_report_selected(data));
 
             // assign the cell contents
             rows.selectAll("td")
@@ -107,81 +190,97 @@ function update_existing_reports_panel()
     });
 }
 
-// 
-function inspection_report_selected(drawing)
+// user selected an inspection report from the existing inspection reports
+function inspection_report_selected(data)
 {
-    
-    console.log(drawing);
+    // construct the date components
+    let s_year = data.start_year.toString().padStart(4, "0");
+    let s_month = data.start_month.toString().padStart(2, "0");
+    let s_day = data.start_day.toString().padStart(2, "0");
+    let f_year = data.finish_year.toString().padStart(4, "0");
+    let f_month = data.finish_month.toString().padStart(2, "0");
+    let f_day = data.finish_day.toString().padStart(2, "0");
+
+    // populate the inspection report values
+    report_id.property("value", data.report_id);
+    report_creator.property("value", data.employee);
+    report_disposition.property("value", data.disposition);
+    report_job_order.property("value", data.job_order_id);
+    report_item_number.property("value", data.item_number);
+    report_drawing.property("value", data.drawing);
+    report_revision.property("value", data.revision);
+    report_start_date.property("value", `${s_year}-${s_month}-${s_day}`);
+    report_finish_date.property("value", `${f_year}-${f_month}-${f_day}`);
 }
 
-
-// user selected the view/edit receiver number associations
-function show_receiver_number_modal()
+// user changed the inspection report's drawing
+function drawing_changed()
 {
-    // get the report id
-    let report_id_value = 1; //report_id.property("value");
+    let route = `/inspection_report_drawing_changed/${report_drawing.property("value")}/`;
 
-    // populate the list
-    if (report_id_value != "") {
-        console.log(report_id_value);
-        get_report_receiver_numbers(report_id_value);
-    }
-}
-
-// user selected a receiver number from the group
-function reciever_number_selected(receiver_number_id)
-{
-    receiver_number_current.property("value", receiver_number_id);
-}
-
-
-// populate job orders selector
-function populate_job_orders()
-{
-    // define the route
-    let route = "/get_job_orders/";
-
-    // query the flask server
     d3.json(route).then(function (returned_object) {
         if (returned_object.status == "ok") {
-
-            // extract the requested data
-            let dataset = returned_object.response;
-
-            // populate the select control
-            report_job_order.selectAll("option")
-                .data(dataset)
-                .enter()
-                .append("option")
-                .text((x) => x.id);
+            
         }
         else {
-
-            // log the error message
             console.log(returned_object.response);
         }
     });
 }
 
-// populate receiver numbers list group from an inspection report id
-function get_report_receiver_numbers(report_id)
+// user changed the inspection report's item number
+function item_number_changed()
 {
-    // define the route
-    let route = `/get_receiver_numbers/${report_id}/`;
+    let route = ``;
+    d3.json(route).then(function (returned_object) {
+        if (returned_object.status == "ok") {
+
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
+// #endregion
+
+// #region receiver number group
+
+// user selected the view/edit receiver number associations
+function show_receiver_number_modal()
+{
+    // get the report id
+    let report_id_value = report_id.property("value");
+
+    // populate the list
+    if (report_id_value != "") {
+        populate_receiver_numbers_modal(report_id_value);
+    }
+}
+
+// populate receiver numbers modal
+function populate_receiver_numbers_modal(report_id)
+{
+    // define the routes
+    let route_associated = `/get_receiver_numbers_from_report_id/${report_id}/`;
+    let route_all = "/get_all_receiver_numbers/";
+
+    // remove existing items
+    existing_report_table.selectAll("div").remove();
+    receiver_number_current.selectAll("option").remove();
 
     // query the flask server
-    d3.json(route).then(function (returned_object) {
+    d3.json(route_associated).then(function (returned_object) {
         if (returned_object.status == "ok") {
 
             // extract the requested data
             let dataset = returned_object.response;
 
             // populate the select control
-            receiver_number_group.selectAll("a")
+            receiver_number_group.selectAll("div")
                 .data(dataset)
                 .enter()
-                .append("a")
-                .attr("href", "#")
+                .append("div")
                 .attr("class", "list-group-item list-group-item-action")
                 .text((x) => x.id)
                 .on("click", (p, x) => reciever_number_selected(x.id));
@@ -192,23 +291,16 @@ function get_report_receiver_numbers(report_id)
             console.log(returned_object.response);
         }
     });
-}
-
-// populate disposition type selector
-function populate_disposition_types()
-{
-    // define the route
-    let route = "/get_disposition_types/";
 
     // query the flask server
-    d3.json(route).then(function (returned_object) {
+    d3.json(route_all).then(function (returned_object) {
         if (returned_object.status == "ok") {
 
             // extract the requested data
             let dataset = returned_object.response;
 
-            // populate the select control
-            report_disposition.selectAll("option")
+            // populate the dropdown
+            receiver_number_current.selectAll("option")
                 .data(dataset)
                 .enter()
                 .append("option")
@@ -221,3 +313,23 @@ function populate_disposition_types()
         }
     });
 }
+
+// user selected a receiver number from the modal group
+function reciever_number_selected(receiver_number_id)
+{
+    receiver_number_current.property("value", receiver_number_id);
+}
+
+// add a new receiver number association to the inspection report
+function receiver_number_association_added()
+{
+    // get the inputs
+    let recv = receiver_number_current.property("value");
+    let rep_id = report_id.property("value");
+
+    
+}
+
+// remove a receiver number association from the inspection report
+
+//#endregion
