@@ -24,13 +24,26 @@ let receiver_number_add = d3.select("#add_receiver_number");
 let receiver_number_remove = d3.select("#remove_receiver_number");
 let receiver_number_group = d3.select("#receiver_number_group");
 
+let purchase_order_view_edit = d3.select("#view_edit_purchase_orders");
+let purchase_order_current = d3.select("#current_purchase_order");
+let purchase_order_add = d3.select("#add_purchase_order");
+let purchase_order_remove = d3.select("#remove_purchase_order");
+let purchase_order_group = d3.select("#purchase_order_group")
+
 // add events
 existing_report_button.on("click", update_existing_reports_panel);
 existing_report_filter_apply.on("click", update_existing_reports_panel);
 
 receiver_number_view_edit.on("click", show_receiver_number_modal);
+receiver_number_add.on("click", receiver_number_association_added);
+receiver_number_remove.on("click", receiver_number_association_removed);
+
+purchase_order_view_edit.on("click", show_purchase_order_modal);
+purchase_order_add.on("click", purchase_order_association_added);
+purchase_order_remove.on("click", purchase_order_association_removed);
 
 report_drawing.on("change", drawing_changed);
+report_item_number.on("change", item_number_changed);
 
 init();
 
@@ -217,10 +230,9 @@ function inspection_report_selected(data)
 function drawing_changed()
 {
     let route = `/inspection_report_drawing_changed/${report_drawing.property("value")}/`;
-
     d3.json(route).then(function (returned_object) {
         if (returned_object.status == "ok") {
-            
+            report_item_number.property("value", returned_object.response);
         }
         else {
             console.log(returned_object.response);
@@ -231,10 +243,10 @@ function drawing_changed()
 // user changed the inspection report's item number
 function item_number_changed()
 {
-    let route = ``;
+    let route = `/inspection_report_item_number_changed/${report_item_number.property("value")}/`;
     d3.json(route).then(function (returned_object) {
         if (returned_object.status == "ok") {
-
+            report_drawing.property("value", returned_object.response);
         }
         else {
             console.log(returned_object.response);
@@ -276,7 +288,7 @@ function populate_receiver_numbers_modal(report_id)
             // extract the requested data
             let dataset = returned_object.response;
 
-            // populate the select control
+            // populate the list control
             receiver_number_group.selectAll("div")
                 .data(dataset)
                 .enter()
@@ -327,9 +339,215 @@ function receiver_number_association_added()
     let recv = receiver_number_current.property("value");
     let rep_id = report_id.property("value");
 
-    
+    // build the server route
+    let route = `/add_receiver_number_association/${rep_id}/${recv}/`;
+
+    // query the flask server
+    d3.json(route).then(function (returned_object) {
+        if (returned_object.status == "ok") {
+
+            // clear the old list
+            receiver_number_group.selectAll("div").remove();
+            
+            // extract the requested data
+            let dataset = returned_object.response;
+            
+            // populate the list control
+            receiver_number_group.selectAll("div")
+                .data(dataset)
+                .enter()
+                .append("div")
+                .attr("class", "list-group-item list-group-item-action")
+                .text((x) => x.id)
+                .on("click", (p, x) => reciever_number_selected(x.id));
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
 }
 
 // remove a receiver number association from the inspection report
+function receiver_number_association_removed()
+{
+    // get the inputs
+    let recv = receiver_number_current.property("value");
+    let rep_id = report_id.property("value");
 
-//#endregion
+    // build the server route
+    let route = `/remove_receiver_number_association/${rep_id}/${recv}/`;
+
+    // query the flask server
+    d3.json(route).then(function (returned_object) {
+        if (returned_object.status == "ok") {
+    
+            // clear the old list
+            receiver_number_group.selectAll("div").remove();
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // populate the list control
+            receiver_number_group.selectAll("div")
+                .data(dataset)
+                .enter()
+                .append("div")
+                .attr("class", "list-group-item list-group-item-action")
+                .text((x) => x.id)
+                .on("click", (p, x) => reciever_number_selected(x.id));
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
+// #endregion
+
+// #region purchase order group
+
+// user selected the view/edit purchase order associations
+function show_purchase_order_modal()
+{
+    // get the report id
+    let report_id_value = report_id.property("value");
+
+    // populate the list
+    if (report_id_value != "") {
+        populate_purchase_orders_modal(report_id_value);
+    }
+}
+
+// populate purchase orders modal
+function populate_purchase_orders_modal(report_id)
+{
+    // define the routes
+    let route_associated = `/get_purchase_orders_from_report_id/${report_id}/`;
+    let route_all = "/get_all_purchase_orders/";
+
+    // remove existing items
+    existing_report_table.selectAll("div").remove();
+    receiver_number_current.selectAll("option").remove();
+
+    // query the flask server
+    d3.json(route_associated).then(function (returned_object) {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // populate the list control
+            purchase_order_group.selectAll("div")
+                .data(dataset)
+                .enter()
+                .append("div")
+                .attr("class", "list-group-item list-group-item-action")
+                .text((x) => x.id)
+                .on("click", (p, x) => purchase_order_selected(x.id));
+        }
+        else {
+
+            // log the error message
+            console.log(returned_object.response);
+        }
+    });
+
+    // query the flask server
+    d3.json(route_all).then(function (returned_object) {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // populate the dropdown
+            purchase_order_current.selectAll("option")
+                .data(dataset)
+                .enter()
+                .append("option")
+                .text((x) => x.id);
+        }
+        else {
+
+            // log the error message
+            console.log(returned_object.response);
+        }
+    });
+}
+
+// user selected a purchase order from the modal group
+function purchase_order_selected(purchase_order_id)
+{
+    purchase_order_current.property("value", purchase_order_id);
+}
+
+// add a new purchase order association to the inspection report
+function purchase_order_association_added()
+{
+    // get the inputs
+    let recv = purchase_order_current.property("value");
+    let rep_id = report_id.property("value");
+
+    // build the server route
+    let route = `/add_purchase_order_association/${rep_id}/${recv}/`;
+
+    // query the flask server
+    d3.json(route).then(function (returned_object) {
+        if (returned_object.status == "ok") {
+
+            // clear the old list
+            purchase_order_group.selectAll("div").remove();
+            
+            // extract the requested data
+            let dataset = returned_object.response;
+            
+            // populate the list control
+            purchase_order_group.selectAll("div")
+                .data(dataset)
+                .enter()
+                .append("div")
+                .attr("class", "list-group-item list-group-item-action")
+                .text((x) => x.id)
+                .on("click", (p, x) => purchase_order_selected(x.id));
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
+// remove a purchase order association from the inspection report
+function purchase_order_association_removed()
+{
+    // get the inputs
+    let recv = purchase_order_current.property("value");
+    let rep_id = report_id.property("value");
+
+    // build the server route
+    let route = `/remove_purchase_order_association/${rep_id}/${recv}/`;
+
+    // query the flask server
+    d3.json(route).then(function (returned_object) {
+        if (returned_object.status == "ok") {
+    
+            // clear the old list
+            purchase_order_group.selectAll("div").remove();
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // populate the list control
+            purchase_order_group.selectAll("div")
+                .data(dataset)
+                .enter()
+                .append("div")
+                .attr("class", "list-group-item list-group-item-action")
+                .text((x) => x.id)
+                .on("click", (p, x) => purchase_order_selected(x.id));
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
+// #endregion

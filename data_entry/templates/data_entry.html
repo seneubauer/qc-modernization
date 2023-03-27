@@ -85,112 +85,95 @@
     <div class="container">
 
         <!-- choosing an inspection report -->
-        <div class="row my-2 mt-3">
+        <div class="row my-2">
+            <form class="row g-3">
 
-            <!-- select an existing report -->
-            <div class="col-md-4">
-                <div class="d-grid">
-                    <button class="btn btn-secondary" type="button" id="existing_report_button" data-bs-toggle="offcanvas" data-bs-target="#existing_reports" aria-controls="select_existing_report">
-                        Select Existing Report
-                    </button>
-                </div>
-            </div>
-            <div class="offcanvas offcanvas-start bg-light" data-bs-scroll="true" tabindex="-1" id="existing_reports" aria-labelledby="existing_report_label">
-                <div class="offcanvas-header">
-                    <h5 class="offcanvas-title" id="existing_report_label">Existing Reports</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-                </div>
-                <div class="offcanvas-body">
-                    <div class="input-group mb-3">
-                        <label class="input-group-text" id="label_type_major" for="existing_report_filter_type">Filter</label>
-                        <select class="form-select bg-light" id="existing_report_filter_type">
-                            <option value="0" selected>None</option>
-                            <option value="1">Drawing</option>
-                            <option value="2">Item Number</option>
-                        </select>
-                        <input type="text" class="form-control bg-light" id="existing_report_filter_term" aria-describedby="existing_report_apply_filter">
-                        <button class="btn btn-outline-secondary" type="button" id="existing_report_filter_apply">Apply</button> 
+                <!-- select an existing report -->
+                <div class="col-md-4">
+                    <div class="d-grid">
+                        <button class="btn btn-secondary" type="button" id="existing_report_button" data-bs-toggle="offcanvas" data-bs-target="#existing_reports" aria-controls="select_existing_report">
+                            Select Existing Report
+                        </button>
                     </div>
-                    <div class="input-group mb-3">
-                        <label class="input-group-text" id="label_type_major" for="existing_report_start_date">Date Span</label>
-                        <input id="existing_report_start_date" class="form-control bg-light" type="date">
-                        <input id="existing_report_stop_date" class="form-control bg-light" type="date">
-                        <div class="input-group-text">
-                            <input class="form-check-input-mt-0" type="checkbox" id="existing_report_use_date" value="">
+                </div>
+                <div class="offcanvas offcanvas-start bg-light" data-bs-scroll="true" tabindex="-1" id="existing_reports" aria-labelledby="existing_report_label">
+                    <div class="offcanvas-header">
+                        <h5 class="offcanvas-title" id="existing_report_label">Existing Reports</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                    </div>
+                    <div class="offcanvas-body">
+                        <div class="input-group mb-3">
+                            <label class="input-group-text" id="label_type_major" for="existing_report_filter_type">Filter</label>
+                            <select class="form-select bg-light" id="existing_report_filter_type">
+                                <option value="0" selected>None</option>
+                                <option value="1">Drawing</option>
+                                <option value="2">Item Number</option>
+                            </select>
+                            <input type="text" class="form-control bg-light" id="existing_report_filter_term" aria-describedby="existing_report_apply_filter">
+                            <button class="btn btn-outline-secondary" type="button" id="existing_report_filter_apply">Apply</button> 
                         </div>
+                        <div class="input-group mb-3">
+                            <label class="input-group-text" id="label_type_major" for="existing_report_start_date">Date Span</label>
+                            <input id="existing_report_start_date" class="form-control bg-light" type="date">
+                            <input id="existing_report_stop_date" class="form-control bg-light" type="date">
+                            <div class="input-group-text">
+                                <input class="form-check-input-mt-0" type="checkbox" id="existing_report_use_date" value="">
+                            </div>
+                        </div>
+                        <table class="table table-sm table-hover table-light" id="existing_reports_table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Drawing</th>
+                                    <th scope="col">Item Number</th>
+                                    <th scope="col">Revision</th>
+                                    <th scope="col">Started</th>
+                                    <th scope="col">Finished</th>
+                                </tr>
+                            </thead>
+                        </table>
                     </div>
-                    <table class="table table-sm table-hover table-light" id="existing_reports_table">
-                        <thead>
-                            <tr>
-                                <th scope="col">Drawing</th>
-                                <th scope="col">Item Number</th>
-                                <th scope="col">Revision</th>
-                                <th scope="col">Started</th>
-                                <th scope="col">Finished</th>
-                            </tr>
-                        </thead>
-                    </table>
                 </div>
-            </div>
 
-            <!-- select an existing template -->
-            <div class="col-md-4">
-                <div class="d-grid">
-                    <button class="btn btn-secondary" type="button" data-bs-toggle="offcanvas" data-bs-target="#select_existing_template" aria-controls="select_existing_template">
-                        Select Existing Template
-                    </button>
+                <!-- select an existing template -->
+                <div class="col-md-4">
+                    <div class="d-grid">
+                        <button class="btn btn-secondary" type="button" data-bs-toggle="offcanvas" data-bs-target="#select_existing_template" aria-controls="select_existing_template">
+                            Select Existing Template
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <div class="offcanvas offcanvas-start" data-bs-scroll="true" tabindex="-1" id="select_existing_template" aria-labelledby="select_existing_template_label">
-                <div class="offcanvas-header">
-                    <h5 class="offcanvas-title" id="select_existing_template_label">Existing Templates</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                <div class="offcanvas offcanvas-start" data-bs-scroll="true" tabindex="-1" id="select_existing_template" aria-labelledby="select_existing_template_label">
+                    <div class="offcanvas-header">
+                        <h5 class="offcanvas-title" id="select_existing_template_label">Existing Templates</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                    </div>
+                    <div class="offcanvas-body">
+                        <p>a table of all the existing inspection reports with a filtering option to reduce scrolling</p>
+                    </div>
                 </div>
-                <div class="offcanvas-body">
-                    <p>a table of all the existing inspection reports with a filtering option to reduce scrolling</p>
-                </div>
-            </div>
 
-            <!-- create a new report -->
-            <div class="col-md-4">
-                <div class="d-grid">
-                    <button class="btn btn-secondary" type="button" data-bs-toggle="offcanvas" data-bs-target="#create_new_report" aria-controls="create_new_report">
-                        Create New Report
-                    </button>
+                <!-- create a new report -->
+                <div class="col-md-4">
+                    <div class="d-grid">
+                        <button class="btn btn-secondary" type="button" data-bs-toggle="offcanvas" data-bs-target="#create_new_report" aria-controls="create_new_report">
+                            Create New Report
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <div class="offcanvas offcanvas-start" data-bs-scroll="true" tabindex="-1" id="create_new_report" aria-labelledby="create_new_report_label">
-                <div class="offcanvas-header">
-                    <h5 class="offcanvas-title" id="create_new_report_label">New Report</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                <div class="offcanvas offcanvas-start" data-bs-scroll="true" tabindex="-1" id="create_new_report" aria-labelledby="create_new_report_label">
+                    <div class="offcanvas-header">
+                        <h5 class="offcanvas-title" id="create_new_report_label">New Report</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                    </div>
+                    <div class="offcanvas-body">
+                        <p>an input form to create a new inspection report</p>
+                    </div>
                 </div>
-                <div class="offcanvas-body">
-                    <p>an input form to create a new inspection report</p>
-                </div>
-            </div>
-
+            </form>
         </div>
 
         <!-- editing an inspection report -->
         <div class="row my-2">
-            <!-- 
-                inspection report id
-                inspection report start/finish dates
-                inspection report disposition
-                inspeciton report creator
-                inspection report associated job order
-                inspection report associated purchase order(s)
-                inspection report associated receiver number(s)
-
-                associated part's characteristics name
-                associated part's characteristics nominal
-                associated part's characteristics usl
-                associated part's characteristics lsl
-                associated part's characteristics measured
-
-                associated part's characteristics gauge (from id)
-                associated part's characteristics specification type (from id)
-            -->
             <form class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label" for="report_id">Report ID</label>
@@ -258,14 +241,35 @@
                 </div>
                 <div class="col-md-6">
                     <div class="d-grid">
-                        <button class="btn btn-secondary" type="button" id="view_edit_purchase_orders">
+                        <button class="btn btn-secondary" type="button" id="view_edit_purchase_orders" data-bs-toggle="modal" data-bs-target="#purchase_order_modal">
                             View/Edit Purchase Order Associations
                         </button>
+                    </div>
+                    <div class="modal fade" id="purchase_order_modal" tabindex="-1" aria-labelledby="purchase_order_modal_label" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-light">
+                                    <h1 class="modal-title fs-5" id="purchase_order_modal_label">Purchase Order Associations</h1>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body bg-light">
+                                    <div class="input-group mb-3">
+                                        <select class="form-select" id="current_purchase_order" aria-describedby="add_purchase_order"></select>
+                                        <button class="btn btn-outline-secondary" type="button" id="add_purchase_order">Add</button>
+                                        <button class="btn btn-outline-secondary" type="button" id="remove_purchase_order">Remove</button>
+                                    </div>
+                                    <div class="list-group" id="purchase_order_group"></div>
+                                </div>
+                                <div class="modal-footer bg-light">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="col-md-12">
-                    <label class="form-label" for="data_entry_accordion">Characteristics</label>
+                    <label class="form-label">Characteristics</label>
                 </div>
             </form>
         </div>
