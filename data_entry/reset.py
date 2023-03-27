@@ -47,6 +47,7 @@ specification_types = base.classes.specification_types
 inspection_purchase_orders = base.classes.inspection_purchase_orders
 inspection_receiver_numbers = base.classes.inspection_receiver_numbers
 employee_projects = base.classes.employee_projects
+characteristics = base.classes.characteristics
 
 # retrieve type data
 characteristic_types_df = pd.read_csv(join("data", "characteristic_types.csv"))
@@ -101,6 +102,7 @@ machines_df = pd.read_csv(join("data", "machines.csv"))
 parts_df = pd.read_csv(join("data", "parts.csv"))
 inspection_reports_df = pd.read_csv(join("data", "inspection_reports.csv"))
 gauges_df = pd.read_csv(join("data", "gauges.csv"))
+characteristics_df = pd.read_csv(join("data", "characteristics.csv"))
 
 # populate record data
 for i, r in job_orders_df.iterrows():
@@ -155,6 +157,10 @@ for i, r in gauges_df.iterrows():
     else:
         lid = r["location_id"]
     session.add(gauges(id = r["id"], last_calibrated = r["last_calibrated"], gauge_type_id = r["gauge_type_id"], employee_id = eid, location_id = lid))
+session.commit()
+
+for i, r in characteristics_df.iterrows():
+    session.add(characteristics(name = r["name"], nominal = r["nominal"], usl = r["usl"], lsl = r["lsl"], measured = r["measured"], specification_type_id = r["specification_type_id"], characteristic_type_id = r["characteristic_type_id"], employee_id = r["employee_id"], part_id = r["part_id"], gauge_id = r["gauge_id"]))
 session.commit()
 
 # retrieve linking data

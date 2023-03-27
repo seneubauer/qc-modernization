@@ -1,0 +1,14 @@
+name,nominal,usl,lsl,measured,specification_type_id,characteristic_type_id,employee_id,part_id,gauge_id
+DIM 1,2,2.005,1.995,1.998,two_tailed,diameter,5137,1,cal001
+DIM 2,1.5,1.502,1.498,1.502,two_tailed,distance,5137,1,cal001
+DIM 3,3,3.01,2.99,2.998,two_tailed,radius,5137,1,vsys
+DIM 4,0,0.005,0,0.003,upper_tailed,position,6752,1,cmm1
+DIM 5,35,36,34,35.391,two_tailed,angle,5137,1,cmm1
+DIM 6,0.55,0.551,0.549,0.549,two_tailed,distance,6752,1,cmm1
+DIM 7,0.25,0.251,0.249,0.25,two_tailed,distance,6752,1,cmm1
+DIM 8,2,2.005,1.995,1.996,two_tailed,diameter,5137,1,ind1
+DIM 1,11,12,10,10.787,two_tailed,angle,6752,2,cmm1
+DIM 2,45,46,44,44.53,two_tailed,angle,6752,2,cmm1
+DIM 3,60,61,59,59.904,two_tailed,angle,5137,2,cmm1
+DIM 4,1,1.001,0.999,0.999,two_tailed,radius,5137,2,vsys
+DIM 5,0,0.005,0,0.003,upper_tailed,concentricity,6752,2,vsys

@@ -170,8 +170,8 @@
                     </div>
                 </div>
                 
-                <!-- edit inspection report associations -->
-                <div class="col-md-6">
+                <!-- view/edit inspection report associations -->
+                <div class="col-md-4">
                     <div class="d-grid">
                         <button class="btn btn-secondary" type="button" id="view_edit_receiver_numbers" data-bs-toggle="modal" data-bs-target="#receiver_number_modal">
                             View/Edit Receiver Number Associations
@@ -199,7 +199,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="d-grid">
                         <button class="btn btn-secondary" type="button" id="view_edit_purchase_orders" data-bs-toggle="modal" data-bs-target="#purchase_order_modal">
                             View/Edit Purchase Order Associations
@@ -219,6 +219,31 @@
                                         <button class="btn btn-outline-secondary" type="button" id="remove_purchase_order">Remove</button>
                                     </div>
                                     <div class="list-group" id="purchase_order_group"></div>
+                                </div>
+                                <div class="modal-footer bg-light">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- view/edit characteristic table schema -->
+                <div class="col-md-4">
+                    <div class="d-grid">
+                        <button class="btn btn-secondary" type="button" id="view_edit_characteristic_schema" data-bs-toggle="modal" data-bs-target="#characteristic_schema_modal">
+                            View/Edit Characteristic Schema
+                        </button>
+                    </div>
+                    <div class="modal fade" id="characteristic_schema_modal" tabindex="-1" aria-labelledby="characteristic_schema_modal_label" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-light">
+                                    <h1 class="modal-title fs-5" id="characteristic_schema_modal_label">Characteristic Schema</h1>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body bg-light">
+                                    
                                 </div>
                                 <div class="modal-footer bg-light">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -269,8 +294,21 @@
                     <label class="form-label" for="report_finish_date">Finish Date</label>
                     <input class="form-control" id="report_finish_date" type="date">
                 </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_characteristics_filter">Characteristic Name Filter</label>
+                    <input class="form-control" id="report_characteristics_filter" type="text">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_characteristics_scope">Characteristic Table Scope</label>
+                    <select class="form-select" id="report_characteristics_scope">
+                        <option value="0" selected>Input</option>
+                        <option value="1">Metadata</option>
+                        <option value="2">All</option>
+                    </select>
+                </div>
                 <div class="col-md-12">
                     <label class="form-label">Characteristics</label>
+                    <table class="table table-sm table-hover table-light" id="report_characteristics"></table>
                 </div>
             </form>
         </div>

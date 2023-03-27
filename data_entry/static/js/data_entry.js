@@ -17,6 +17,9 @@ const report_revision = d3.select("#report_revision");
 const report_job_order = d3.select("#report_job_order");
 const report_start_date = d3.select("#report_start_date");
 const report_finish_date = d3.select("#report_finish_date");
+const report_char_filter = d3.select("#report_characteristics_filter");
+const report_char_scope = d3.select("#report_characteristics_scope");
+const report_char_table = d3.select("#report_characteristics");
 
 const receiver_number_view_edit = d3.select("#view_edit_receiver_numbers");
 const receiver_number_current = d3.select("#current_receiver_number");
@@ -29,6 +32,9 @@ const purchase_order_current = d3.select("#current_purchase_order");
 const purchase_order_add = d3.select("#add_purchase_order");
 const purchase_order_remove = d3.select("#remove_purchase_order");
 const purchase_order_group = d3.select("#purchase_order_group")
+
+const characteristic_schema_view_edit = d3.select("#view_edit_characteristic_schema");
+
 
 // add events
 existing_report_button.on("click", update_existing_reports_panel);
@@ -44,6 +50,7 @@ purchase_order_remove.on("click", purchase_order_association_removed);
 
 report_drawing.on("change", drawing_changed);
 report_item_number.on("change", item_number_changed);
+report_char_scope.on("change", char_table_scope_changed);
 
 init();
 
@@ -62,6 +69,9 @@ function init()
 
     report_start_date.property("value", "1970-01-01");
     report_finish_date.property("value", "1970-01-01");
+
+    // set the characteristic table
+    char_table_scope_changed("0");
 
     // set initial readonly states
     toggle_readonly(true);
@@ -145,6 +155,8 @@ function toggle_readonly(readonly_state)
 {
     receiver_number_view_edit.property("disabled", readonly_state);
     purchase_order_view_edit.property("disabled", readonly_state);
+    characteristic_schema_view_edit.property("disabled", readonly_state);
+    report_id.property("disabled", readonly_state);
     report_creator.property("disabled", readonly_state);
     report_disposition.property("disabled", readonly_state);
     report_item_number.property("disabled", readonly_state);
@@ -153,6 +165,8 @@ function toggle_readonly(readonly_state)
     report_job_order.property("disabled", readonly_state);
     report_start_date.property("disabled", readonly_state);
     report_finish_date.property("disabled", readonly_state);
+    report_char_filter.property("disabled", readonly_state);
+    report_char_scope.property("disabled", readonly_state);
 }
 
 // #endregion
@@ -569,5 +583,69 @@ function purchase_order_association_removed()
         }
     });
 }
+
+// #endregion
+
+// #region characteristic table
+
+// user has changed the characteristic table scope
+function char_table_scope_changed(scope = "-1")
+{
+    // get the scope
+    if (scope == "-1") {
+        scope = report_char_scope.property("value");
+    }
+
+    // define the columns
+    let column_names = [];
+    switch (scope) {
+        case "0": // input
+            column_names = [
+                "Name",
+                "Nominal",
+                "USL",
+                "LSL",
+                "Measured",
+                "Employee ID"
+            ];
+            break;
+        case "1": // metadata
+            column_names = [
+                "Name",
+                "Specification Type",
+                "Characteristic Type",
+                "Is GD&T",
+                "Gauge ID",
+                "Gauge Type"
+            ];
+            break;
+        case "2": // all
+            column_names = [
+                "Name",
+                "Nominal",
+                "USL",
+                "LSL",
+                "Measured",
+                "Employee ID",
+                "Specification Type",
+                "Characteristic Type",
+                "Is GD&T",
+                "Gauge ID",
+                "Gauge Type"
+            ];
+            break;
+    }
+
+    // remove previous data
+    report_char_table.selectAll("thead").remove();
+
+    // add the specified columns
+    report_char_table.append("thead").selectAll("tr")
+        .data(column_names)
+        .enter()
+        .append("th")
+        .text((x) => x);
+}
+
 
 // #endregion

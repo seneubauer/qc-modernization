@@ -1,3 +1,7 @@
 id,last_calibrated,gauge_type_id,employee_id,location_id
-cal001,2022-05-10,caliper,5137,None
-cal002,2021-06-02,caliper,None,pad_32
+cal001,5/10/2022,caliper,5137,None
+cal002,6/2/2021,caliper,None,pad_32
+cmm1,6/1/2021,hexagon_cmm,None,qclab
+vsys,6/2/2021,vision_system,None,qclab
+ind1,6/2/2020,indicator,None,qclab
+dg001,2/2/2021,depth_gauge,None,qclab
