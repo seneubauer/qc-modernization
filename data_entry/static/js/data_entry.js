@@ -70,9 +70,6 @@ function init()
     report_start_date.property("value", "1970-01-01");
     report_finish_date.property("value", "1970-01-01");
 
-    // set the characteristic table
-    char_table_scope_changed("0");
-
     // set initial readonly states
     toggle_readonly(true);
 }
@@ -258,6 +255,9 @@ function inspection_report_selected(data)
 
     // make report editable
     toggle_readonly(false);
+
+    // update the characteristic table
+    char_table_scope_changed();
 }
 
 // user changed the inspection report's drawing
@@ -601,37 +601,37 @@ function char_table_scope_changed(scope = "-1")
     switch (scope) {
         case "0": // input
             column_names = [
-                "Name",
-                "Nominal",
-                "USL",
-                "LSL",
-                "Measured",
-                "Employee ID"
+                { key: "name", value: "Name", editable: false, h_align: "text-align: right" },
+                { key: "nominal", value: "Nominal", editable: false, h_align: "text-align: right" },
+                { key: "usl", value: "USL", editable: false, h_align: "text-align: right" },
+                { key: "lsl", value: "LSL", editable: false, h_align: "text-align: right" },
+                { key: "measured", value: "Measured", editable: true, h_align: "text-align: right" },
+                { key: "employee_id", value: "Employee ID", editable: true, h_align: "text-align: right" }
             ];
             break;
         case "1": // metadata
             column_names = [
-                "Name",
-                "Specification Type",
-                "Characteristic Type",
-                "Is GD&T",
-                "Gauge ID",
-                "Gauge Type"
+                { key: "name", value: "Name", editable: false, h_align: "text-align: right" },
+                { key: "specification_type", value: "Specification Type", editable: false, h_align: "text-align: right" },
+                { key: "characteristic_type", value: "Characteristic Type", editable: false, h_align: "text-align: right" },
+                { key: "is_gdt", value: "Is GD&T", editable: false, h_align: "text-align: right" },
+                { key: "gauge_id", value: "Gauge ID", editable: false, h_align: "text-align: right" },
+                { key: "gauge_type", value: "Gauge Type", editable: false, h_align: "text-align: right" }
             ];
             break;
         case "2": // all
             column_names = [
-                "Name",
-                "Nominal",
-                "USL",
-                "LSL",
-                "Measured",
-                "Employee ID",
-                "Specification Type",
-                "Characteristic Type",
-                "Is GD&T",
-                "Gauge ID",
-                "Gauge Type"
+                { key: "name", value: "Name", editable: false, h_align: "text-align: right" },
+                { key: "nominal", value: "Nominal", editable: false, h_align: "text-align: right" },
+                { key: "usl", value: "USL", editable: false, h_align: "text-align: right" },
+                { key: "lsl", value: "LSL", editable: false, h_align: "text-align: right" },
+                { key: "measured", value: "Measured", editable: true, h_align: "text-align: right" },
+                { key: "employee_id", value: "Employee ID", editable: true, h_align: "text-align: right" },
+                { key: "specification_type", value: "Specification Type", editable: false, h_align: "text-align: right" },
+                { key: "characteristic_type", value: "Characteristic Type", editable: false, h_align: "text-align: right" },
+                { key: "is_gdt", value: "Is GD&T", editable: false, h_align: "text-align: right" },
+                { key: "gauge_id", value: "Gauge ID", editable: false, h_align: "text-align: right" },
+                { key: "gauge_type", value: "Gauge Type", editable: false, h_align: "text-align: right" }
             ];
             break;
     }
@@ -644,7 +644,54 @@ function char_table_scope_changed(scope = "-1")
         .data(column_names)
         .enter()
         .append("th")
-        .text((x) => x);
+        .text((x) => x.value);
+    
+    // get the identifiers
+    let rep_id = report_id.property("value");
+    let rep_item = report_item_number.property("value");
+    let rep_drawing = report_drawing.property("value");
+    let rep_revision = report_revision.property("value");
+    let char_filter = report_char_filter.property("value");
+
+    // make sure the character filter is not null
+    if (char_filter == "") {
+        char_filter = "__none";
+    }
+
+    // build the route
+    let route = `/get_inspection_report_characteristics/${rep_id}/${rep_item}/${rep_drawing}/${rep_revision}/${char_filter}/`;
+
+    // query the database
+    d3.json(route).then(function (returned_object) {
+        if (returned_object.status == "ok") {
+            
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // create the table rows
+            let rows = report_char_table.append("tbody").selectAll("tr")
+                .data(dataset)
+                .enter()
+                .append("tr");
+
+            // assign the cell contents
+            rows.selectAll("td")
+                .data(function (row) {
+                    return column_names.map(function (column) {
+                        console.log(row[column.key]);
+                        return { column: column, value: row[column.key]}
+                    });
+                })
+                .enter()
+                .append("td")
+                .text((x) => x.value)
+                .attr("contenteditable", (x) => x.editable )
+                .attr("style", (x) => x.h_align);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
 }
 
 

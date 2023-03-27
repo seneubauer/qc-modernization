@@ -8,6 +8,7 @@ from sqlalchemy import create_engine, and_, or_
 
 # import general dependencies
 import datetime
+import json
 
 # import confidential information
 from sys import path
@@ -43,6 +44,7 @@ projects = base.classes.projects
 purchase_orders = base.classes.purchase_orders
 receiver_numbers = base.classes.receiver_numbers
 specification_types = base.classes.specification_types
+characteristics = base.classes.characteristics
 
 # instantiate the flask app
 app = Flask(__name__)
@@ -598,6 +600,78 @@ def get_inspection_reports(filter_type:int, filter_term:str, use_date_span:str, 
         return {
             "status": "ok",
             "response": output_data
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or database query"
+        }
+
+@app.route("/get_inspection_report_characteristics/<int:report_id>/<string:part_item>/<string:part_drawing>/<string:part_revision>/<string:name_filter>/")
+def get_inspection_report_characteristics(report_id:int, part_item:str, part_drawing:str, part_revision:str, name_filter:str):
+
+    # specify the output columns
+    columns = [
+        characteristics.name,
+        characteristics.nominal,
+        characteristics.usl,
+        characteristics.lsl,
+        characteristics.measured,
+        specification_types.id,
+        characteristic_types.id,
+        characteristic_types.is_gdt,
+        employees.id,
+        gauges.id,
+        gauge_types.id
+    ]
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(*columns)\
+        .join(specification_types, (characteristics.specification_type_id == specification_types.id))\
+        .join(characteristic_types, (characteristics.characteristic_type_id == characteristic_types.id))\
+        .join(employees, (characteristics.employee_id == employees.id))\
+        .join(gauges, (characteristics.gauge_id == gauges.id))\
+        .join(gauge_types, (gauges.gauge_type_id == gauge_types.id))\
+        .join(inspection_reports, (characteristics.part_id == inspection_reports.part_id))\
+        .join(parts, (characteristics.part_id == parts.id))\
+        .filter(inspection_reports.id == report_id)\
+        .filter(and_(parts.item == part_item.lower(), parts.drawing == part_drawing.lower(), parts.revision == part_revision.lower()))
+
+    # apply the name filter if it was specified
+    if name_filter != "__none":
+        results = results.filter(characteristics.name.like(f"%{name_filter}%"))
+
+    # convert results to a list of tuples
+    results_list = results.all()
+
+    # return the results
+    if len(results_list) > 0:
+        output_arr = []
+        for name, nominal, usl, lsl, measured, specification_type, characteristic_type, is_gdt, employee_id, gauge_id, gauge_type in results_list:
+            nominal_float = float(nominal)
+            usl_float = float(usl)
+            lsl_float = float(lsl)
+            measured_float = float(measured)
+            output_arr.append({
+                "name": name,
+                "nominal": nominal_float,
+                "usl": usl_float,
+                "lsl": lsl_float,
+                "measured": measured_float,
+                "specification_type": specification_type,
+                "characteristic_type": characteristic_type,
+                "is_gdt": is_gdt,
+                "employee_id": employee_id,
+                "gauge_id": gauge_id,
+                "gauge_type": gauge_type
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
         }
     else:
         return {
