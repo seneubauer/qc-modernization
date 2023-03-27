@@ -423,10 +423,6 @@ def get_receiver_numbers_from_report_id(report_id:int):
             "response": "error within the flask server or database query"
         }
 
-
-
-
-
 @app.route("/add_purchase_order_association/<int:report_id>/<string:purchase_order>/")
 def add_purchase_order_association(report_id:int, purchase_order:str):
 
@@ -536,12 +532,6 @@ def get_purchase_orders_from_report_id(report_id:int):
             "status": "not_ok",
             "response": "error within the flask server or database query"
         }
-
-
-
-
-
-
 
 @app.route("/get_inspection_reports/<int:filter_type>/<string:filter_term>/<string:use_date_span>/<int:start_day>/<int:start_month>/<int:start_year>/<int:stop_day>/<int:stop_month>/<int:stop_year>/")
 def get_inspection_reports(filter_type:int, filter_term:str, use_date_span:str, start_day:int, start_month:int, start_year:int, stop_day:int, stop_month:int, stop_year:int):

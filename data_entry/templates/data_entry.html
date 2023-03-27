@@ -169,48 +169,8 @@
                         <p>an input form to create a new inspection report</p>
                     </div>
                 </div>
-            </form>
-        </div>
-
-        <!-- editing an inspection report -->
-        <div class="row my-2">
-            <form class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label" for="report_id">Report ID</label>
-                    <input class="form-control" id="report_id" type="number" readonly>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label" for="report_creator">Operator (Employee ID)</label>
-                    <input class="form-control" id="report_creator" type="number">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label" for="report_disposition">Disposition</label>
-                    <select class="form-select" id="report_disposition"></select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label" for="report_item_number">Item Number</label>
-                    <select class="form-select" id="report_item_number"></select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label" for="report_drawing">Drawing</label>
-                    <select class="form-select" id="report_drawing"></select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label" for="report_revision">Revision</label>
-                    <input class="form-control" id="report_revision" type="text">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label" for="report_job_order">Job Order</label>
-                    <select class="form-select" id="report_job_order"></select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label" for="report_start_date">Start Date</label>
-                    <input class="form-control" id="report_start_date" type="date">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label" for="report_finish_date">Finish Date</label>
-                    <input class="form-control" id="report_finish_date" type="date">
-                </div>
+                
+                <!-- edit inspection report associations -->
                 <div class="col-md-6">
                     <div class="d-grid">
                         <button class="btn btn-secondary" type="button" id="view_edit_receiver_numbers" data-bs-toggle="modal" data-bs-target="#receiver_number_modal">
@@ -267,7 +227,48 @@
                         </div>
                     </div>
                 </div>
+            </form>
+        </div>
 
+        <!-- editing an inspection report -->
+        <div class="row my-2">
+            <form class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label" for="report_id">Report ID</label>
+                    <input class="form-control" id="report_id" type="number" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_creator">Operator (Employee ID)</label>
+                    <select class="form-select" id="report_creator"></select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_disposition">Disposition</label>
+                    <select class="form-select" id="report_disposition"></select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_item_number">Item Number</label>
+                    <select class="form-select" id="report_item_number"></select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_drawing">Drawing</label>
+                    <select class="form-select" id="report_drawing"></select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_revision">Revision</label>
+                    <input class="form-control" id="report_revision" type="text">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_job_order">Job Order</label>
+                    <select class="form-select" id="report_job_order"></select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_start_date">Start Date</label>
+                    <input class="form-control" id="report_start_date" type="date">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="report_finish_date">Finish Date</label>
+                    <input class="form-control" id="report_finish_date" type="date">
+                </div>
                 <div class="col-md-12">
                     <label class="form-label">Characteristics</label>
                 </div>

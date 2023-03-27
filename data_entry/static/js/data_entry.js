@@ -1,34 +1,34 @@
 // control definitions
-let existing_report_button = d3.select("#existing_report_button");
-let existing_report_table = d3.select("#existing_reports_table");
-let existing_report_filter_type = d3.select("#existing_report_filter_type");
-let existing_report_filter_term = d3.select("#existing_report_filter_term");
-let existing_report_filter_apply = d3.select("#existing_report_filter_apply");
-let existing_report_start_date = d3.select("#existing_report_start_date");
-let existing_report_stop_date = d3.select("#existing_report_stop_date");
-let existing_report_use_date = d3.select("#existing_report_use_date");
+const existing_report_button = d3.select("#existing_report_button");
+const existing_report_table = d3.select("#existing_reports_table");
+const existing_report_filter_type = d3.select("#existing_report_filter_type");
+const existing_report_filter_term = d3.select("#existing_report_filter_term");
+const existing_report_filter_apply = d3.select("#existing_report_filter_apply");
+const existing_report_start_date = d3.select("#existing_report_start_date");
+const existing_report_stop_date = d3.select("#existing_report_stop_date");
+const existing_report_use_date = d3.select("#existing_report_use_date");
 
-let report_id = d3.select("#report_id");
-let report_creator = d3.select("#report_creator");
-let report_disposition = d3.select("#report_disposition");
-let report_item_number = d3.select("#report_item_number");
-let report_drawing = d3.select("#report_drawing");
-let report_revision = d3.select("#report_revision");
-let report_job_order = d3.select("#report_job_order");
-let report_start_date = d3.select("#report_start_date");
-let report_finish_date = d3.select("#report_finish_date");
+const report_id = d3.select("#report_id");
+const report_creator = d3.select("#report_creator");
+const report_disposition = d3.select("#report_disposition");
+const report_item_number = d3.select("#report_item_number");
+const report_drawing = d3.select("#report_drawing");
+const report_revision = d3.select("#report_revision");
+const report_job_order = d3.select("#report_job_order");
+const report_start_date = d3.select("#report_start_date");
+const report_finish_date = d3.select("#report_finish_date");
 
-let receiver_number_view_edit = d3.select("#view_edit_receiver_numbers");
-let receiver_number_current = d3.select("#current_receiver_number");
-let receiver_number_add = d3.select("#add_receiver_number");
-let receiver_number_remove = d3.select("#remove_receiver_number");
-let receiver_number_group = d3.select("#receiver_number_group");
+const receiver_number_view_edit = d3.select("#view_edit_receiver_numbers");
+const receiver_number_current = d3.select("#current_receiver_number");
+const receiver_number_add = d3.select("#add_receiver_number");
+const receiver_number_remove = d3.select("#remove_receiver_number");
+const receiver_number_group = d3.select("#receiver_number_group");
 
-let purchase_order_view_edit = d3.select("#view_edit_purchase_orders");
-let purchase_order_current = d3.select("#current_purchase_order");
-let purchase_order_add = d3.select("#add_purchase_order");
-let purchase_order_remove = d3.select("#remove_purchase_order");
-let purchase_order_group = d3.select("#purchase_order_group")
+const purchase_order_view_edit = d3.select("#view_edit_purchase_orders");
+const purchase_order_current = d3.select("#current_purchase_order");
+const purchase_order_add = d3.select("#add_purchase_order");
+const purchase_order_remove = d3.select("#remove_purchase_order");
+const purchase_order_group = d3.select("#purchase_order_group")
 
 // add events
 existing_report_button.on("click", update_existing_reports_panel);
@@ -62,6 +62,9 @@ function init()
 
     report_start_date.property("value", "1970-01-01");
     report_finish_date.property("value", "1970-01-01");
+
+    // set initial readonly states
+    toggle_readonly(true);
 }
 
 // populate dropdowns
@@ -136,6 +139,20 @@ function populate_dropdowns()
             console.log(returned_object.response);
         }
     });
+}
+
+function toggle_readonly(readonly_state)
+{
+    receiver_number_view_edit.property("disabled", readonly_state);
+    purchase_order_view_edit.property("disabled", readonly_state);
+    report_creator.property("disabled", readonly_state);
+    report_disposition.property("disabled", readonly_state);
+    report_item_number.property("disabled", readonly_state);
+    report_drawing.property("disabled", readonly_state);
+    report_revision.property("disabled", readonly_state);
+    report_job_order.property("disabled", readonly_state);
+    report_start_date.property("disabled", readonly_state);
+    report_finish_date.property("disabled", readonly_state);
 }
 
 // #endregion
@@ -224,6 +241,9 @@ function inspection_report_selected(data)
     report_revision.property("value", data.revision);
     report_start_date.property("value", `${s_year}-${s_month}-${s_day}`);
     report_finish_date.property("value", `${f_year}-${f_month}-${f_day}`);
+
+    // make report editable
+    toggle_readonly(false);
 }
 
 // user changed the inspection report's drawing
