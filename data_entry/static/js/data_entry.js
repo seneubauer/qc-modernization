@@ -678,15 +678,21 @@ function char_table_scope_changed(scope = "-1")
             rows.selectAll("td")
                 .data(function (row) {
                     return column_names.map(function (column) {
-                        console.log(row[column.key]);
-                        return { column: column, value: row[column.key]}
+                        return { 
+                            column: column,
+                            value: {
+                                cell: row[column.key],
+                                editable: column.editable,
+                                h_align: column.h_align
+                            }
+                        }
                     });
                 })
                 .enter()
                 .append("td")
-                .text((x) => x.value)
-                .attr("contenteditable", (x) => x.editable )
-                .attr("style", (x) => x.h_align);
+                .text((x) => x.value.cell)
+                .attr("contenteditable", (x) => x.value.editable )
+                .attr("style", (x) => x.value.h_align);
         }
         else {
             console.log(returned_object.response);
