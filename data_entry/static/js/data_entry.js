@@ -35,6 +35,10 @@ const purchase_order_group = d3.select("#purchase_order_group")
 
 const characteristic_schema_view_edit = d3.select("#view_edit_characteristic_schema");
 
+// define color codes
+const pass_color = "rgba(0, 200, 0, 1)";
+const fail_color = "rgba(200, 0, 0, 1)";
+const null_color = "rgba(0, 0, 200, 1)";
 
 // add events
 existing_report_button.on("click", update_existing_reports_panel);
@@ -50,6 +54,7 @@ purchase_order_remove.on("click", purchase_order_association_removed);
 
 report_drawing.on("change", drawing_changed);
 report_item_number.on("change", item_number_changed);
+report_char_filter.on("keypress", function(e) { if (e.keyCode == 13) { char_table_update(report_char_scope.property("value")); } })
 report_char_scope.on("change", function() { char_table_update(report_char_scope.property("value")); });
 
 init();
@@ -594,41 +599,41 @@ function char_table_update(scope)
     // define the columns
     let column_names = [];
     switch (scope) {
-        case "0": // input
+        case "0":
             column_names = [
-                { key: "name", value: "Name", editable: false, h_align: "text-align: center" },
-                { key: "nominal", value: "Nominal", editable: false, h_align: "text-align: right" },
-                { key: "usl", value: "USL", editable: false, h_align: "text-align: right" },
-                { key: "lsl", value: "LSL", editable: false, h_align: "text-align: right" },
-                { key: "measured", value: "Measured", editable: true, h_align: "text-align: right" },
-                { key: "precision", value: "Precision", editable: true, h_align: "text-align: right" },
-                { key: "employee_id", value: "Employee ID", editable: false, h_align: "text-align: right" }
+                { key: "name", value: "Name", editable: false },
+                { key: "nominal", value: "Nominal", editable: false },
+                { key: "usl", value: "USL", editable: false },
+                { key: "lsl", value: "LSL", editable: false },
+                { key: "measured", value: "Measured", editable: true },
+                { key: "precision", value: "Precision", editable: true },
+                { key: "employee_id", value: "Employee ID", editable: false }
             ];
             break;
-        case "1": // metadata
+        case "1":
             column_names = [
-                { key: "name", value: "Name", editable: false, h_align: "text-align: center" },
-                { key: "specification_type", value: "Specification Type", editable: false, h_align: "text-align: center" },
-                { key: "characteristic_type", value: "Characteristic Type", editable: false, h_align: "text-align: center" },
-                { key: "is_gdt", value: "Is GD&T", editable: false, h_align: "text-align: center" },
-                { key: "gauge_id", value: "Gauge ID", editable: false, h_align: "text-align: center" },
-                { key: "gauge_type", value: "Gauge Type", editable: false, h_align: "text-align: center" }
+                { key: "name", value: "Name", editable: false },
+                { key: "specification_type", value: "Specification Type", editable: false },
+                { key: "characteristic_type", value: "Characteristic Type", editable: false },
+                { key: "is_gdt", value: "Is GD&T", editable: false },
+                { key: "gauge_id", value: "Gauge ID", editable: false },
+                { key: "gauge_type", value: "Gauge Type", editable: false }
             ];
             break;
-        case "2": // all
+        case "2":
             column_names = [
-                { key: "name", value: "Name", editable: false, h_align: "text-align: center" },
-                { key: "nominal", value: "Nominal", editable: false, h_align: "text-align: right" },
-                { key: "usl", value: "USL", editable: false, h_align: "text-align: right" },
-                { key: "lsl", value: "LSL", editable: false, h_align: "text-align: right" },
-                { key: "measured", value: "Measured", editable: true, h_align: "text-align: right" },
-                { key: "precision", value: "Precision", editable: true, h_align: "text-align: right" },
-                { key: "employee_id", value: "Employee ID", editable: false, h_align: "text-align: right" },
-                { key: "specification_type", value: "Specification Type", editable: false, h_align: "text-align: center" },
-                { key: "characteristic_type", value: "Characteristic Type", editable: false, h_align: "text-align: center" },
-                { key: "is_gdt", value: "Is GD&T", editable: false, h_align: "text-align: center" },
-                { key: "gauge_id", value: "Gauge ID", editable: false, h_align: "text-align: center" },
-                { key: "gauge_type", value: "Gauge Type", editable: false, h_align: "text-align: center" }
+                { key: "name", value: "Name", editable: false },
+                { key: "nominal", value: "Nominal", editable: false },
+                { key: "usl", value: "USL", editable: false },
+                { key: "lsl", value: "LSL", editable: false },
+                { key: "measured", value: "Measured", editable: true },
+                { key: "precision", value: "Precision", editable: true },
+                { key: "employee_id", value: "Employee ID", editable: false },
+                { key: "specification_type", value: "Specification Type", editable: false },
+                { key: "characteristic_type", value: "Characteristic Type", editable: false },
+                { key: "is_gdt", value: "Is GD&T", editable: false },
+                { key: "gauge_id", value: "Gauge ID", editable: false },
+                { key: "gauge_type", value: "Gauge Type", editable: false }
             ];
             break;
     }
@@ -641,7 +646,8 @@ function char_table_update(scope)
         .data(column_names)
         .enter()
         .append("th")
-        .text((x) => x.value);
+        .text((x) => x.value)
+        .attr("id", (x) => x.key);
 
     // get the identifiers
     let rep_id = report_id.property("value");
@@ -673,7 +679,8 @@ function char_table_update(scope)
             let rows = report_char_table.append("tbody").selectAll("tr")
                 .data(dataset)
                 .enter()
-                .append("tr");
+                .append("tr")
+                .style("color", (x) => row_conditioning(x));
 
             // assign the cell contents
             let cells = rows.selectAll("td")
@@ -685,7 +692,6 @@ function char_table_update(scope)
                                 cell: row[column.key],
                                 key: column.key,
                                 editable: column.editable,
-                                h_align: column.h_align,
                                 precision: row["precision"]
                             }
                         }
@@ -695,14 +701,32 @@ function char_table_update(scope)
                 .append("td")
                 .text((x) => {
                     if (x.value.key == "nominal" || x.value.key == "usl" || x.value.key == "lsl" || x.value.key == "measured") {
-                        return x.value.cell.toFixed(x.value.precision);
+                        if (x.value.cell == null) {
+                            return null;
+                        }
+                        else {
+                            return x.value.cell.toFixed(x.value.precision);
+                        }
                     }
                     else if (x.value.key != "employee_id") {
                         return x.value.cell;
                     }
                 })
-                .attr("contenteditable", (x) => x.value.editable )
-                .attr("style", (x) => x.value.h_align);
+                .attr("contenteditable", (x) => x.value.editable);
+            
+            // add value changed events
+            cells.filter(measured_column_filter)
+                .on("keypress", (e) => {
+                    if (e.keyCode == 13) {
+                        e.preventDefault();
+                    }
+                })
+            cells.filter(precision_column_filter)
+                .on("keypress", (e) => {
+                    if (e.keyCode == 13) {
+                        e.preventDefault();
+                    }
+                })
 
             // employee id selectors
             cells.filter(employee_id_column_filter)
@@ -714,7 +738,6 @@ function char_table_update(scope)
                 .append("option")
                 .attr("value", (x) => x)
                 .text((x) => x);
-
             cells.filter(employee_id_column_filter)
                 .selectAll("select")
                 .property("value", (x) => x.value.cell);
@@ -723,15 +746,55 @@ function char_table_update(scope)
             console.log(returned_object.response);
         }
     });
+
+    read_char_table();
 }
 
-let employee_id_column_filter = function (d, i) {
-    if (d.column.key == "employee_id") {
+let employee_id_column_filter = function (x) {
+    if (x.column.key == "employee_id") {
         return true;
     }
     else {
         return false;
     }
+}
+
+let measured_column_filter = function (x) {
+    if (x.column.key == "measured") {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+let precision_column_filter = function (x) {
+    if (x.column.key == "precision") {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+function row_conditioning(x)
+{
+    if (x.state == "null") {
+        return null_color;
+    }
+    else if (x.state == "pass") {
+        return pass_color;
+    }
+    else if (x.state == "fail") {
+        return fail_color;
+    }
+}
+
+function read_char_table()
+{
+    let row_count = report_char_table.rows;
+
+    console.log(row_count);
 }
 
 // #endregion

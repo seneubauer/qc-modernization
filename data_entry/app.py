@@ -64,7 +64,7 @@ def get_all_employees():
     session = Session(engine)
 
     # query the database
-    results = session.query(employees.id).all()
+    results = session.query(employees.id).order_by(employees.id.asc()).all()
 
     # close the session
     session.close()
@@ -94,7 +94,7 @@ def get_all_disposition_types():
     session = Session(engine)
 
     # query the database
-    results = session.query(disposition_types.id).all()
+    results = session.query(disposition_types.id).order_by(disposition_types.id.asc()).all()
 
     # close the session
     session.close()
@@ -124,7 +124,7 @@ def get_all_item_numbers():
     session = Session(engine)
 
     # query the database
-    results = session.query(parts.item).all()
+    results = session.query(parts.item).order_by(parts.drawing.asc()).all()
 
     # close the session
     session.close()
@@ -154,7 +154,7 @@ def get_all_drawings():
     session = Session(engine)
 
     # query the database
-    results = session.query(parts.drawing).all()
+    results = session.query(parts.drawing).order_by(parts.drawing.asc()).all()
 
     # close the session
     session.close()
@@ -184,7 +184,7 @@ def get_all_job_orders():
     session = Session(engine)
 
     # query the database
-    results = session.query(job_orders.id).all()
+    results = session.query(job_orders.id).order_by(job_orders.id.asc()).all()
 
     # close the session
     session.close()
@@ -214,7 +214,7 @@ def get_all_receiver_numbers():
     session = Session(engine)
 
     # query the database
-    results = session.query(receiver_numbers.id).all()
+    results = session.query(receiver_numbers.id).order_by(receiver_numbers.id.asc()).all()
 
     # close the session
     session.close()
@@ -244,7 +244,7 @@ def get_all_purchase_orders():
     session = Session(engine)
 
     # query the database
-    results = session.query(purchase_orders.id).all()
+    results = session.query(purchase_orders.id).order_by(purchase_orders.id.asc()).all()
 
     # close the session
     session.close()
@@ -274,7 +274,7 @@ def inspection_report_drawing_changed(drawing:str):
     session = Session(engine)
 
     # query the database
-    results = session.query(parts.item).filter(parts.drawing == drawing).first()
+    results = session.query(parts.item).filter(parts.drawing == drawing).order_by(parts.drawing.asc()).first()
 
     # close the session
     session.close()
@@ -298,7 +298,7 @@ def inspection_report_item_number_changed(item_number:str):
     session = Session(engine)
 
     # query the database
-    results = session.query(parts.drawing).filter(parts.item == item_number).first()
+    results = session.query(parts.drawing).filter(parts.item == item_number).order_by(parts.drawing.asc()).first()
 
     # close the session
     session.close()
@@ -323,7 +323,8 @@ def add_receiver_number_association(report_id:int, receiver_number:str):
 
     # make sure the new receiver number isn't already associated with the report id
     results = session.query(inspection_receiver_numbers.id)\
-        .filter(and_(inspection_receiver_numbers.inspection_id == report_id, inspection_receiver_numbers.receiver_number_id == receiver_number)).all()
+        .filter(and_(inspection_receiver_numbers.inspection_id == report_id, inspection_receiver_numbers.receiver_number_id == receiver_number))\
+        .order_by(inspection_receiver_numbers.id.asc()).all()
 
     # logic gate
     if len(results) > 0:
@@ -402,7 +403,8 @@ def get_receiver_numbers_from_report_id(report_id:int):
     results = session.query(receiver_numbers.id)\
         .join(inspection_receiver_numbers, (receiver_numbers.id == inspection_receiver_numbers.receiver_number_id))\
         .join(inspection_reports, (inspection_reports.id == inspection_receiver_numbers.inspection_id))\
-        .filter(inspection_reports.id == report_id).all()
+        .filter(inspection_reports.id == report_id)\
+        .order_by(receiver_numbers.id.asc()).all()
 
     # close the session
     session.close()
@@ -512,7 +514,8 @@ def get_purchase_orders_from_report_id(report_id:int):
     results = session.query(purchase_orders.id)\
         .join(inspection_purchase_orders, (purchase_orders.id == inspection_purchase_orders.purchase_order_id))\
         .join(inspection_reports, (inspection_reports.id == inspection_purchase_orders.inspection_id))\
-        .filter(inspection_reports.id == report_id).all()
+        .filter(inspection_reports.id == report_id)\
+        .order_by(purchase_orders.id.asc()).all()
 
     # close the session
     session.close()
@@ -668,12 +671,22 @@ def get_inspection_report_characteristics(report_id:int, part_item:str, part_dra
     if len(results_list) > 0:
         output_arr = []
         for name, nominal, usl, lsl, measured, precision, specification_type, characteristic_type, is_gdt, employee_id, gauge_id, gauge_type in results_list:
-            nominal_float = float(nominal)
-            usl_float = float(usl)
-            lsl_float = float(lsl)
+            nominal_float = round(float(nominal), precision)
+            usl_float = round(float(usl), precision)
+            lsl_float = round(float(lsl), precision)
             measured_float = float(measured)
+
+            state = "null"
             if isnan(measured_float):
                 measured_float = None
+                state = "null"
+            else:
+                measured_float = round(float(measured), precision)
+                if usl_float >= measured_float and lsl_float <= measured_float:
+                    state = "pass"
+                else:
+                    state = "fail"
+
             output_arr.append({
                 "name": name,
                 "nominal": nominal_float,
@@ -686,7 +699,8 @@ def get_inspection_report_characteristics(report_id:int, part_item:str, part_dra
                 "is_gdt": is_gdt,
                 "employee_id": employee_id,
                 "gauge_id": gauge_id,
-                "gauge_type": gauge_type
+                "gauge_type": gauge_type,
+                "state": state
             })
 
         return {
