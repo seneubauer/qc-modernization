@@ -8,7 +8,7 @@ from sqlalchemy import create_engine, and_, or_
 
 # import general dependencies
 import datetime
-import json
+from math import isnan
 
 # import confidential information
 from sys import path
@@ -617,6 +617,7 @@ def get_inspection_report_characteristics(report_id:int, part_item:str, part_dra
         characteristics.usl,
         characteristics.lsl,
         characteristics.measured,
+        characteristics.precision,
         specification_types.id,
         characteristic_types.id,
         characteristic_types.is_gdt,
@@ -626,6 +627,19 @@ def get_inspection_report_characteristics(report_id:int, part_item:str, part_dra
     ]
 
     # open the database session
+    session = Session(engine)
+
+    # get all the employee ids
+    results = session.query(employees.id).all()
+    employee_ids = []
+    if len(results) > 0:
+        for id in results:
+            employee_ids.append(id[0])
+
+    # close the session
+    session.close()
+
+    # reopen the database session
     session = Session(engine)
 
     # query the database
@@ -640,6 +654,9 @@ def get_inspection_report_characteristics(report_id:int, part_item:str, part_dra
         .filter(inspection_reports.id == report_id)\
         .filter(and_(parts.item == part_item.lower(), parts.drawing == part_drawing.lower(), parts.revision == part_revision.lower()))
 
+    # close the session
+    session.close()
+
     # apply the name filter if it was specified
     if name_filter != "__none":
         results = results.filter(characteristics.name.like(f"%{name_filter}%"))
@@ -650,17 +667,20 @@ def get_inspection_report_characteristics(report_id:int, part_item:str, part_dra
     # return the results
     if len(results_list) > 0:
         output_arr = []
-        for name, nominal, usl, lsl, measured, specification_type, characteristic_type, is_gdt, employee_id, gauge_id, gauge_type in results_list:
+        for name, nominal, usl, lsl, measured, precision, specification_type, characteristic_type, is_gdt, employee_id, gauge_id, gauge_type in results_list:
             nominal_float = float(nominal)
             usl_float = float(usl)
             lsl_float = float(lsl)
             measured_float = float(measured)
+            if isnan(measured_float):
+                measured_float = None
             output_arr.append({
                 "name": name,
                 "nominal": nominal_float,
                 "usl": usl_float,
                 "lsl": lsl_float,
                 "measured": measured_float,
+                "precision": precision,
                 "specification_type": specification_type,
                 "characteristic_type": characteristic_type,
                 "is_gdt": is_gdt,
@@ -671,7 +691,10 @@ def get_inspection_report_characteristics(report_id:int, part_item:str, part_dra
 
         return {
             "status": "ok",
-            "response": output_arr
+            "response": {
+                "cell_data": output_arr,
+                "employee_ids": employee_ids
+            }
         }
     else:
         return {

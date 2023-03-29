@@ -160,7 +160,7 @@ for i, r in gauges_df.iterrows():
 session.commit()
 
 for i, r in characteristics_df.iterrows():
-    session.add(characteristics(name = r["name"], nominal = r["nominal"], usl = r["usl"], lsl = r["lsl"], measured = r["measured"], specification_type_id = r["specification_type_id"], characteristic_type_id = r["characteristic_type_id"], employee_id = r["employee_id"], part_id = r["part_id"], gauge_id = r["gauge_id"]))
+    session.add(characteristics(name = r["name"], nominal = r["nominal"], usl = r["usl"], lsl = r["lsl"], precision = r["precision"], measured = r["measured"], specification_type_id = r["specification_type_id"], characteristic_type_id = r["characteristic_type_id"], employee_id = r["employee_id"], part_id = r["part_id"], gauge_id = r["gauge_id"]))
 session.commit()
 
 # retrieve linking data

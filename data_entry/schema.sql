@@ -277,6 +277,7 @@ create table characteristics
     nominal decimal not null,
     usl decimal not null,
     lsl decimal not null,
+    precision integer not null,
     measured decimal,
 
     -- primary key and unique constraints
