@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <!-- set the metadata -->
+    <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- set the title -->
+    <title>QA1 Quality Portal</title>
+
+    <!-- bring in the favicon -->
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+    <!-- link to reset css -->
+    <link rel="stylesheet" href="/static/css/reset.css">
+
+    <!-- link to style css -->
+    <link rel="stylesheet" href="/static/css/style.css">
+
+    <!-- import js libraries -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+
+<body>
+    <!-- navigation bar -->
+    <div class="nav_bar">
+        <a href="#">Bulk Data</a>
+        <a href="#">Data Analysis</a>
+        <a href="/test_page">Inspection Reports</a>
+    </div>
+
+    <!-- view inspection report controls -->
+    <div class="sidebar" id="inspection_report_controls_sidebar">
+        <a href="#">New Report</a>
+        <a href="#">New Characteristic Schema</a>
+    </div>
+    <div class="sidebar_toggle" id="inspection_report_controls">
+        <button class="open_btn" id="inspection_report_controls_toggle" onclick="toggle_options('controls', '200px')">
+            &#9776; Controls
+        </button>
+    </div>
+
+    <!-- view metadata -->
+    <div class="sidebar" id="inspection_report_metadata_sidebar">
+        <div>
+            <label for="current_report_id">
+                Report ID
+            </label>
+            <input id="current_report_id" type="number">
+        </div>
+    </div>
+    <div class="sidebar_toggle" id="inspection_report_metadata">
+        <button class="open_btn" id="inspection_report_metadata_toggle" onclick="toggle_options('metadata', '600px')">
+            &#9776; Metadata
+        </button>
+    </div>
+
+    <!-- view/edit receiver numbers -->
+    <div class="sidebar" id="inspection_report_receiver_numbers_sidebar">
+
+    </div>
+    <div class="sidebar_toggle" id="inspection_report_receiver_numbers">
+        <button class="open_btn" id="inspection_report_receiver_numbers_toggle" onclick="toggle_options('receiver_numbers', '350px')">
+            &#9776; Receiver Numbers
+        </button>
+    </div>
+
+    <!-- view/edit purchase orders -->
+    <div class="sidebar" id="inspection_report_purchase_orders_sidebar">
+
+    </div>
+    <div class="sidebar_toggle" id="inspection_report_purchase_orders">
+        <button class="open_btn" id="inspection_report_purchase_orders_toggle" onclick="toggle_options('purchase_orders', '350px')">
+            &#9776; Purchase Orders
+        </button>
+    </div>
+
+    <!-- view/edit characteristic schema -->
+    <div class="sidebar" id="inspection_report_characteristic_schema_sidebar">
+
+    </div>
+    <div class="sidebar_toggle" id="inspection_report_characteristic_schema">
+        <button class="open_btn" id="inspection_report_characteristic_schema_toggle" onclick="toggle_options('characteristic_schema', '350px')">
+            &#9776; Characteristic Schema
+        </button>
+    </div>
+
+    <!-- import local js scripts -->
+    <script src="/static/js/test_page.js"></script>
+
+</body>

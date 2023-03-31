@@ -56,6 +56,9 @@ def data_entry_route():
     return render_template("data_entry.html")
 
 
+@app.route("/test_page/")
+def test_page_route():
+    return render_template("test_page.html")
 
 @app.route("/get_all_employee_ids/")
 def get_all_employees():

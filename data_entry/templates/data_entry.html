@@ -308,7 +308,40 @@
                 </div>
                 <div class="col-md-12">
                     <label class="form-label">Characteristics</label>
-                    <table class="table table-sm table-hover table-light" id="report_characteristics"></table>
+                    <table class="table table-sm table-hover table-light" id="report_characteristics">
+                        <!-- <thead>
+                            <th scope="col" id="char_table_col_name">Name</th>
+                            <th scope="col" id="char_table_col_nominal">Nominal</th>
+                            <th scope="col" id="char_table_col_usl">USL</th>
+                            <th scope="col" id="char_table_col_lsl">LSL</th>
+                            <th scope="col" id="char_table_col_measured">Measured</th>
+                            <th scope="col" id="char_table_col_precision">Precision</th>
+                            <th scope="col" id="char_table_col_employeeid">Employee ID</th>
+                            <th scope="col" id="char_table_col_spectype">Specification Type</th>
+                            <th scope="col" id="char_table_col_chartype">Characteristic Type</th>
+                            <th scope="col" id="char_table_col_isgdt">Is GD&T</th>
+                            <th scope="col" id="char_table_col_gaugeid">Gauge ID</th>
+                            <th scope="col" id="char_table_col_gaugetype">Gauge Type</th>
+                        </thead>
+                        <tbody>
+                            {% for char_item in char_items %}
+                            <tr>
+                                <td>name</td>
+                                <td>nominal</td>
+                                <td>usl</td>
+                                <td>lsl</td>
+                                <td><input class="table_input" type="number" name=""></td>
+                                <td><input class="table_input" type="number"></td>
+                                <td><select class="table_select"></select></td>
+                                <td>specification type</td>
+                                <td>characteristic type</td>
+                                <td>is gdt</td>
+                                <td>gauge id</td>
+                                <td>gauge type</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody> -->
+                    </table>
                 </div>
             </form>
         </div>
