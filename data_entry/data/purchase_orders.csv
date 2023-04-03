@@ -1,6 +1,6 @@
-id
-SEN123456
-SEN165984
-SEN846487
-SEN334484
-SEN339548
+id,supplier_id
+SEN123456,company_a
+SEN165984,company_d
+SEN846487,company_a
+SEN334484,company_c
+SEN339548,company_b

@@ -14,6 +14,9 @@ drop table projects;
 drop table receiver_numbers;
 drop table purchase_orders;
 drop table job_orders;
+drop table suppliers;
+drop table quantity_types;
+drop table material_types;
 drop table project_types;
 drop table specification_types;
 drop table characteristic_types;
@@ -94,7 +97,34 @@ create table project_types
     constraint uc_project_types unique (id)
 );
 
+create table material_types
+(
+    id varchar(32) not null,
+
+    -- primary key and unique constriants
+    constraint pk_material_types primary key (id),
+    constraint uc_material_types unique (id)
+);
+
+create table quantity_types
+(
+    id varchar(32) not null,
+
+    -- primary key and unique constriants
+    constraint pk_quantity_types primary key (id),
+    constraint uc_quantity_types unique (id)
+);
+
 -- record tables
+
+create table suppliers
+(
+    id varchar(32) not null,
+
+    -- primary key and unique constraints
+    constraint pk_suppliers primary key (id),
+    constraint uc_suppliers unique(id)
+);
 
 create table job_orders
 (
@@ -108,6 +138,10 @@ create table job_orders
 create table purchase_orders
 (
     id varchar(32) not null,
+
+    -- one purchase order relates to one supplier
+    supplier_id varchar(32) not null,
+    constraint fk_supplier_po foreign key (supplier_id) references suppliers(id),
 
     -- primary key and unique constraints
     constraint pk_purchase_orders primary key (id),
@@ -230,6 +264,29 @@ create table inspection_reports
     -- primary key and unique constraints
     constraint pk_inspection_reports primary key (id),
     constraint uc_inspection_reports unique (id),
+
+    -- one inspection report relates to one full inspect quantity
+    full_inspect_qty int not null,
+    full_inspect_qty_type varchar(32) not null,
+    constraint fk_full_inspect_qty_ins foreign key (full_inspect_qty_type) references quantity_types(id),
+
+    -- one inspection report relates to one released quantity
+    released_qty int not null,
+    released_qty_type varchar(32) not null,
+    constraint fk_released_qty_ins foreign key (released_qty_type) references quantity_types(id),
+
+    -- one inspection report relates to one completed quantity
+    completed_qty int not null,
+    completed_qty_type varchar(32) not null,
+    constraint fk_completed_qty_ins foreign key (completed_qty_type) references quantity_types(id),
+
+    -- one inspection report relates to one material type
+    material_type_id varchar(32) not null,
+    constraint fk_material_type_ins foreign key (material_type_id) references material_types(id),
+
+    -- one inspection report can relate to one supplier
+    supplier_id varchar(32),
+    constraint fk_supplier_ins foreign key (supplier_id) references suppliers(id),
 
     -- one inspection report can relate to one job order
     job_order_id varchar(32),

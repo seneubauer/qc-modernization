@@ -29,31 +29,206 @@
         <a href="#">Bulk Data</a>
         <a href="#">Data Analysis</a>
         <a href="/test_page">Inspection Reports</a>
+        <label>QA1 Data Portal</label>
     </div>
 
     <!-- view inspection report controls -->
-    <div class="sidebar" id="inspection_report_controls_sidebar">
-        <a href="#">New Report</a>
-        <a href="#">New Characteristic Schema</a>
-    </div>
     <div class="sidebar_toggle" id="inspection_report_controls">
-        <button class="open_btn" id="inspection_report_controls_toggle" onclick="toggle_options('controls', '200px')">
-            &#9776; Controls
+        <button class="sidebar_button">
+            New Report
+        </button>
+    </div>
+
+    <!-- view existing inspection reports -->
+    <div class="sidebar" id="inspection_report_existing_sidebar">
+        <div class="grid_container" style="--grid-template-columns: repeat(2, minmax(0, 1fr));">
+
+            <label class="label_over_dark" for="select_report_item_number" style="
+                --grid-column: 1;
+                --grid-row: 1;">Item Number Filter</label>
+            <input class="text_input_dark" id="select_report_item_number" type="text" style="
+                --grid-column: 1;
+                --grid-row: 2">
+
+            <label class="label_over_dark" for="select_report_drawing" style="
+                --grid-column: 2;
+                --grid-row: 1;">Drawing Filter</label>
+            <input class="text_input_dark" id="select_report_drawing" type="text" style="
+                --grid-column: 2;
+                --grid-row: 2">
+
+            <label class="label_over_dark" for="select_report_start_date" style="
+                --grid-column: 1;
+                --grid-row: 3;">Started After</label>
+            <input class="date_input_dark" id="select_report_start" type="date" min="1970-01-01" max="3000-01-01" style="
+                --grid-column: 1;
+                --grid-row: 4">
+
+            <label class="label_over_dark" for="select_report_finish" style="
+                --grid-column: 2;
+                --grid-row: 3;">Finished Before</label>
+            <input class="date_input_dark" id="select_report_finish" type="date" min="1970-01-01" value="3000-01-01" style="
+                --grid-column: 2;
+                --grid-row: 4">
+
+            <table class="data_table_dark" style="
+                --grid-column: 1 / 3;
+                --grid-row: 5;">
+                <thead>
+                    <tr>
+                        <th scope="col">Item Number</th>
+                        <th scope="col">Drawing</th>
+                        <th scope="col">Revision</th>
+                        <th scope="col">Start Date</th>
+                        <th scope="col">Finish Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in inspection_reports %}
+                    <tr onclick="inspection_report_selected(this)">
+                        <td class="data_table_start_cell">{{ inspection_reports[report].item_number }}</td>
+                        <td>{{ inspection_reports[report].drawing }}</td>
+                        <td>{{ inspection_reports[report].revision }}</td>
+                        <td>{{ inspection_reports[report].start_date }}</td>
+                        <td class="data_table_end_cell">{{ inspection_reports[report].finish_date }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="sidebar_toggle" id="inspection_report_existing">
+        <button class="sidebar_button" onclick="toggle_options('existing', '700px')">
+            Existing Reports
         </button>
     </div>
 
     <!-- view metadata -->
     <div class="sidebar" id="inspection_report_metadata_sidebar">
-        <div>
-            <label for="current_report_id">
-                Report ID
-            </label>
-            <input id="current_report_id" type="number">
-        </div>
+        <form name="inspection_report_metadata" method="post">
+            <div class="grid_container" style="--grid-template-columns: repeat(2, minmax(0, 1fr));">
+
+                <label class="header_dark" style="
+                    --grid-column: 1;
+                    --grid-row: 1;">Report ID: #</label>
+
+                <label class="label_over_dark" for="current_report_inspector_id" style="
+                    --grid-column: 1;
+                    --grid-row: 2;">Inspector ID</label>
+                <select class="select_dark" id="current_report_inspector_id" name="inspector_id" style="
+                    --grid-column: 1;
+                    --grid-row: 3;"></select>
+
+                <label class="label_over_dark" for="current_report_disposition" style="
+                    --grid-column: 2;
+                    --grid-row: 2;">Disposition</label>
+                <select class="select_dark" id="current_report_disposition" name="disposition" style="
+                    --grid-column: 2;
+                    --grid-row: 3;"></select>
+
+                <label class="label_over_dark" for="current_report_item_number" style="
+                    --grid-column: 1;
+                    --grid-row: 4;">Item Number</label>
+                <select class="select_dark" id="current_report_item_number" name="item_number" style="
+                    --grid-column: 1;
+                    --grid-row: 5;"></select>
+
+                <label class="label_over_dark" for="current_report_drawing" style="
+                    --grid-column: 2;
+                    --grid-row: 4;">Drawing</label>
+                <select class="select_dark" id="current_report_drawing" name="drawing" style="
+                    --grid-column: 2;
+                    --grid-row: 5;"></select>
+
+                <label class="label_over_dark" for="current_report_revision" style="
+                    --grid-column: 1;
+                    --grid-row: 6;">Revision</label>
+                <input class="text_input_dark" id="current_report_revision" name="revision" type="text" style="
+                    --grid-column: 1;
+                    --grid-row: 7;">
+
+                <label class="label_over_dark" for="current_report_job_order" style="
+                    --grid-column: 2;
+                    --grid-row: 6;">Job Order</label>
+                <select class="select_dark" id="current_report_job_order" name="job_order" style="
+                    --grid-column: 2;
+                    --grid-row: 7;"></select>
+
+                <label class="label_over_dark" for="current_report_material_type" style="
+                    --grid-column: 1;
+                    --grid-row: 8;">Material Type</label>
+                <select class="select_dark" id="current_report_material_type" name="material_type" style="
+                    --grid-column: 1;
+                    --grid-row: 9;"></select>
+
+                <label class="label_over_dark" for="current_report_supplier" style="
+                    --grid-column: 2;
+                    --grid-row: 8;">Supplier</label>
+                <select class="select_dark" id="current_report_supplier" name="supplier" style="
+                    --grid-column: 2;
+                    --grid-row: 9;"></select>
+
+                <label class="label_over_dark" for="current_report_start_date" style="
+                    --grid-column: 1;
+                    --grid-row: 10;">Start Date</label>
+                <input class="date_input_dark" id="current_report_start_date" name="start_date" type="date" style="
+                    --grid-column: 1;
+                    --grid-row: 11;">
+
+                <label class="label_over_dark" for="current_report_finish_date" style="
+                    --grid-column: 2;
+                    --grid-row: 10;">Finish Date</label>
+                <input class="date_input_dark" id="current_report_finish_date" name="finish_date" type="date" style="
+                    --grid-column: 2;
+                    --grid-row: 11;">
+
+                <label class="label_over_dark" for="current_report_qc_full_inspect" style="
+                    --grid-column: 1;
+                    --grid-row: 12;">QC Full Inspect Quantity</label>
+                <select class="select_dark" id="current_report_qc_full_inspect" name="qc_full_inspect" style="
+                    --grid-column: 1;
+                    --grid-row: 13;">
+                    <option value="0" selected>First</option>
+                    <option value="1">Second</option>
+                    <option value="2">Last</option>
+                </select>
+                <input class="number_input_dark" id="current_report_qc_full_inspect_qty" name="qc_full_inspect_qty" style="
+                    --grid-column: 2;
+                    --grid-row: 13;">
+                
+                <label class="label_over_dark" for="current_report_released" style="
+                    --grid-column: 1;
+                    --grid-row: 14;">Released Quantity</label>
+                <select class="select_dark" id="current_report_released" name="released" style="
+                    --grid-column: 1;
+                    --grid-row: 15;">
+                    <option value="0" selected>First</option>
+                    <option value="1">Second</option>
+                    <option value="2">Last</option>
+                </select>
+                <input class="number_input_dark" id="current_report_released_qty" name="released_qty" style="
+                    --grid-column: 2;
+                    --grid-row: 15;">
+                
+                <label class="label_over_dark" for="current_report_completed_qty" style="
+                    --grid-column: 1;
+                    --grid-row: 16;">Completed Quantity</label>
+                <select class="select_dark" id="current_report_completed" name="completed" style="
+                    --grid-column: 1;
+                    --grid-row: 17;">
+                    <option value="0" selected>First</option>
+                    <option value="1">Second</option>
+                    <option value="2">Last</option>
+                </select>
+                <input class="number_input_dark" id="current_report_completed_qty" name="completed_qty" style="
+                    --grid-column: 2;
+                    --grid-row: 17;">
+            </div>
+        </form>
     </div>
     <div class="sidebar_toggle" id="inspection_report_metadata">
-        <button class="open_btn" id="inspection_report_metadata_toggle" onclick="toggle_options('metadata', '600px')">
-            &#9776; Metadata
+        <button class="sidebar_button" onclick="toggle_options('metadata', '600px')">
+            Metadata
         </button>
     </div>
 
@@ -62,8 +237,8 @@
 
     </div>
     <div class="sidebar_toggle" id="inspection_report_receiver_numbers">
-        <button class="open_btn" id="inspection_report_receiver_numbers_toggle" onclick="toggle_options('receiver_numbers', '350px')">
-            &#9776; Receiver Numbers
+        <button class="sidebar_button" onclick="toggle_options('receiver_numbers', '350px')">
+            Receiver Numbers
         </button>
     </div>
 
@@ -72,8 +247,8 @@
 
     </div>
     <div class="sidebar_toggle" id="inspection_report_purchase_orders">
-        <button class="open_btn" id="inspection_report_purchase_orders_toggle" onclick="toggle_options('purchase_orders', '350px')">
-            &#9776; Purchase Orders
+        <button class="sidebar_button" onclick="toggle_options('purchase_orders', '350px')">
+            Purchase Orders
         </button>
     </div>
 
@@ -82,8 +257,8 @@
 
     </div>
     <div class="sidebar_toggle" id="inspection_report_characteristic_schema">
-        <button class="open_btn" id="inspection_report_characteristic_schema_toggle" onclick="toggle_options('characteristic_schema', '350px')">
-            &#9776; Characteristic Schema
+        <button class="sidebar_button" onclick="toggle_options('characteristic_schema', '350px')">
+            Characteristic Schema
         </button>
     </div>
 
