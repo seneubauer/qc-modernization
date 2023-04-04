@@ -45,6 +45,9 @@ purchase_orders = base.classes.purchase_orders
 receiver_numbers = base.classes.receiver_numbers
 specification_types = base.classes.specification_types
 characteristics = base.classes.characteristics
+material_types = base.classes.material_types
+quantity_types = base.classes.quantity_types
+suppliers = base.classes.suppliers
 
 # instantiate the flask app
 app = Flask(__name__)
@@ -54,8 +57,248 @@ app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 def test_page():
     return render_template("test_page.html")
 
-@app.route("/get_all_inspection_reports/<string:item_number>/<string:drawing>/<int:start_day>/<int:start_month>/<int:start_year>/<int:finish_day>/<int:finish_month>/<int:finish_year>/")
-def get_all_inspection_reports(item_number:str, drawing:str, start_day:int, start_month:int, start_year:int, finish_day:int, finish_month:int, finish_year:int):
+@app.route("/get_all_employee_ids/")
+def get_all_employees_ids():
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(employees.id).order_by(employees.id.asc()).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "item": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or in the database query"
+        }
+
+@app.route("/get_all_disposition_types/")
+def get_all_disposition_types():
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(disposition_types.id).order_by(disposition_types.id.asc()).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "item": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or in the database query"
+        }
+
+@app.route("/get_all_item_numbers/")
+def get_all_item_numbers():
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(parts.item).order_by(parts.drawing.asc()).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "item": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or in the database query"
+        }
+
+@app.route("/get_all_drawings/")
+def get_all_drawings():
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(parts.drawing).order_by(parts.drawing.asc()).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "item": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or in the database query"
+        }
+
+@app.route("/get_all_job_order_ids/")
+def get_all_job_order_ids():
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(job_orders.id).order_by(job_orders.id.asc()).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "item": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or in the database query"
+        }
+
+@app.route("/get_all_material_types/")
+def get_all_material_types():
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(material_types.id).order_by(material_types.id.asc()).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "item": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or in the database query"
+        }
+
+@app.route("/get_all_suppliers/")
+def get_all_suppliers():
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(suppliers.id).order_by(suppliers.id.asc()).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "item": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or in the database query"
+        }
+
+@app.route("/get_all_quantity_types/")
+def get_all_quantity_types():
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(quantity_types.id).order_by(quantity_types.id.asc()).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "item": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or in the database query"
+        }
+
+@app.route("/get_filtered_inspection_reports/<string:item_number>/<string:drawing>/<int:start_day>/<int:start_month>/<int:start_year>/<int:finish_day>/<int:finish_month>/<int:finish_year>/")
+def get_filtered_inspection_reports(item_number:str, drawing:str, start_day:int, start_month:int, start_year:int, finish_day:int, finish_month:int, finish_year:int):
 
     # interpret the parameters
     started_after = datetime.date(start_year, start_month, start_day)
@@ -74,8 +317,16 @@ def get_all_inspection_reports(item_number:str, drawing:str, start_day:int, star
         parts.drawing,
         parts.revision,
         inspection_reports.job_order_id,
+        inspection_reports.material_type_id,
+        inspection_reports.supplier_id,
         inspection_reports.day_started,
-        inspection_reports.day_finished
+        inspection_reports.day_finished,
+        inspection_reports.full_inspect_qty_type,
+        inspection_reports.full_inspect_qty,
+        inspection_reports.released_qty_type,
+        inspection_reports.released_qty,
+        inspection_reports.completed_qty_type,
+        inspection_reports.completed_qty
     ]
 
     # open the database session
@@ -86,7 +337,7 @@ def get_all_inspection_reports(item_number:str, drawing:str, start_day:int, star
         .filter(and_(inspection_reports.day_started >= started_after, inspection_reports.day_finished <= finished_before))\
         .filter(parts.item.like(f"%{item_number}%"))\
         .filter(parts.drawing.like(f"%{drawing}%"))\
-        .order_by(parts.drawing.asc())
+        .order_by(parts.drawing.asc()).all()
 
     # close the database session
     session.close()
@@ -94,13 +345,49 @@ def get_all_inspection_reports(item_number:str, drawing:str, start_day:int, star
     # return the results
     if len(results) > 0:
         output_arr = []
+        for report_id, employee_id, disposition, item, drawing, revision, job_order_id, material_type_id, supplier_id, day_started, day_finished, full_inspect_type, full_inspect_qty, released_type, released_qty, completed_type, completed_qty in results:
+            output_arr.append({
+                "report_id": report_id,
+                "employee_id": employee_id,
+                "disposition": disposition,
+                "item": item,
+                "drawing": drawing,
+                "revision": revision,
+                "job_order_id": job_order_id,
+                "material_type_id": material_type_id,
+                "supplier_id": supplier_id,
+                "day_started": f"{day_started.month:02}/{day_started.day:02}/{day_started.year:04}",
+                "day_finished": f"{day_finished.month:02}/{day_finished.day:02}/{day_finished.year:04}",
+                "js_day_started": f"{day_started.year:04}-{day_started.month:02}-{day_started.day:02}",
+                "js_day_finished": f"{day_finished.year:04}-{day_finished.month:02}-{day_finished.day:02}",
+                "full_inspect_type": full_inspect_type,
+                "full_inspect_qty": full_inspect_qty,
+                "released_type": released_type,
+                "released_qty": released_qty,
+                "completed_type": completed_type,
+                "completed_qty": completed_qty
+            })
 
-    return render_template("test_page.html")
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or in the database query"
+        }
 
 # data entry
 # @app.route("/data_entry")
 # def data_entry_route():
     return render_template("data_entry.html")
+
+
+
+
+
+
 
 # @app.route("/get_all_employee_ids/")
 # def get_all_employees():

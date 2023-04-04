@@ -141,10 +141,6 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 
 /* #endregion sidebar_basics */
 
-/* #region containers */
-
-/* #endregion containers */
-
 /* #region controls */
 
 .header_dark {
@@ -249,6 +245,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 .data_table_dark tbody tr:hover {
     background-color: hsl(0, 50%, 50%);
     color: hsl(0, 0%, 95%);
+    cursor: pointer;
 }
 
 .data_table_dark tbody td {
