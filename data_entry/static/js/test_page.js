@@ -25,12 +25,24 @@ const meta_material_type = d3.select("#metadata_material_type");
 const meta_supplier = d3.select("#metadata_supplier");
 const meta_start_date = d3.select("#metadata_start_date");
 const meta_finish_date = d3.select("#metadata_finish_date");
-const meta_full_inspect_type = d3.select("#metadata_qc_full_inspect");
-const meta_full_inspect_qty = d3.select("#metadata_qc_full_inspect_qty");
-const meta_released_type = d3.select("#metadata_released");
+const meta_full_inspect_type = d3.select("#metadata_full_inspect_type");
+const meta_full_inspect_qty = d3.select("#metadata_full_inspect_qty");
+const meta_released_type = d3.select("#metadata_released_type");
 const meta_released_qty = d3.select("#metadata_released_qty");
-const meta_completed_type = d3.select("#metadata_completed");
+const meta_completed_type = d3.select("#metadata_completed_type");
 const meta_completed_qty = d3.select("#metadata_completed_qty");
+
+// receiver number controls
+const rn_filter = d3.select("#rn_filter");
+const rn_value = d3.select("#rn_value");
+const rn_list = d3.select("#rn_list");
+const rn_button = d3.select("#rn_button");
+
+// purchase order controls
+const po_filter = d3.select("#po_filter");
+const po_value = d3.select("#po_value");
+const po_list = d3.select("#po_list");
+const po_button = d3.select("#po_button");
 
 init();
 
@@ -39,28 +51,47 @@ init();
 // initialize the page
 function init()
 {
-    // connect events
+    // existing reports events
     eir_item_number.on("keydown", (x) => {
-        console.log(x);
         if (x.keyCode == 13) {
-            get_inspection_reports();
+            update_existing_inspection_reports();
         }
     });
     eir_drawing.on("keydown", (x) => {
         if (x.keyCode == 13) {
-            get_inspection_reports();
+            update_existing_inspection_reports();
         }
     });
     eir_start_after.on("keydown", (x) => {
         if (x.keyCode == 13) {
-            get_inspection_reports();
+            update_existing_inspection_reports();
         }
     });
     eir_finish_before.on("keydown", (x) => {
         if (x.keyCode == 13) {
-            get_inspection_reports();
+            update_existing_inspection_reports();
         }
     });
+
+    // metadata events
+    meta_item_number.on("change", item_number_changed);
+    meta_drawing.on("change", drawing_changed);
+
+    // receiver number events
+    rn_filter.on("keydown", (x) => {
+        if (x.keyCode == 13) {
+            populate_receiver_numbers();
+        }
+    });
+    rn_button.on("click", assign_receiver_number_association);
+
+    // purchase order events
+    po_filter.on("keydown", (x) => {
+        if (x.keyCode == 13) {
+            populate_purchase_orders();
+        }
+    });
+    po_button.on("click", assign_purchase_order_association);
 
     // populate selectors
     populate_selectors();
@@ -266,6 +297,44 @@ function populate_selectors()
             console.log(returned_object.response);
         }
     });
+
+    // receiver numbers
+    d3.json("/get_all_receiver_numbers/").then((returned_object) => {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // populate the selector
+            rn_value.selectAll("option")
+                .data(dataset)
+                .enter()
+                .append("option")
+                .text((x) => x.item);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+
+    // purchase orders
+    d3.json("/get_all_purchase_orders/").then((returned_object) => {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // populate the selector
+            po_value.selectAll("option")
+                .data(dataset)
+                .enter()
+                .append("option")
+                .text((x) => x.item);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
 }
 
 // #endregion
@@ -284,7 +353,7 @@ function toggle_options(destination_arg, open_width)
         else {
             document.getElementById("inspection_report_existing_sidebar").style.width = open_width;
             document.getElementById("inspection_report_existing").style.marginLeft = open_width;
-            get_inspection_reports();
+            update_existing_inspection_reports();
         }
     }
     else if (destination_arg == "metadata") {
@@ -334,7 +403,7 @@ function toggle_options(destination_arg, open_width)
 // #region existing reports
 
 // get the matching inspection reports
-function get_inspection_reports()
+function update_existing_inspection_reports()
 {
     // get the parameters
     let item_number = eir_item_number.property("value");
@@ -377,7 +446,7 @@ function get_inspection_reports()
                 .data(dataset)
                 .enter()
                 .append("tr")
-                .on("click", (i, j) => inspection_report_selected(i, j));
+                .on("click", (event, data) => inspection_report_selected(data));
 
             // assign the cell contents
             rows.selectAll("td")
@@ -415,7 +484,7 @@ function get_inspection_reports()
 }
 
 // user selected an inspection report from the list
-function inspection_report_selected(pointer, data)
+function inspection_report_selected(data)
 {
     // enable the inspection report dependent controls
     set_disabled_state(false);
@@ -439,6 +508,297 @@ function inspection_report_selected(pointer, data)
     meta_released_qty.property("value", data.released_qty);
     meta_completed_type.property("value", data.completed_type);
     meta_completed_qty.property("value", data.completed_qty);
+
+    // populate the receiver numbers
+    populate_receiver_numbers(data.report_id);
+    populate_purchase_orders(data.report_id);
+}
+
+// #endregion
+
+// #region metadata
+
+// item number selection has changed
+function item_number_changed()
+{
+    // get the current item number
+    let item_number = meta_item_number.property("value");
+
+    // build the route
+    let route = `/get_drawing_from_item_number/${item_number}/`
+
+    // query the flask server
+    d3.json(route).then((returned_object) => {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // set the drawing
+            meta_drawing.property("value", dataset);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
+// drawing selection has changed
+function drawing_changed()
+{
+    // get the current drawing
+    let drawing = meta_drawing.property("value");
+
+    // build the route
+    let route = `/get_item_number_from_drawing/${drawing}/`
+
+    // query the flask server
+    d3.json(route).then((returned_object) => {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // set the item number
+            meta_item_number.property("value", dataset);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
+// #endregion
+
+// #region receiver numbers
+
+function populate_receiver_numbers(report_id = -1)
+{
+    // get the input parameters
+    let filter = rn_filter.property("value");
+    if (report_id == -1) {
+        report_id = meta_report_id.property("data-meta");
+    }
+
+    // handle null value
+    if (filter == "") {
+        filter = "__null";
+    }
+
+    // build the route
+    let route = `/get_filtered_receiver_numbers/${report_id}/${filter}/`
+
+    // query the flask server
+    d3.json(route).then((returned_object) => {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // populate the list
+            populate_association_list(rn_list, dataset, "receiver_number");
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
+function assign_receiver_number_association()
+{
+    // get the input parameters
+    let report_id = meta_report_id.property("data-meta");
+    let receiver_number = rn_value.property("value");
+
+    // build the route
+    let route = `/assign_receiver_number_association/${report_id}/${receiver_number}/`;
+
+    // query the flask server
+    d3.json(route).then((returned_object) => {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // populate the list
+            populate_association_list(rn_list, dataset, "receiver_number");
+        }
+        else if (returned_object.status == "ok_alt") {
+            alert(returned_object.response);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
+function remove_receiver_number_association(pointer, data)
+{
+    // get the input arguments
+    let receiver_number = data.item;
+    let report_id = data.report_id;
+
+    // build the route
+    let route = `/remove_receiver_number_association/${report_id}/${receiver_number}/`;
+
+    // query the database
+    d3.json(route).then((returned_object) => {
+        if (returned_object.status == "ok") {
+            
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // populate the list
+            populate_association_list(rn_list, dataset, "receiver_number");
+        }
+        else if (returned_object.status == "ok_alt") {
+            alert(returned_object.response);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
+// #endregion
+
+// #region purchase orders
+
+function populate_purchase_orders(report_id = -1)
+{
+    // get the input parameters
+    let filter = rn_filter.property("value");
+    if (report_id == -1) {
+        report_id = meta_report_id.property("data-meta");
+    }
+
+    // handle null value
+    if (filter == "") {
+        filter = "__null";
+    }
+
+    // build the route
+    let route = `/get_filtered_purchase_orders/${report_id}/${filter}/`
+
+    // query the flask server
+    d3.json(route).then((returned_object) => {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // populate the list
+            populate_association_list(po_list, dataset, "purchase_order");
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
+function assign_purchase_order_association()
+{
+    // get the input parameters
+    let report_id = meta_report_id.property("data-meta");
+    let purchase_order = po_value.property("value");
+
+    // build the route
+    let route = `/assign_purchase_order_association/${report_id}/${purchase_order}/`;
+
+    // query the flask server
+    d3.json(route).then((returned_object) => {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // populate the list
+            populate_association_list(po_list, dataset, "purchase_order");
+        }
+        else if (returned_object.status == "ok_alt") {
+            alert(returned_object.response);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
+function remove_purchase_order_association(pointer, data)
+{
+    // get the input arguments
+    let purchase_order = data.item;
+    let report_id = data.report_id;
+
+    // build the route
+    let route = `/remove_purchase_order_association/${report_id}/${purchase_order}/`;
+
+    // query the database
+    d3.json(route).then((returned_object) => {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // populate the list
+            populate_association_list(po_list, dataset, "purchase_order");
+        }
+        else if (returned_object.status == "ok_alt") {
+            alert(returned_object.response);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
+// #endregion
+
+// #region characteristic schema
+
+// #endregion
+
+// #region general methods
+
+// populate an association list
+function populate_association_list(list_container, dataset, direction)
+{
+    // remove the previous data
+    list_container.selectAll("li").remove();
+
+    // populate the list
+    if (dataset.length > 0) {
+        let list_items = list_container.selectAll("li")
+            .data(dataset)
+            .enter()
+            .append("li")
+            .append("div")
+            .attr("class", "grid_container_item")
+            .style("--grid-template-columns", "3fr 1fr");
+
+        list_items.append("label")
+            .style("--grid-column", "1")
+            .style("--grid-row", "1")
+            .text((x) => x.item);
+        switch (direction) {
+            case "receiver_number":
+                list_items.append("button")
+                    .style("--grid-column", "2")
+                    .style("--grid-row", "1")
+                    .attr("type", "button")
+                    .text("Delete")
+                    .on("click", (pointer, data) => { remove_receiver_number_association(pointer, data); });
+                break;
+            case "purchase_order":
+                list_items.append("button")
+                    .style("--grid-column", "2")
+                    .style("--grid-row", "1")
+                    .attr("type", "button")
+                    .text("Delete")
+                    .on("click", (pointer, data) => { remove_purchase_order_association(pointer, data); });
+                break;
+        }
+    }
 }
 
 // #endregion

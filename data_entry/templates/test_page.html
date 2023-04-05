@@ -32,9 +32,16 @@
         <label>QA1 Data Portal</label>
     </div>
 
+    <!-- characteristics -->
+    <div class="grid_container" style="margin: 0px 300px; --grid-template-columns: repeat(2, minmax(0, 1fr));">
+        
+        <!-- filter options -->
+        
+    </div>
+
     <!-- view inspection report controls -->
-    <div class="sidebar_toggle" id="inspection_report_controls">
-        <button class="sidebar_button">
+    <div class="sidebar_toggle" id="inspection_report_controls" style="top: 62px;">
+        <button class="sidebar_button" type="button">
             New Report
         </button>
     </div>
@@ -83,159 +90,198 @@
                         <th scope="col">Finish Date</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {% for report in inspection_reports %}
-                    <tr onclick="inspection_report_selected(this)">
-                        <td class="data_table_start_cell">{{ inspection_reports[report].item_number }}</td>
-                        <td>{{ inspection_reports[report].drawing }}</td>
-                        <td>{{ inspection_reports[report].revision }}</td>
-                        <td>{{ inspection_reports[report].start_date }}</td>
-                        <td class="data_table_end_cell">{{ inspection_reports[report].finish_date }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
             </table>
         </div>
     </div>
-    <div class="sidebar_toggle" id="inspection_report_existing">
-        <button class="sidebar_button" id="sidebar_btn_existing" onclick="toggle_options('existing', '700px')">
+    <div class="sidebar_toggle" id="inspection_report_existing" style="top: 115px;">
+        <button class="sidebar_button" id="sidebar_btn_existing" type="button" onclick="toggle_options('existing', '700px')">
             Existing Reports
         </button>
     </div>
 
     <!-- view metadata -->
     <div class="sidebar" id="inspection_report_metadata_sidebar">
-        <form name="inspection_report_metadata" method="post">
-            <div class="grid_container" style="--grid-template-columns: repeat(2, minmax(0, 1fr));">
+        <div class="grid_container" style="--grid-template-columns: repeat(2, minmax(0, 1fr));">
 
-                <label class="header_dark" id="metadata_report_id" data-meta="0" style="
-                    --grid-column: 1;
-                    --grid-row: 1;">Report ID: #</label>
+            <label class="header_dark" id="metadata_report_id" data-meta="0" style="
+                --grid-column: 1;
+                --grid-row: 1;">Report ID: #</label>
 
-                <label class="label_over_dark" for="metadata_inspector_id" style="
-                    --grid-column: 1;
-                    --grid-row: 2;">Inspector ID</label>
-                <select class="select_dark" id="metadata_inspector_id" name="inspector_id" style="
-                    --grid-column: 1;
-                    --grid-row: 3;"></select>
+            <label class="label_over_dark" for="metadata_inspector_id" style="
+                --grid-column: 1;
+                --grid-row: 2;">Inspector ID</label>
+            <select class="select_dark" id="metadata_inspector_id" style="
+                --grid-column: 1;
+                --grid-row: 3;"></select>
 
-                <label class="label_over_dark" for="metadata_disposition" style="
-                    --grid-column: 2;
-                    --grid-row: 2;">Disposition</label>
-                <select class="select_dark" id="metadata_disposition" name="disposition" style="
-                    --grid-column: 2;
-                    --grid-row: 3;"></select>
+            <label class="label_over_dark" for="metadata_disposition" style="
+                --grid-column: 2;
+                --grid-row: 2;">Disposition</label>
+            <select class="select_dark" id="metadata_disposition" style="
+                --grid-column: 2;
+                --grid-row: 3;"></select>
 
-                <label class="label_over_dark" for="metadata_item_number" style="
-                    --grid-column: 1;
-                    --grid-row: 4;">Item Number</label>
-                <select class="select_dark" id="metadata_item_number" name="item_number" style="
-                    --grid-column: 1;
-                    --grid-row: 5;"></select>
+            <label class="label_over_dark" for="metadata_item_number" style="
+                --grid-column: 1;
+                --grid-row: 4;">Item Number</label>
+            <select class="select_dark" id="metadata_item_number" style="
+                --grid-column: 1;
+                --grid-row: 5;"></select>
 
-                <label class="label_over_dark" for="metadata_drawing" style="
-                    --grid-column: 2;
-                    --grid-row: 4;">Drawing</label>
-                <select class="select_dark" id="metadata_drawing" name="drawing" style="
-                    --grid-column: 2;
-                    --grid-row: 5;"></select>
+            <label class="label_over_dark" for="metadata_drawing" style="
+                --grid-column: 2;
+                --grid-row: 4;">Drawing</label>
+            <select class="select_dark" id="metadata_drawing" style="
+                --grid-column: 2;
+                --grid-row: 5;"></select>
 
-                <label class="label_over_dark" for="metadata_revision" style="
-                    --grid-column: 1;
-                    --grid-row: 6;">Revision</label>
-                <input class="text_input_dark" id="metadata_revision" name="revision" type="text" style="
-                    --grid-column: 1;
-                    --grid-row: 7;">
+            <label class="label_over_dark" for="metadata_revision" style="
+                --grid-column: 1;
+                --grid-row: 6;">Revision</label>
+            <input class="text_input_dark" id="metadata_revision" type="text" style="
+                --grid-column: 1;
+                --grid-row: 7;">
 
-                <label class="label_over_dark" for="metadata_job_order" style="
-                    --grid-column: 2;
-                    --grid-row: 6;">Job Order</label>
-                <select class="select_dark" id="metadata_job_order" name="job_order" style="
-                    --grid-column: 2;
-                    --grid-row: 7;"></select>
+            <label class="label_over_dark" for="metadata_job_order" style="
+                --grid-column: 2;
+                --grid-row: 6;">Job Order</label>
+            <select class="select_dark" id="metadata_job_order" style="
+                --grid-column: 2;
+                --grid-row: 7;"></select>
 
-                <label class="label_over_dark" for="metadata_material_type" style="
-                    --grid-column: 1;
-                    --grid-row: 8;">Material Type</label>
-                <select class="select_dark" id="metadata_material_type" name="material_type" style="
-                    --grid-column: 1;
-                    --grid-row: 9;"></select>
+            <label class="label_over_dark" for="metadata_material_type" style="
+                --grid-column: 1;
+                --grid-row: 8;">Material Type</label>
+            <select class="select_dark" id="metadata_material_type" style="
+                --grid-column: 1;
+                --grid-row: 9;"></select>
 
-                <label class="label_over_dark" for="metadata_supplier" style="
-                    --grid-column: 2;
-                    --grid-row: 8;">Supplier</label>
-                <select class="select_dark" id="metadata_supplier" name="supplier" style="
-                    --grid-column: 2;
-                    --grid-row: 9;"></select>
+            <label class="label_over_dark" for="metadata_supplier" style="
+                --grid-column: 2;
+                --grid-row: 8;">Supplier</label>
+            <select class="select_dark" id="metadata_supplier" style="
+                --grid-column: 2;
+                --grid-row: 9;"></select>
 
-                <label class="label_over_dark" for="metadata_start_date" style="
-                    --grid-column: 1;
-                    --grid-row: 10;">Start Date</label>
-                <input class="date_input_dark" id="metadata_start_date" name="start_date" type="date" style="
-                    --grid-column: 1;
-                    --grid-row: 11;">
+            <label class="label_over_dark" for="metadata_start_date" style="
+                --grid-column: 1;
+                --grid-row: 10;">Start Date</label>
+            <input class="date_input_dark" id="metadata_start_date" type="date" style="
+                --grid-column: 1;
+                --grid-row: 11;">
 
-                <label class="label_over_dark" for="metadata_finish_date" style="
-                    --grid-column: 2;
-                    --grid-row: 10;">Finish Date</label>
-                <input class="date_input_dark" id="metadata_finish_date" name="finish_date" type="date" style="
-                    --grid-column: 2;
-                    --grid-row: 11;">
+            <label class="label_over_dark" for="metadata_finish_date" style="
+                --grid-column: 2;
+                --grid-row: 10;">Finish Date</label>
+            <input class="date_input_dark" id="metadata_finish_date" type="date" style="
+                --grid-column: 2;
+                --grid-row: 11;">
 
-                <label class="label_over_dark" for="metadata_qc_full_inspect" style="
-                    --grid-column: 1;
-                    --grid-row: 12;">QC Full Inspect Quantity</label>
-                <select class="select_dark" id="metadata_qc_full_inspect" name="qc_full_inspect" style="
-                    --grid-column: 1;
-                    --grid-row: 13;"></select>
-                <input class="number_input_dark" id="metadata_qc_full_inspect_qty" name="qc_full_inspect_qty" style="
-                    --grid-column: 2;
-                    --grid-row: 13;">
+            <label class="label_over_dark" for="metadata_full_inspect_type" style="
+                --grid-column: 1;
+                --grid-row: 12;">QC Full Inspect Quantity</label>
+            <select class="select_dark" id="metadata_full_inspect_type" style="
+                --grid-column: 1;
+                --grid-row: 13;"></select>
+            <input class="number_input_dark" id="metadata_full_inspect_qty" style="
+                --grid-column: 2;
+                --grid-row: 13;">
 
-                <label class="label_over_dark" for="metadata_released" style="
-                    --grid-column: 1;
-                    --grid-row: 14;">Released Quantity</label>
-                <select class="select_dark" id="metadata_released" name="released" style="
-                    --grid-column: 1;
-                    --grid-row: 15;"></select>
-                <input class="number_input_dark" id="metadata_released_qty" name="released_qty" style="
-                    --grid-column: 2;
-                    --grid-row: 15;">
+            <label class="label_over_dark" for="metadata_released_type" style="
+                --grid-column: 1;
+                --grid-row: 14;">Released Quantity</label>
+            <select class="select_dark" id="metadata_released_type" style="
+                --grid-column: 1;
+                --grid-row: 15;"></select>
+            <input class="number_input_dark" id="metadata_released_qty" style="
+                --grid-column: 2;
+                --grid-row: 15;">
 
-                <label class="label_over_dark" for="metadata_completed_qty" style="
-                    --grid-column: 1;
-                    --grid-row: 16;">Completed Quantity</label>
-                <select class="select_dark" id="metadata_completed" name="completed" style="
-                    --grid-column: 1;
-                    --grid-row: 17;"></select>
-                <input class="number_input_dark" id="metadata_completed_qty" name="completed_qty" style="
-                    --grid-column: 2;
-                    --grid-row: 17;">
-            </div>
-        </form>
+            <label class="label_over_dark" for="metadata_completed_type" style="
+                --grid-column: 1;
+                --grid-row: 16;">Completed Quantity</label>
+            <select class="select_dark" id="metadata_completed_type" style="
+                --grid-column: 1;
+                --grid-row: 17;"></select>
+            <input class="number_input_dark" id="metadata_completed_qty" style="
+                --grid-column: 2;
+                --grid-row: 17;">
+        </div>
     </div>
-    <div class="sidebar_toggle" id="inspection_report_metadata">
-        <button class="sidebar_button" id="sidebar_btn_metadata" onclick="toggle_options('metadata', '600px')">
+    <div class="sidebar_toggle" id="inspection_report_metadata" style="top: 168px;">
+        <button class="sidebar_button" id="sidebar_btn_metadata" type="button" onclick="toggle_options('metadata', '600px')">
             Metadata
         </button>
     </div>
 
     <!-- view/edit receiver numbers -->
     <div class="sidebar" id="inspection_report_receiver_numbers_sidebar">
+        <div class="grid_container" style="--grid-template-columns: repeat(1, minmax(0, 1fr));">
 
+            <label class="label_over_dark" for="rn_filter" style="
+                --grid-column: 1;
+                --grid-row: 1;">Filter</label>
+            <input class="text_input_dark" id="rn_filter" style="
+                --grid-column: 1;
+                --grid-row: 2;">
+
+            <label class="label_over_dark" for="rn_value" style="
+                --grid-column: 1;
+                --grid-row: 3;">Receiver Number</label>
+            <select class="select_dark" id="rn_value" style="
+                --grid-column: 1;
+                --grid-row: 4;"></select>
+
+            <button class="button_dark" id="rn_button" type="button" style="
+                --grid-column: 1;
+                --grid-row: 5;">Add Receiver Number</button>
+
+            <label class="label_over_dark" for="rn_list" style="
+                --grid-column: 1;
+                --grid-row: 6;">Associated Receiver Numbers</label>
+            <ul class="list_dark" id="rn_list" style="
+                --grid-column: 1;
+                --grid-row: 7;"></ul>
+        </div>
     </div>
-    <div class="sidebar_toggle" id="inspection_report_receiver_numbers">
-        <button class="sidebar_button" id="sidebar_btn_receiver_numbers" onclick="toggle_options('receiver_numbers', '350px')">
+    <div class="sidebar_toggle" id="inspection_report_receiver_numbers" style="top: 221px;">
+        <button class="sidebar_button" id="sidebar_btn_receiver_numbers" type="button" onclick="toggle_options('receiver_numbers', '350px')">
             Receiver Numbers
         </button>
     </div>
 
     <!-- view/edit purchase orders -->
     <div class="sidebar" id="inspection_report_purchase_orders_sidebar">
+        <div class="grid_container" style="--grid-template-columns: repeat(1, minmax(0, 1fr));">
 
+            <label class="label_over_dark" for="po_filter" style="
+                --grid-column: 1;
+                --grid-row: 1;">Filter</label>
+            <input class="text_input_dark" id="po_filter" style="
+                --grid-column: 1;
+                --grid-row: 2;">
+
+            <label class="label_over_dark" for="po_value" style="
+                --grid-column: 1;
+                --grid-row: 3;">Purchase Order</label>
+            <select class="select_dark" id="po_value" style="
+                --grid-column: 1;
+                --grid-row: 4;"></select>
+
+            <button class="button_dark" id="po_button" type="button" style="
+                --grid-column: 1;
+                --grid-row: 5;">Add Purchase Order</button>
+
+            <label class="label_over_dark" for="po_list" style="
+                --grid-column: 1;
+                --grid-row: 6;">Associated Purchase Orders</label>
+            <ul class="list_dark" id="po_list" style="
+                --grid-column: 1;
+                --grid-row: 7;"></ul>
+        </div>
     </div>
-    <div class="sidebar_toggle" id="inspection_report_purchase_orders">
-        <button class="sidebar_button" id="sidebar_btn_purchase_orders" onclick="toggle_options('purchase_orders', '350px')">
+    <div class="sidebar_toggle" id="inspection_report_purchase_orders" style="top: 274px;">
+        <button class="sidebar_button" id="sidebar_btn_purchase_orders" type="button" onclick="toggle_options('purchase_orders', '350px')">
             Purchase Orders
         </button>
     </div>
@@ -244,8 +290,8 @@
     <div class="sidebar" id="inspection_report_characteristic_schema_sidebar">
 
     </div>
-    <div class="sidebar_toggle" id="inspection_report_characteristic_schema">
-        <button class="sidebar_button" id="sidebar_btn_charschema" onclick="toggle_options('characteristic_schema', '350px')">
+    <div class="sidebar_toggle" id="inspection_report_characteristic_schema" style="top: 327px;">
+        <button class="sidebar_button" id="sidebar_btn_charschema" type="button" onclick="toggle_options('characteristic_schema', '350px')">
             Characteristic Schema
         </button>
     </div>

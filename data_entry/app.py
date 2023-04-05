@@ -1,5 +1,5 @@
 # import dependencies for flask
-from flask import Flask, render_template, request
+from flask import Flask, render_template, redirect, request
 
 # import dependencies for sqlalchemy
 from sqlalchemy.ext.automap import automap_base
@@ -297,6 +297,114 @@ def get_all_quantity_types():
             "response": "error within the flask server or in the database query"
         }
 
+@app.route("/get_all_receiver_numbers/")
+def get_all_receiver_numbers():
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(receiver_numbers.id).order_by(receiver_numbers.id.asc()).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "item": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or in the database query"
+        }
+
+@app.route("/get_all_purchase_orders/")
+def get_all_purchase_orders():
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(purchase_orders.id).order_by(purchase_orders.id.asc()).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "item": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or in the database query"
+        }
+
+@app.route("/get_drawing_from_item_number/<string:item_number>/")
+def get_drawing_from_item_number(item_number:str):
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    result = session.query(parts.drawing).filter(parts.item == item_number).first()
+
+    # close the session
+    session.close()
+
+    # return the result
+    if result is not None:
+        return {
+            "status": "ok",
+            "response": result[0]
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or in the database query"
+        }
+
+@app.route("/get_item_number_from_drawing/<string:drawing>/")
+def get_item_number_from_drawing(drawing:str):
+
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    result = session.query(parts.item).filter(parts.drawing == drawing).first()
+
+    # close the session
+    session.close()
+
+    # return the result
+    if result is not None:
+        return {
+            "status": "ok",
+            "response": result[0]
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or in the database query"
+        }
+
 @app.route("/get_filtered_inspection_reports/<string:item_number>/<string:drawing>/<int:start_day>/<int:start_month>/<int:start_year>/<int:finish_day>/<int:finish_month>/<int:finish_year>/")
 def get_filtered_inspection_reports(item_number:str, drawing:str, start_day:int, start_month:int, start_year:int, finish_day:int, finish_month:int, finish_year:int):
 
@@ -383,7 +491,191 @@ def get_filtered_inspection_reports(item_number:str, drawing:str, start_day:int,
 # def data_entry_route():
     return render_template("data_entry.html")
 
+@app.route("/get_filtered_receiver_numbers/<int:report_id>/<string:filter>/")
+def get_filtered_receiver_numbers(report_id:int, filter:str):
 
+    # convert the incoming filter if needed
+    if filter == "__null":
+        filter = ""
+    
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(receiver_numbers.id)\
+        .join(inspection_receiver_numbers, (receiver_numbers.id == inspection_receiver_numbers.receiver_number_id))\
+        .join(inspection_reports, (inspection_reports.id == inspection_receiver_numbers.inspection_id))\
+        .filter(inspection_reports.id == report_id)\
+        .filter(receiver_numbers.id.like(f"%{filter}%"))\
+        .order_by(receiver_numbers.id.asc()).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "report_id": report_id,
+                "item": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or in the database query"
+        }
+
+@app.route("/assign_receiver_number_association/<int:report_id>/<string:receiver_number>/")
+def assign_receiver_number_association(report_id:int, receiver_number:str):
+
+    # open the database session
+    session = Session(engine)
+
+    # check if the association already exists
+    results = session.query(inspection_receiver_numbers.inspection_id)\
+        .filter(and_(inspection_receiver_numbers.inspection_id == report_id, inspection_receiver_numbers.receiver_number_id == receiver_number)).all()
+
+    # logic gate
+    if len(results) > 0:
+        return {
+            "status": "ok_alt",
+            "response": "this receiver number association already exists"
+        }
+    
+    # add the new association
+    session.add(inspection_receiver_numbers(inspection_id = report_id, receiver_number_id = receiver_number))
+    session.commit()
+
+    # close the session
+    session.close()
+
+    # get the new list
+    return get_filtered_receiver_numbers(report_id, "")
+
+@app.route("/remove_receiver_number_association/<int:report_id>/<string:receiver_number>/")
+def remove_receiver_number_association(report_id:int, receiver_number:str):
+
+    # open the database session
+    session = Session(engine)
+
+    # delete the record that matches the provided criteria
+    results = session.query(inspection_receiver_numbers)\
+        .filter(and_(inspection_receiver_numbers.inspection_id == report_id, inspection_receiver_numbers.receiver_number_id == receiver_number))\
+        .delete()
+
+    # logic gate
+    if results == 0:
+        return {
+            "status": "ok_alt",
+            "response": "no records deleted; none matched the provided criteria"
+        }
+    else:
+        session.commit()
+
+    # close the session
+    session.close()
+
+    # get the new list
+    return get_filtered_receiver_numbers(report_id, "")
+
+@app.route("/get_filtered_purchase_orders/<int:report_id>/<string:filter>/")
+def get_filtered_purchase_orders(report_id:int, filter:str):
+
+    # convert the incoming filter if needed
+    if filter == "__null":
+        filter = ""
+    
+    # open the database session
+    session = Session(engine)
+
+    # query the database
+    results = session.query(purchase_orders.id)\
+        .join(inspection_purchase_orders, (purchase_orders.id == inspection_purchase_orders.purchase_order_id))\
+        .join(inspection_reports, (inspection_reports.id == inspection_purchase_orders.inspection_id))\
+        .filter(inspection_reports.id == report_id)\
+        .filter(purchase_orders.id.like(f"%{filter}%"))\
+        .order_by(purchase_orders.id.asc()).all()
+
+    # close the session
+    session.close()
+
+    # return the results
+    if len(results) > 0:
+        output_arr = []
+        for id in results:
+            output_arr.append({
+                "report_id": report_id,
+                "item": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "not_ok",
+            "response": "error within the flask server or in the database query"
+        }
+
+@app.route("/assign_purchase_order_association/<int:report_id>/<string:purchase_order>/")
+def assign_purchase_order_association(report_id:int, purchase_order:str):
+
+    # open the database session
+    session = Session(engine)
+
+    # check if the association already exists
+    results = session.query(inspection_purchase_orders.inspection_id)\
+        .filter(and_(inspection_purchase_orders.inspection_id == report_id, inspection_purchase_orders.purchase_order_id == purchase_order)).all()
+
+    # logic gate
+    if len(results) > 0:
+        return {
+            "status": "ok_alt",
+            "response": "this purchase order association already exists"
+        }
+    
+    # add the new association
+    session.add(inspection_purchase_orders(inspection_id = report_id, purchase_order_id = purchase_order))
+    session.commit()
+
+    # close the session
+    session.close()
+
+    # get the new list
+    return get_filtered_purchase_orders(report_id, "")
+
+@app.route("/remove_purchase_order_association/<int:report_id>/<string:receiver_number>/")
+def remove_purchase_order_association(report_id:int, receiver_number:str):
+
+    # open the database session
+    session = Session(engine)
+
+    # delete the record that matches the provided criteria
+    results = session.query(inspection_purchase_orders)\
+        .filter(and_(inspection_purchase_orders.inspection_id == report_id, inspection_purchase_orders.purchase_order_id == receiver_number))\
+        .delete()
+
+    # logic gate
+    if results == 0:
+        return {
+            "status": "ok_alt",
+            "response": "no records deleted; none matched the provided criteria"
+        }
+    else:
+        session.commit()
+
+    # close the session
+    session.close()
+
+    # get the new list
+    return get_filtered_purchase_orders(report_id, "")
 
 
 

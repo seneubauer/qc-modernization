@@ -33,6 +33,7 @@
 
 body {
     font-family: sans-serif;
+    background-color: hsl(0, 0%, 95%);
 }
 
 input {
@@ -98,19 +99,6 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     transition: 0.5s;
 }
 
-.sidebar a {
-    padding: 12px;
-    text-decoration: none;
-    font-size: 15px;
-    color: hsl(0, 0%, 75%);
-    display: block;
-    transition: 0.3s;
-}
-
-.sidebar a:hover {
-    color: hsl(0, 0%, 95%);
-}
-
 .sidebar_button {
     font-size: 15px;
     cursor: pointer;
@@ -124,14 +112,13 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 }
 
 .sidebar_button:hover {
-    background-color: #444;
+    background-color: hsl(0, 0%, 30%);
 }
 
 .sidebar_toggle {
     transition: margin-left 0.5s;
-    padding-top: 12px;
-    padding-left: 12px;
-    padding-right: 12px;
+    left: 12px;
+    position: fixed;
 }
 
 @media screen and (max-height: 450px) {
@@ -151,7 +138,18 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     padding: 2px;
     text-align: left;
     grid-column: var(--grid-column);
-    grid-row: var(--grid-row);    
+    grid-row: var(--grid-row);
+}
+
+.header_light {
+    background-color: transparent;
+    color: hsl(0, 0%, 20%);
+    font-size: 21px;
+    margin: 0px 0px 12px 6px;
+    padding: 2px;
+    text-align: left;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
 }
 
 .label_over_dark {
@@ -165,7 +163,31 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     grid-row: var(--grid-row);
 }
 
+.label_over_light {
+    background-color: transparent;
+    color: hsl(0, 0%, 20%);
+    font-size: 12px;
+    margin: 0px 0px 0px 9px;
+    padding: 2px;
+    text-align: left;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+}
+
 .number_input_dark {
+    background-color: hsl(0, 0%, 95%);
+    border-width: 0px;
+    border-radius: 3px;
+    color: hsl(0, 0%, 20%);
+    font-size: 15px;
+    text-align: right;
+    margin: 3px 6px 9px 6px;
+    padding: 6px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+}
+
+.number_input_light {
     background-color: hsl(0, 0%, 95%);
     border-width: 0px;
     border-radius: 3px;
@@ -218,9 +240,35 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     grid-row: var(--grid-row);
 }
 
+.button_dark {
+    background-color: hsl(0, 50%, 50%);
+    border-width: 0px;
+    border-radius: 6px;
+    color: hsl(0, 0%, 95%);
+    font-size: 15px;
+    margin: 6px 9px 18px 9px;
+    padding: 6px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+}
+
+.button_dark:hover {
+    background-color: hsl(0, 50%, 40%);
+}
+
+.button_dark:active {
+    background-color: hsl(0, 50%, 30%);
+}
+
 /* #endregion controls */
 
 /* #region tables */
+
+.list_dark {
+    padding: 6px 0px 0px 0px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+}
 
 .data_table_dark {
     background-color: transparent;
@@ -231,7 +279,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 }
 
 .data_table_dark thead th {
-    font-size: 18px;
+    font-size: 15px;
     padding: 6px 9px;
     vertical-align: middle;
     text-align: center;
@@ -246,6 +294,10 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     background-color: hsl(0, 50%, 50%);
     color: hsl(0, 0%, 95%);
     cursor: pointer;
+}
+
+.data_table_dark tbody tr:active {
+    background-color: hsl(0, 50%, 30%);
 }
 
 .data_table_dark tbody td {
@@ -272,6 +324,47 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     grid-template-columns: var(--grid-template-columns);
     gap: 0px;
     margin: 0px 18px;
+}
+
+.grid_container_item {
+    display: grid;
+    grid-auto-rows: auto;
+    grid-template-columns: var(--grid-template-columns);
+    gap: 0px;
+    margin: 0px 9px;
+    border-radius: 6px;
+}
+
+.grid_container_item label {
+    padding: 6px;
+    font-size: 15px;
+    color: hsl(0, 0%, 95%);
+}
+
+.grid_container_item button {
+    outline: none;
+    background-color: transparent;
+    border: 0px;
+    border-color: transparent;
+    border-radius: 0px;
+    font-size: 15px;
+    color: transparent;
+}
+
+.grid_container_item button:hover {
+    background-color: hsl(0, 50%, 40%);
+    border-radius: 0px 6px 6px 0px;
+    color: hsl(0, 0%, 95%);
+    cursor: pointer;
+}
+
+.grid_container_item button:active {
+    background-color: hsl(0, 50%, 30%);
+    border-radius: 0px 6px 6px 0px;
+}
+
+.grid_container_item:hover {
+    background-color: hsl(0, 50%, 50%);
 }
 
 /* #endregion grid_layout */
