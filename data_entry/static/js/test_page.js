@@ -667,7 +667,7 @@ function remove_receiver_number_association(pointer, data)
 function populate_purchase_orders(report_id = -1)
 {
     // get the input parameters
-    let filter = rn_filter.property("value");
+    let filter = po_filter.property("value");
     if (report_id == -1) {
         report_id = meta_report_id.property("data-meta");
     }
