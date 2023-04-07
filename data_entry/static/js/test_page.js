@@ -6,6 +6,19 @@ const sidebar_btn_receiver = d3.select("#sidebar_btn_receiver_numbers");
 const sidebar_btn_purchase = d3.select("#sidebar_btn_purchase_orders");
 const sidebar_btn_charschema = d3.select("#sidebar_btn_charschema");
 
+// characteristic filter
+const filter_name = d3.select("#charfilter_name");
+const filter_gauge_id = d3.select("#charfilter_gauge_id");
+const filter_gauge_type = d3.select("#charfilter_gauge_type");
+const filter_disposition = d3.select("#charfilter_disposition");
+const filter_spectype = d3.select("#charfilter_specification_type");
+const filter_chartype = d3.select("#charfilter_characteristic_type");
+const filter_inspector_id = d3.select("#charfilter_inspector");
+const filter_isgdt = d3.select("#charfilter_is_gdt");
+
+// characteristic table
+const char_table = d3.select("#char_table");
+
 // existing inspection report controls
 const eir_item_number = d3.select("#select_report_item_number");
 const eir_drawing = d3.select("#select_report_drawing");
@@ -51,6 +64,40 @@ init();
 // initialize the page
 function init()
 {
+    // characteristic filter
+    filter_name.on("keydown", (x) => {
+        if (x.keyCode == 13) {
+            retrieve_characteristics();
+        }
+    });
+    filter_gauge_id.on("keydown", (x) => {
+        if (x.keyCode == 13) {
+            retrieve_characteristics();
+        }
+    });
+    filter_gauge_type.on("keydown", (x) => {
+        if (x.keyCode == 13) {
+            retrieve_characteristics();
+        }
+    });
+    filter_disposition.on("change", retrieve_characteristics);
+    filter_spectype.on("keydown", (x) => {
+        if (x.keyCode == 13) {
+            retrieve_characteristics();
+        }
+    });
+    filter_chartype.on("keydown", (x) => {
+        if (x.keyCode == 13) {
+            retrieve_characteristics();
+        }
+    });
+    filter_inspector_id.on("keydown", (x) => {
+        if (x.keyCode == 13) {
+            retrieve_characteristics();
+        }
+    });
+    filter_isgdt.on("change", retrieve_characteristics);
+
     // existing reports events
     eir_item_number.on("keydown", (x) => {
         if (x.keyCode == 13) {
@@ -335,6 +382,32 @@ function populate_selectors()
             console.log(returned_object.response);
         }
     });
+}
+
+// #endregion
+
+// #region characteristic filter
+
+function retrieve_characteristics()
+{
+    // get the filter values
+    let name = filter_name.property("value");
+    let gauge_id = filter_gauge_id.property("value");
+    let gauge_type = filter_gauge_type.property("value");
+    let disposition = filter_disposition.property("value");
+    let spec_type = filter_spectype.property("value");
+    let char_type = filter_chartype.property("value");
+    let inspector_id = filter_inspector_id.property("value");
+    let is_gdt = filter_isgdt.property("value");
+
+    console.log(name);
+    console.log(gauge_id);
+    console.log(gauge_type);
+    console.log(disposition);
+    console.log(spec_type);
+    console.log(char_type);
+    console.log(inspector_id);
+    console.log(is_gdt);
 }
 
 // #endregion

@@ -33,16 +33,114 @@
     </div>
 
     <!-- characteristics -->
-    <div class="grid_container" style="margin: 0px 300px; --grid-template-columns: repeat(2, minmax(0, 1fr));">
+    <div class="grid_container" style="margin: 0px 300px; --grid-template-columns: repeat(4, minmax(0, 1fr));">
         
         <!-- filter options -->
-        
+        <label class="header_light" id="charfilter_header" style="
+            --grid-column: 1 / 5;
+            --grid-row: 1;">Characteristic Filter</label>
+
+        <label class="label_over_light" for="charfilter_name" style="
+            --grid-column: 1;
+            --grid-row: 2;">Dimension Name</label>
+        <input class="text_input_light" id="charfilter_name" type="text" style="
+            --grid-column: 1;
+            --grid-row: 3;">
+
+        <label class="label_over_light" for="charfilter_gauge_id" style="
+            --grid-column: 2;
+            --grid-row: 2;">Gauge ID</label>
+        <input class="text_input_light" id="charfilter_gauge_id" type="text" style="
+            --grid-column: 2;
+            --grid-row: 3;">
+
+        <label class="label_over_light" for="charfilter_gauge_type" style="
+            --grid-column: 3;
+            --grid-row: 2;">Gauge Type</label>
+        <input class="text_input_light" id="charfilter_gauge_type" type="text" style="
+            --grid-column: 3;
+            --grid-row: 3;">
+
+        <label class="label_over_light" for="charfilter_disposition" style="
+            --grid-column: 4;
+            --grid-row: 2;">Disposition</label>
+        <select class="select_light" form="charfilter_disposition" style="
+            --grid-column: 4;
+            --grid-row: 3;">
+            <option value="0">Pass</option>
+            <option value="1">Fail</option>
+            <option value="2">Incomplete</option>
+        </select>
+
+        <label class="label_over_light" for="charfilter_specification_type" style="
+            --grid-column: 1;
+            --grid-row: 4;">Specification Type</label>
+        <input class="text_input_light" id="charfilter_specification_type" type="text" style="
+            --grid-column: 1;
+            --grid-row: 5;">
+
+        <label class="label_over_light" for="charfilter_characteristic_type" style="
+            --grid-column: 2;
+            --grid-row: 4;">Characteristic Type</label>
+        <input class="text_input_light" id="charfilter_characteristic_type" type="text" style="
+            --grid-column: 2;
+            --grid-row: 5;">
+
+        <label class="label_over_light" for="charfilter_inspector" style="
+            --grid-column: 3;
+            --grid-row: 4;">Inspector ID</label>
+        <input class="text_input_light" id="charfilter_inspector" type="text" style="
+            --grid-column: 3;
+            --grid-row: 5;">
+
+        <label class="label_over_light" for="charfilter_is_gdt" style="
+            --grid-column: 4;
+            --grid-row: 4;">Is GD&T</label>
+        <select class="select_light" form="charfilter_is_gdt" style="
+            --grid-column: 4;
+            --grid-row: 5;">
+            <option value="0">Yes</option>
+            <option value="1">No</option>
+        </select>
+
+        <label class="header_light" id="characteristics_header" style="
+            --grid-column: 1 / 5;
+            --grid-row: 6;">Characteristics</label>
+
+        <table class="data_table_light" id="char_table" style="
+            --grid-column: 1 / 5;
+            --grid-row: 7;">
+            <thead>
+                <tr>
+                    <th scope="col" id="col_name">Name</th>
+                    <th scope="col" id="col_nominal">Nominal</th>
+                    <th scope="col" id="col_usl">USL</th>
+                    <th scope="col" id="col_lsl">LSL</th>
+                    <th scope="col" id="col_measured">Measured</th>
+                    <th scope="col" id="col_disposition">Disposition</th>
+                    <th scope="col" id="col_precision">Precision</th>
+                    <th scope="col" id="col_gaugeid">Gauge ID</th>
+                    <th scope="col" id="col_gaugetype">Gauge Type</th>
+                    <th scope="col" id="col_spectype">Specification Type</th>
+                    <th scope="col" id="col_chartype">Characteristic Type</th>
+                    <th scope="col" id="col_inspector">Inspector</th>
+                    <th scope="col" id="col_isgdt">Is GD&T</th>
+                </tr>
+            </thead>
+        </table>
     </div>
 
-    <!-- view inspection report controls -->
-    <div class="sidebar_toggle" id="inspection_report_controls" style="top: 62px;">
+    <!-- create a new inspection report -->
+    <div class="sidebar_toggle" id="inspection_report_new" style="top: 62px;">
         <button class="sidebar_button" type="button">
             New Report
+        </button>
+    </div>
+
+    <!-- save the inspection report -->
+    <div class="sidebar_toggle" id="inspection_report_save" style="top: 115px;">
+        <button class="sidebar_button" type="button">
+            Save Report
         </button>
     </div>
 
@@ -93,7 +191,7 @@
             </table>
         </div>
     </div>
-    <div class="sidebar_toggle" id="inspection_report_existing" style="top: 115px;">
+    <div class="sidebar_toggle" id="inspection_report_existing" style="top: 168px;">
         <button class="sidebar_button" id="sidebar_btn_existing" type="button" onclick="toggle_options('existing', '700px')">
             Existing Reports
         </button>
@@ -208,7 +306,7 @@
                 --grid-row: 17;">
         </div>
     </div>
-    <div class="sidebar_toggle" id="inspection_report_metadata" style="top: 168px;">
+    <div class="sidebar_toggle" id="inspection_report_metadata" style="top: 221px;">
         <button class="sidebar_button" id="sidebar_btn_metadata" type="button" onclick="toggle_options('metadata', '600px')">
             Metadata
         </button>
@@ -244,7 +342,7 @@
                 --grid-row: 7;"></ul>
         </div>
     </div>
-    <div class="sidebar_toggle" id="inspection_report_receiver_numbers" style="top: 221px;">
+    <div class="sidebar_toggle" id="inspection_report_receiver_numbers" style="top: 274px;">
         <button class="sidebar_button" id="sidebar_btn_receiver_numbers" type="button" onclick="toggle_options('receiver_numbers', '350px')">
             Receiver Numbers
         </button>
@@ -280,7 +378,7 @@
                 --grid-row: 7;"></ul>
         </div>
     </div>
-    <div class="sidebar_toggle" id="inspection_report_purchase_orders" style="top: 274px;">
+    <div class="sidebar_toggle" id="inspection_report_purchase_orders" style="top: 327px;">
         <button class="sidebar_button" id="sidebar_btn_purchase_orders" type="button" onclick="toggle_options('purchase_orders', '350px')">
             Purchase Orders
         </button>
@@ -290,7 +388,7 @@
     <div class="sidebar" id="inspection_report_characteristic_schema_sidebar">
 
     </div>
-    <div class="sidebar_toggle" id="inspection_report_characteristic_schema" style="top: 327px;">
+    <div class="sidebar_toggle" id="inspection_report_characteristic_schema" style="top: 380px;">
         <button class="sidebar_button" id="sidebar_btn_charschema" type="button" onclick="toggle_options('characteristic_schema', '350px')">
             Characteristic Schema
         </button>
