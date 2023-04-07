@@ -10,11 +10,11 @@ const sidebar_btn_charschema = d3.select("#sidebar_btn_charschema");
 const filter_name = d3.select("#charfilter_name");
 const filter_gauge_id = d3.select("#charfilter_gauge_id");
 const filter_gauge_type = d3.select("#charfilter_gauge_type");
-const filter_disposition = d3.select("#charfilter_disposition");
+const filter_isgdt = d3.select("#charfilter_is_gdt");
 const filter_spectype = d3.select("#charfilter_specification_type");
 const filter_chartype = d3.select("#charfilter_characteristic_type");
 const filter_inspector_id = d3.select("#charfilter_inspector");
-const filter_isgdt = d3.select("#charfilter_is_gdt");
+const filter_display_type = d3.select("#charfilter_display_type");
 
 // characteristic table
 const char_table = d3.select("#char_table");
@@ -80,7 +80,7 @@ function init()
             retrieve_characteristics();
         }
     });
-    filter_disposition.on("change", retrieve_characteristics);
+    filter_isgdt.on("change", retrieve_characteristics);
     filter_spectype.on("keydown", (x) => {
         if (x.keyCode == 13) {
             retrieve_characteristics();
@@ -96,7 +96,7 @@ function init()
             retrieve_characteristics();
         }
     });
-    filter_isgdt.on("change", retrieve_characteristics);
+    filter_display_type.on("change", change_table_columns);
 
     // existing reports events
     eir_item_number.on("keydown", (x) => {
@@ -390,24 +390,65 @@ function populate_selectors()
 
 function retrieve_characteristics()
 {
+    // get the id values
+    let report_id = meta_report_id.property("data-meta");
+
     // get the filter values
     let name = filter_name.property("value");
     let gauge_id = filter_gauge_id.property("value");
     let gauge_type = filter_gauge_type.property("value");
-    let disposition = filter_disposition.property("value");
     let spec_type = filter_spectype.property("value");
     let char_type = filter_chartype.property("value");
     let inspector_id = filter_inspector_id.property("value");
     let is_gdt = filter_isgdt.property("value");
 
-    console.log(name);
-    console.log(gauge_id);
-    console.log(gauge_type);
-    console.log(disposition);
-    console.log(spec_type);
-    console.log(char_type);
-    console.log(inspector_id);
-    console.log(is_gdt);
+    // convert null values
+    if (name == "") {
+        name = "__null";
+    }
+    if (gauge_id == "") {
+        gauge_id = "__null";
+    }
+    if (gauge_type == "") {
+        gauge_type = "__null";
+    }
+    if (spec_type == "") {
+        spec_type = "__null";
+    }
+    if (char_type == "") {
+        char_type = "__null";
+    }
+    if (inspector_id == "") {
+        inspector_id = 0;
+    }
+
+    if (report_id >= 0) {
+
+        // build the route
+        let route = `/get_inspection_report_filtered_characteristics/${report_id}/${name}/${gauge_id}/${gauge_type}/${spec_type}/${char_type}/${inspector_id}/${is_gdt}/`;
+
+        // query the flask server
+        d3.json(route).then((returned_object) => {
+            if (returned_object.status == "ok") {
+                
+                // extract the requested data
+                let dataset = returned_object.response;
+
+                console.log(dataset);
+            }
+            else if (returned_object.status == "ok_alt") {
+                alert(returned_object.response);
+            }
+            else {
+                console.log(returned_object.response);
+            }
+        });
+    }
+}
+
+function change_table_columns()
+{
+    console.log("columns changed");
 }
 
 // #endregion

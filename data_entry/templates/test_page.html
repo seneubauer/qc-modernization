@@ -34,7 +34,7 @@
 
     <!-- characteristics -->
     <div class="grid_container" style="margin: 0px 300px; --grid-template-columns: repeat(4, minmax(0, 1fr));">
-        
+
         <!-- filter options -->
         <label class="header_light" id="charfilter_header" style="
             --grid-column: 1 / 5;
@@ -61,15 +61,15 @@
             --grid-column: 3;
             --grid-row: 3;">
 
-        <label class="label_over_light" for="charfilter_disposition" style="
+        <label class="label_over_light" for="charfilter_is_gdt" style="
             --grid-column: 4;
-            --grid-row: 2;">Disposition</label>
-        <select class="select_light" form="charfilter_disposition" style="
+            --grid-row: 2;">Is GD&T</label>
+        <select class="select_light" id="charfilter_is_gdt" style="
             --grid-column: 4;
             --grid-row: 3;">
-            <option value="0">Pass</option>
-            <option value="1">Fail</option>
-            <option value="2">Incomplete</option>
+            <option value="0">N/A</option>
+            <option value="1">Yes</option>
+            <option value="2">No</option>
         </select>
 
         <label class="label_over_light" for="charfilter_specification_type" style="
@@ -93,14 +93,15 @@
             --grid-column: 3;
             --grid-row: 5;">
 
-        <label class="label_over_light" for="charfilter_is_gdt" style="
+        <label class="label_over_light" for="charfilter_display_type" style="
             --grid-column: 4;
             --grid-row: 4;">Is GD&T</label>
-        <select class="select_light" form="charfilter_is_gdt" style="
+        <select class="select_light" id="charfilter_display_type" style="
             --grid-column: 4;
             --grid-row: 5;">
-            <option value="0">Yes</option>
-            <option value="1">No</option>
+            <option value="0">Data Entry</option>
+            <option value="1">Metadata</option>
+            <option value="2">All</option>
         </select>
 
         <label class="header_light" id="characteristics_header" style="
@@ -117,7 +118,6 @@
                     <th scope="col" id="col_usl">USL</th>
                     <th scope="col" id="col_lsl">LSL</th>
                     <th scope="col" id="col_measured">Measured</th>
-                    <th scope="col" id="col_disposition">Disposition</th>
                     <th scope="col" id="col_precision">Precision</th>
                     <th scope="col" id="col_gaugeid">Gauge ID</th>
                     <th scope="col" id="col_gaugetype">Gauge Type</th>

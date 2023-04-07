@@ -1,10 +1,11 @@
 # import dependencies for flask
-from flask import Flask, render_template, redirect, request
+from flask import Flask, render_template
 
 # import dependencies for sqlalchemy
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, and_, or_
+from sqlalchemy import create_engine, and_, or_, cast, String
 
 # import general dependencies
 import datetime
@@ -677,9 +678,122 @@ def remove_purchase_order_association(report_id:int, receiver_number:str):
     # get the new list
     return get_filtered_purchase_orders(report_id, "")
 
+@app.route("/get_inspection_report_filtered_characteristics/<int:report_id>/<string:name>/<string:gauge_id>/<string:gauge_type>/<string:spec_type>/<string:char_type>/<int:inspector_id>/<string:is_gdt>/")
+def get_inspection_report_filtered_characteristics(report_id:int, name:str, gauge_id:str, gauge_type:str, spec_type:str, char_type:str, inspector_id:int, is_gdt:str):
 
+    # condition the arguments
+    if name == "__null":
+        name = ""
+    if gauge_id == "_null":
+        gauge_id = ""
+    if gauge_type == "_null":
+        gauge_type = ""
+    if spec_type == "__null":
+        spec_type = ""
+    if char_type == "__null":
+        char_type = ""
 
+    gdt_dict = {
+        "0": None,
+        "1": True,
+        "2": False
+    }
 
+    # define the columns
+    columns = [
+        characteristics.name,
+        characteristics.nominal,
+        characteristics.usl,
+        characteristics.lsl,
+        characteristics.measured,
+        characteristics.precision,
+        characteristics.gauge_id,
+        gauge_types.id,
+        specification_types.id,
+        characteristic_types.id,
+        characteristics.employee_id,
+        characteristic_types.is_gdt
+    ]
+
+    try:
+
+        # open the session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(*columns)\
+            .join(specification_types, (characteristics.specification_types_id == specification_types.id))\
+            .join(characteristic_types, (characteristics.characteristic_type_id == characteristic_types.id))\
+            .join(employees, (characteristics.employee_id == employees.id))\
+            .join(gauges, (characteristics.gauge_id == gauges.id))\
+            .join(inspection_reports, (characteristics.part_id == inspection_reports.part_id))\
+            .join(parts, (characteristics.part_id == parts.id))\
+            .filter(inspection_reports.id == report_id)
+
+        if name != "__null":
+            results = results.filter(characteristics.name.like(f"%{name}%"))
+
+        if gauge_id != "__null":
+            results = results.filter(characteristics.gauge_id.like(f"%{gauge_id}%"))
+
+        if gauge_type != "__null":
+            results = results.filter(gauge_types.id.like(f"%{gauge_type}%"))
+
+        if spec_type != "__null":
+            results = results.filter(specification_types.id.like(f"%{spec_type}%"))
+
+        if char_type != "__null":
+            results = results.filter(characteristic_types.id.like(f"%{char_type}%"))
+
+        if inspector_id != 0:
+            print("id")
+            results = results.filter(characteristics.employee_id == inspector_id)
+
+        if gdt_dict[is_gdt] is not None:
+            print("gdt")
+            results = results.filter(characteristic_types.is_gdt == gdt_dict[is_gdt])
+
+        # convert to a list of tuples
+        results_all = results.all()
+
+        # close the session
+        session.close()
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "not_ok",
+            "response": error_msg
+        }
+
+    # return the result
+    if len(results_all) > 0:
+        output_arr = []
+        for name, nominal, usl, lsl, measured, precision, gauge_id, gauge_type_id, spec_type_id, char_type_id, employee_id, is_gdt in results_all:
+            output_arr.append({
+                "name": name,
+                "nominal": nominal,
+                "usl": usl,
+                "lsl": lsl,
+                "measured": measured,
+                "precision": precision,
+                "gauge_id": gauge_id,
+                "gauge_type_id": gauge_type_id,
+                "spec_type_id": spec_type_id,
+                "char_type_id": char_type_id,
+                "inspector": employee_id,
+                "is_gdt": is_gdt
+            })
+
+        return {
+            "status": "ok",
+            "response": output_arr
+        }
+    else:
+        return {
+            "status": "ok_alt",
+            "response": "no matching records found"
+        }
 
 # @app.route("/get_all_employee_ids/")
 # def get_all_employees():
