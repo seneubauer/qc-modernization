@@ -11,24 +11,6 @@
     vertical-align: middle;
 }
 
-.table_input {
-    background-color: transparent;
-    border-width: 0px;
-    text-align: end;
-}
-
-.table_select {
-    appearance: none;
-    background-color: transparent;
-    border-width: 0px;
-    text-align: end;
-    width: 100%;
-}
-
-.table_select:focus-within {
-    outline: none;
-}
-
 /* #region globals */
 
 body {
@@ -289,6 +271,27 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     grid-row: var(--grid-row);
 }
 
+.button_light {
+    background-color: hsl(0, 50%, 50%);
+    border-width: 0px;
+    border-radius: 6px;
+    color: hsl(0, 0%, 95%);
+    font-size: 15px;
+    margin: 6px;
+    padding: 6px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+}
+
+.button_light:hover {
+    background-color: hsl(0, 50%, 40%);
+    cursor: pointer;
+}
+
+.button_light:active {
+    background-color: hsl(0, 50%, 30%);
+}
+
 /* #endregion controls */
 
 /* #region tables */
@@ -303,6 +306,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     background-color: transparent;
     color: hsl(0, 0%, 95%);
     margin: 18px 9px;
+    table-layout: fixed;
     grid-column: var(--grid-column);
     grid-row: var(--grid-row);
 }
@@ -346,7 +350,9 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 .data_table_light {
     background-color: transparent;
     color: hsl(0, 0%, 20%);
-    margin: 18px 9px;
+    margin: 0px 9px;
+    table-layout: fixed;
+    width: 100%;
     grid-column: var(--grid-column);
     grid-row: var(--grid-row);
 }
@@ -364,22 +370,63 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 }
 
 .data_table_light tbody tr:hover {
-    background-color: hsl(0, 50%, 50%);
+    background-color: hsl(0, 50%, 70%);
     color: hsl(0, 0%, 20%);
     cursor: pointer;
 }
 
 .data_table_light tbody tr:active {
-    background-color: hsl(0, 50%, 30%);
+    background-color: hsl(0, 50%, 60%);
 }
 
 .data_table_light tbody td {
     vertical-align: middle;
-    padding: 6px 9px;
+    padding: 0px 6px;
     font-size: 15px;
 }
 
 /* #endregion tables */
+
+/* #region table controls */
+
+.table_input {
+    background-color: transparent;
+    border-width: 0px;
+    color: hsl(0, 0%, 20%);
+    font-size: 15px;
+    text-align: right;
+    width: 100%;
+    margin: 0px 6px;
+    padding: 6px;
+}
+
+.table_input:hover {
+    background-color: hsl(0, 50%, 60%);
+    border-radius: 6px;
+}
+
+.table_select {
+    appearance: none;
+    background-color: transparent;
+    border-width: 0px;
+    color: hsl(0, 0%, 20%);
+    font-size: 15px;
+    text-align: right;
+    width: 100%;
+    margin: 0px 6px;
+    padding: 6px;
+}
+
+.table_select:hover {
+    background-color: hsl(0, 50%, 60%);
+    border-radius: 6px;
+}
+
+.table_select:focus-within {
+    outline: none;
+}
+
+/* #endregion table controls */
 
 /* #region grid_layout */
 
@@ -389,6 +436,17 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     grid-template-columns: var(--grid-template-columns);
     gap: 0px;
     margin: 0px 18px;
+}
+
+.grid_sub_container {
+    display: grid;
+    grid-auto-rows: auto;
+    grid-template-columns: var(--grid-template-columns);
+    gap: 0px;
+    margin: 0px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+    width: 100%;
 }
 
 .grid_container_item {

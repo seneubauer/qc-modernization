@@ -16,8 +16,11 @@ const filter_chartype = d3.select("#charfilter_characteristic_type");
 const filter_inspector_id = d3.select("#charfilter_inspector");
 const filter_display_type = d3.select("#charfilter_display_type");
 
-// characteristic table
+// characteristics
+const apply_char_filter = d3.select("#apply_characteristic_filter");
+const save_chars = d3.select("#save_characteristics");
 const char_table = d3.select("#char_table");
+const char_form = d3.select("#characteristics_form_id");
 
 // existing inspection report controls
 const eir_item_number = d3.select("#select_report_item_number");
@@ -56,6 +59,22 @@ const po_filter = d3.select("#po_filter");
 const po_value = d3.select("#po_value");
 const po_list = d3.select("#po_list");
 const po_button = d3.select("#po_button");
+
+// characteristic table columns
+const char_table_columns = [
+    { key: "name", data_entry: true, metadata: true, all: true, display: "Name", ctl_type: "label" },
+    { key: "nominal", data_entry: true, metadata: false, all: true, display: "Nominal", ctl_type: "label" },
+    { key: "usl", data_entry: true, metadata: false, all: true, display: "USL", ctl_type: "label" },
+    { key: "lsl", data_entry: true, metadata: false, all: true, display: "LSL", ctl_type: "label" },
+    { key: "measured", data_entry: true, metadata: false, all: true, display: "Measured", ctl_type: "input" },
+    { key: "precision", data_entry: true, metadata: true, all: true, display: "Precision", ctl_type: "input" },
+    { key: "gauge_id", data_entry: true, metadata: true, all: true, display: "Gauge ID", ctl_type: "dropdown" },
+    { key: "gauge_type_id", data_entry: false, metadata: true, all: true, display: "Gauge Type", ctl_type: "dropdown" },
+    { key: "spec_type_id", data_entry: false, metadata: true, all: true, display: "Specification Type", ctl_type: "dropdown" },
+    { key: "char_type_id", data_entry: false, metadata: true, all: true, display: "Characteristic Type", ctl_type: "dropdown" },
+    { key: "inspector", data_entry: true, metadata: true, all: true, display: "Inspector", ctl_type: "dropdown" },
+    { key: "is_gdt", data_entry: false, metadata: true, all: true, display: "Is GD&T", ctl_type: "dropdown" }
+];
 
 init();
 
@@ -96,7 +115,11 @@ function init()
             retrieve_characteristics();
         }
     });
-    filter_display_type.on("change", change_table_columns);
+    filter_display_type.on("change", retrieve_characteristics);
+
+    // characteristics
+    apply_char_filter.on("click", retrieve_characteristics);
+    save_chars.on("click", submit_characteristics);
 
     // existing reports events
     eir_item_number.on("keydown", (x) => {
@@ -430,11 +453,262 @@ function retrieve_characteristics()
         // query the flask server
         d3.json(route).then((returned_object) => {
             if (returned_object.status == "ok") {
-                
-                // extract the requested data
-                let dataset = returned_object.response;
 
-                console.log(dataset);
+                // extract the requested data
+                let dataset = returned_object.response.data_array;
+                let gauge_ids = returned_object.response.gauge_ids;
+                let gauge_type_ids = returned_object.response.gauge_type_ids;
+                let inspector_ids = returned_object.response.inspectors;
+                let specification_type_ids = returned_object.response.specification_type_ids;
+                let characteristic_type_ids = returned_object.response.characteristic_type_ids;
+
+                // get the column display schema
+                let display_type = filter_display_type.property("value");
+                let key = "";
+                switch (display_type) {
+                    case "0":
+                        key = "data_entry";
+                        break;
+                    case "1":
+                        key = "metadata";
+                        break;
+                    case "2":
+                        key = "all";
+                        break;
+                }
+
+                // remove previous columns
+                char_table.selectAll("thead").remove();
+
+                // add the columns
+                char_table.append("thead")
+                    .selectAll("tr")
+                    .data(char_table_columns)
+                    .enter()
+                    .append("th")
+                    .text((x) => x.display)
+                    .attr("scope", "col")
+                    .style("display", (x) => {
+                        if (!x[key]) {
+                            return "none";
+                        }
+                    });
+
+                // clear the old data
+                char_table.selectAll("tbody").remove();
+
+                // create the rows
+                let rows = char_table.append("tbody")
+                    .selectAll("tr")
+                    .data(dataset)
+                    .enter()
+                    .append("tr");
+
+                // assign cell contents
+                let cells = rows.selectAll("td")
+                    .data((r) => {
+                        return char_table_columns.map((c) => {
+                            return {
+                                column: c,
+                                row: {
+                                    value: r[c.key],
+                                    index: r.id,
+                                    key: c.key,
+                                    state: r.state,
+                                    precision: r.precision,
+                                    ctl_type: c.ctl_type
+                                }
+                            };
+                        });
+                    })
+                    .enter()
+                    .append("td")
+                    .text((x) => {
+                        switch (x.row.ctl_type) {
+                            case "label":
+                                switch (x.column.key) {
+                                    case "nominal" || "usl" || "lsl":
+                                        return x.row.value.toFixed(x.row.precision);
+                                    default:
+                                        return x.row.value;
+                                }
+                        }
+                    })
+                    .style("display", (x) => {
+                        if (!x.column[key]) {
+                            return "none";
+                        }
+                    });
+
+                // set the start cell class
+                rows.selectAll("td")
+                    .filter((x) => {
+                        if (x.column.key == "name") {
+                            return true;
+                        }
+                    })
+                    .attr("class", "data_table_start_cell");
+
+                // set the end cell class
+                rows.selectAll("td")
+                    .filter((x) => {
+                        let index = char_table_columns.slice().filter((c) => {
+                            return c[key];
+                        }).reverse()[0].key;
+                        if (x.column.key == index) {
+                            return true;
+                        }
+                    })
+                    .attr("class", "data_table_end_cell");
+
+                // assign input controls to cells
+                cells.filter((x) => {
+                        if (x.row.ctl_type == "input") {
+                            return true;
+                        }
+                    })
+                    .insert("input")
+                    .attr("class", "table_input")
+                    .attr("value", (x) => x.row.value)
+                    .attr("name", (x) => `${x.row.index}-${x.column.key}`);
+
+                // gauge id dropdowns
+                cells.filter((x) => {
+                        if (x.row.ctl_type == "dropdown" && x.column.key == "gauge_id") {
+                            return true;
+                        }
+                    })
+                    .insert("select")
+                    .attr("class", "table_select")
+                    .selectAll("option")
+                    .data(gauge_ids)
+                    .enter()
+                    .append("option")
+                    .attr("value", (x) => x.item)
+                    .text((x) => x.item);
+                cells.filter((x) => {
+                        if (x.row.ctl_type == "dropdown" && x.column.key == "gauge_id") {
+                            return true;
+                        }
+                    })
+                    .selectAll("select")
+                    .property("value", (x) => x.row.value)
+                    .attr("name", (x) => `${x.row.index}-${x.column.key}`);
+
+                // gauge type dropdowns
+                cells.filter((x) => {
+                        if (x.row.ctl_type == "dropdown" && x.column.key == "gauge_type_id") {
+                            return true;
+                        }
+                    })
+                    .insert("select")
+                    .attr("class", "table_select")
+                    .selectAll("option")
+                    .data(gauge_type_ids)
+                    .enter()
+                    .append("option")
+                    .attr("value", (x) => x.item)
+                    .text((x) => x.item);
+                cells.filter((x) => {
+                        if (x.row.ctl_type == "dropdown" && x.column.key == "gauge_type_id") {
+                            return true;
+                        }
+                    })
+                    .selectAll("select")
+                    .property("value", (x) => x.row.value)
+                    .attr("name", (x) => `${x.row.index}-${x.column.key}`);
+
+                // inspector dropdowns
+                cells.filter((x) => {
+                        if (x.row.ctl_type == "dropdown" && x.column.key == "inspector") {
+                            return true;
+                        }
+                    })
+                    .insert("select")
+                    .attr("class", "table_select")
+                    .selectAll("option")
+                    .data(inspector_ids)
+                    .enter()
+                    .append("option")
+                    .attr("value", (x) => x.item)
+                    .text((x) => x.item);
+                cells.filter((x) => {
+                        if (x.row.ctl_type == "dropdown" && x.column.key == "inspector") {
+                            return true;
+                        }
+                    })
+                    .selectAll("select")
+                    .property("value", (x) => x.row.value)
+                    .attr("name", (x) => `${x.row.index}-${x.column.key}`);
+
+                // specification type dropdowns
+                cells.filter((x) => {
+                        if (x.row.ctl_type == "dropdown" && x.column.key == "spec_type_id") {
+                            return true;
+                        }
+                    })
+                    .insert("select")
+                    .attr("class", "table_select")
+                    .selectAll("option")
+                    .data(specification_type_ids)
+                    .enter()
+                    .append("option")
+                    .attr("value", (x) => x.item)
+                    .text((x) => x.item);
+                cells.filter((x) => {
+                        if (x.row.ctl_type == "dropdown" && x.column.key == "spec_type_id") {
+                            return true;
+                        }
+                    })
+                    .selectAll("select")
+                    .property("value", (x) => x.row.value)
+                    .attr("name", (x) => `${x.row.index}-${x.column.key}`);
+
+                // characteristic type dropdowns
+                cells.filter((x) => {
+                        if (x.row.ctl_type == "dropdown" && x.column.key == "char_type_id") {
+                            return true;
+                        }
+                    })
+                    .insert("select")
+                    .attr("class", "table_select")
+                    .selectAll("option")
+                    .data(characteristic_type_ids)
+                    .enter()
+                    .append("option")
+                    .attr("value", (x) => x.item)
+                    .text((x) => x.item);
+                cells.filter((x) => {
+                        if (x.row.ctl_type == "dropdown" && x.column.key == "char_type_id") {
+                            return true;
+                        }
+                    })
+                    .selectAll("select")
+                    .property("value", (x) => x.row.value)
+                    .attr("name", (x) => `${x.row.index}-${x.column.key}`);
+
+                // is gd&t
+                cells.filter((x) => {
+                        if (x.row.ctl_type == "dropdown" && x.column.key == "is_gdt") {
+                            return true;
+                        }
+                    })
+                    .insert("select")
+                    .attr("class", "table_select")
+                    .selectAll("option")
+                    .data(["true", "false"])
+                    .enter()
+                    .append("option")
+                    .attr("value", (x) => x)
+                    .text((x) => x);
+                cells.filter((x) => {
+                        if (x.row.ctl_type == "dropdown" && x.column.key == "is_gdt") {
+                            return true;
+                        }
+                    })
+                    .selectAll("select")
+                    .property("value", (x) => x.row.value)
+                    .attr("name", (x) => `${x.row.index}-${x.column.key}`);
             }
             else if (returned_object.status == "ok_alt") {
                 alert(returned_object.response);
@@ -446,9 +720,15 @@ function retrieve_characteristics()
     }
 }
 
-function change_table_columns()
+function submit_characteristics()
 {
-    console.log("columns changed");
+    console.log("hello");
+    let form_data = new FormData(char_form);
+    console.log("world");
+    fetch("/commit_characteristic_data/", {
+        method: "POST",
+        body: form_data
+    })
 }
 
 // #endregion
