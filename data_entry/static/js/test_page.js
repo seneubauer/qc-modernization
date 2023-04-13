@@ -6,21 +6,24 @@ const sidebar_btn_receiver = d3.select("#sidebar_btn_receiver_numbers");
 const sidebar_btn_purchase = d3.select("#sidebar_btn_purchase_orders");
 const sidebar_btn_charschema = d3.select("#sidebar_btn_charschema");
 
+// inspection report identification
+const inspection_report_ident = d3.select("#current_report_ident");
+
 // characteristic filter
 const filter_name = d3.select("#charfilter_name");
 const filter_gauge_id = d3.select("#charfilter_gauge_id");
 const filter_gauge_type = d3.select("#charfilter_gauge_type");
-const filter_isgdt = d3.select("#charfilter_is_gdt");
 const filter_spectype = d3.select("#charfilter_specification_type");
 const filter_chartype = d3.select("#charfilter_characteristic_type");
 const filter_inspector_id = d3.select("#charfilter_inspector");
-const filter_display_type = d3.select("#charfilter_display_type");
 
 // characteristics
-const apply_char_filter = d3.select("#apply_characteristic_filter");
-const save_chars = d3.select("#save_characteristics");
 const char_table = d3.select("#char_table");
-const char_form = d3.select("#characteristics_form_id");
+
+// report controls
+const ctl_new_report = d3.select("#new_report_btn");
+const ctl_save_report = d3.select("#save_report_btn");
+const ctl_display_type = d3.select("#select_display_type");
 
 // existing inspection report controls
 const eir_item_number = d3.select("#select_report_item_number");
@@ -67,13 +70,12 @@ const char_table_columns = [
     { key: "usl", data_entry: true, metadata: false, all: true, display: "USL", ctl_type: "label" },
     { key: "lsl", data_entry: true, metadata: false, all: true, display: "LSL", ctl_type: "label" },
     { key: "measured", data_entry: true, metadata: false, all: true, display: "Measured", ctl_type: "input" },
-    { key: "precision", data_entry: true, metadata: true, all: true, display: "Precision", ctl_type: "input" },
-    { key: "gauge_id", data_entry: true, metadata: true, all: true, display: "Gauge ID", ctl_type: "dropdown" },
-    { key: "gauge_type_id", data_entry: false, metadata: true, all: true, display: "Gauge Type", ctl_type: "dropdown" },
-    { key: "spec_type_id", data_entry: false, metadata: true, all: true, display: "Specification Type", ctl_type: "dropdown" },
-    { key: "char_type_id", data_entry: false, metadata: true, all: true, display: "Characteristic Type", ctl_type: "dropdown" },
-    { key: "inspector", data_entry: true, metadata: true, all: true, display: "Inspector", ctl_type: "dropdown" },
-    { key: "is_gdt", data_entry: false, metadata: true, all: true, display: "Is GD&T", ctl_type: "dropdown" }
+    { key: "employee_id", data_entry: true, metadata: false, all: true, display: "Inspector", ctl_type: "dropdown" },
+    { key: "gauge_id", data_entry: true, metadata: false, all: true, display: "Gauge ID", ctl_type: "dropdown" },
+    { key: "precision", data_entry: false, metadata: true, all: true, display: "Precision", ctl_type: "label" },
+    { key: "spec_type_id", data_entry: false, metadata: true, all: true, display: "Specification Type ID", ctl_type: "label" },
+    { key: "char_type_id", data_entry: false, metadata: true, all: true, display: "Characteristic Type ID", ctl_type: "label" },
+    { key: "gauge_type_id", data_entry: false, metadata: true, all: true, display: "Gauge Type ID", ctl_type: "label" },
 ];
 
 init();
@@ -99,7 +101,6 @@ function init()
             retrieve_characteristics();
         }
     });
-    filter_isgdt.on("change", retrieve_characteristics);
     filter_spectype.on("keydown", (x) => {
         if (x.keyCode == 13) {
             retrieve_characteristics();
@@ -115,11 +116,9 @@ function init()
             retrieve_characteristics();
         }
     });
-    filter_display_type.on("change", retrieve_characteristics);
 
-    // characteristics
-    apply_char_filter.on("click", retrieve_characteristics);
-    save_chars.on("click", submit_characteristics);
+    // report controls
+    ctl_display_type.on("change", retrieve_characteristics);
 
     // existing reports events
     eir_item_number.on("keydown", (x) => {
@@ -411,6 +410,7 @@ function populate_selectors()
 
 // #region characteristic filter
 
+// get the requested characteristics
 function retrieve_characteristics()
 {
     // get the id values
@@ -423,7 +423,6 @@ function retrieve_characteristics()
     let spec_type = filter_spectype.property("value");
     let char_type = filter_chartype.property("value");
     let inspector_id = filter_inspector_id.property("value");
-    let is_gdt = filter_isgdt.property("value");
 
     // convert null values
     if (name == "") {
@@ -448,7 +447,7 @@ function retrieve_characteristics()
     if (report_id >= 0) {
 
         // build the route
-        let route = `/get_inspection_report_filtered_characteristics/${report_id}/${name}/${gauge_id}/${gauge_type}/${spec_type}/${char_type}/${inspector_id}/${is_gdt}/`;
+        let route = `/get_inspection_report_filtered_characteristics/${report_id}/${name}/${gauge_id}/${gauge_type}/${spec_type}/${char_type}/${inspector_id}/`;
 
         // query the flask server
         d3.json(route).then((returned_object) => {
@@ -457,13 +456,10 @@ function retrieve_characteristics()
                 // extract the requested data
                 let dataset = returned_object.response.data_array;
                 let gauge_ids = returned_object.response.gauge_ids;
-                let gauge_type_ids = returned_object.response.gauge_type_ids;
                 let inspector_ids = returned_object.response.inspectors;
-                let specification_type_ids = returned_object.response.specification_type_ids;
-                let characteristic_type_ids = returned_object.response.characteristic_type_ids;
 
                 // get the column display schema
-                let display_type = filter_display_type.property("value");
+                let display_type = ctl_display_type.property("value");
                 let key = "";
                 switch (display_type) {
                     case "0":
@@ -523,17 +519,6 @@ function retrieve_characteristics()
                     })
                     .enter()
                     .append("td")
-                    .text((x) => {
-                        switch (x.row.ctl_type) {
-                            case "label":
-                                switch (x.column.key) {
-                                    case "nominal" || "usl" || "lsl":
-                                        return x.row.value.toFixed(x.row.precision);
-                                    default:
-                                        return x.row.value;
-                                }
-                        }
-                    })
                     .style("display", (x) => {
                         if (!x.column[key]) {
                             return "none";
@@ -560,6 +545,24 @@ function retrieve_characteristics()
                         }
                     })
                     .attr("class", "data_table_end_cell");
+
+                // assign label values to cells
+                cells.filter((x) => {
+                        if (x.row.ctl_type == "label") {
+                            return true;
+                        }
+                    })
+                    .insert("input")
+                    .attr("class", "table_label")
+                    .attr("readonly", true)
+                    .attr("value", (x) => {
+                        switch (x.column.key) {
+                            case "nominal" || "usl" || "lsl":
+                                return x.row.value.toFixed(x.row.precision);
+                            default:
+                                return x.row.value;
+                        }
+                    });
 
                 // assign input controls to cells
                 cells.filter((x) => {
@@ -595,32 +598,9 @@ function retrieve_characteristics()
                     .property("value", (x) => x.row.value)
                     .attr("name", (x) => `${x.row.index}-${x.column.key}`);
 
-                // gauge type dropdowns
-                cells.filter((x) => {
-                        if (x.row.ctl_type == "dropdown" && x.column.key == "gauge_type_id") {
-                            return true;
-                        }
-                    })
-                    .insert("select")
-                    .attr("class", "table_select")
-                    .selectAll("option")
-                    .data(gauge_type_ids)
-                    .enter()
-                    .append("option")
-                    .attr("value", (x) => x.item)
-                    .text((x) => x.item);
-                cells.filter((x) => {
-                        if (x.row.ctl_type == "dropdown" && x.column.key == "gauge_type_id") {
-                            return true;
-                        }
-                    })
-                    .selectAll("select")
-                    .property("value", (x) => x.row.value)
-                    .attr("name", (x) => `${x.row.index}-${x.column.key}`);
-
                 // inspector dropdowns
                 cells.filter((x) => {
-                        if (x.row.ctl_type == "dropdown" && x.column.key == "inspector") {
+                        if (x.row.ctl_type == "dropdown" && x.column.key == "employee_id") {
                             return true;
                         }
                     })
@@ -633,76 +613,7 @@ function retrieve_characteristics()
                     .attr("value", (x) => x.item)
                     .text((x) => x.item);
                 cells.filter((x) => {
-                        if (x.row.ctl_type == "dropdown" && x.column.key == "inspector") {
-                            return true;
-                        }
-                    })
-                    .selectAll("select")
-                    .property("value", (x) => x.row.value)
-                    .attr("name", (x) => `${x.row.index}-${x.column.key}`);
-
-                // specification type dropdowns
-                cells.filter((x) => {
-                        if (x.row.ctl_type == "dropdown" && x.column.key == "spec_type_id") {
-                            return true;
-                        }
-                    })
-                    .insert("select")
-                    .attr("class", "table_select")
-                    .selectAll("option")
-                    .data(specification_type_ids)
-                    .enter()
-                    .append("option")
-                    .attr("value", (x) => x.item)
-                    .text((x) => x.item);
-                cells.filter((x) => {
-                        if (x.row.ctl_type == "dropdown" && x.column.key == "spec_type_id") {
-                            return true;
-                        }
-                    })
-                    .selectAll("select")
-                    .property("value", (x) => x.row.value)
-                    .attr("name", (x) => `${x.row.index}-${x.column.key}`);
-
-                // characteristic type dropdowns
-                cells.filter((x) => {
-                        if (x.row.ctl_type == "dropdown" && x.column.key == "char_type_id") {
-                            return true;
-                        }
-                    })
-                    .insert("select")
-                    .attr("class", "table_select")
-                    .selectAll("option")
-                    .data(characteristic_type_ids)
-                    .enter()
-                    .append("option")
-                    .attr("value", (x) => x.item)
-                    .text((x) => x.item);
-                cells.filter((x) => {
-                        if (x.row.ctl_type == "dropdown" && x.column.key == "char_type_id") {
-                            return true;
-                        }
-                    })
-                    .selectAll("select")
-                    .property("value", (x) => x.row.value)
-                    .attr("name", (x) => `${x.row.index}-${x.column.key}`);
-
-                // is gd&t
-                cells.filter((x) => {
-                        if (x.row.ctl_type == "dropdown" && x.column.key == "is_gdt") {
-                            return true;
-                        }
-                    })
-                    .insert("select")
-                    .attr("class", "table_select")
-                    .selectAll("option")
-                    .data(["true", "false"])
-                    .enter()
-                    .append("option")
-                    .attr("value", (x) => x)
-                    .text((x) => x);
-                cells.filter((x) => {
-                        if (x.row.ctl_type == "dropdown" && x.column.key == "is_gdt") {
+                        if (x.row.ctl_type == "dropdown" && x.column.key == "employee_id") {
                             return true;
                         }
                     })
@@ -720,15 +631,25 @@ function retrieve_characteristics()
     }
 }
 
+// submit new values to be written
 function submit_characteristics()
 {
-    console.log("hello");
-    let form_data = new FormData(char_form);
-    console.log("world");
-    fetch("/commit_characteristic_data/", {
+    let report_id = meta_report_id.property("data-meta");
+    let my_form = document.querySelector("#characteristics_form_id");
+    let form_data = new FormData(my_form);
+    fetch(`/commit_characteristic_data/${report_id}/`, {
         method: "POST",
         body: form_data
-    })
+    }).then((response) => {
+        if (response.ok) {
+            return response.json();
+        }
+        else {
+            throw new Error("Server response wasn't cool");
+        }
+    }).then((json) => {
+        console.log(json);
+    });
 }
 
 // #endregion
@@ -739,7 +660,17 @@ function submit_characteristics()
 function toggle_options(destination_arg, open_width)
 {
     let close_width = "0px";
-    if (destination_arg == "existing") {
+    if (destination_arg == "controls") {
+        if (document.getElementById("inspection_report_controls_sidebar").style.width == open_width) {
+            document.getElementById("inspection_report_controls_sidebar").style.width = close_width;
+            document.getElementById("inspection_report_controls").style.marginLeft = close_width;
+        }
+        else {
+            document.getElementById("inspection_report_controls_sidebar").style.width = open_width;
+            document.getElementById("inspection_report_controls").style.marginLeft = open_width;
+        }
+    }
+    else if (destination_arg == "existing") {
         if (document.getElementById("inspection_report_existing_sidebar").style.width == open_width) {
             document.getElementById("inspection_report_existing_sidebar").style.width = close_width;
             document.getElementById("inspection_report_existing").style.marginLeft = close_width;
@@ -884,7 +815,7 @@ function inspection_report_selected(data)
     set_disabled_state(false);
 
     // set the metadata values
-    meta_report_id.property("value", `Report ID: ${data.report_id}`);
+    meta_report_id.text(`Report ID: ${data.report_id}`);
     meta_report_id.property("data-meta", data.report_id);
     meta_inspector_id.property("value", data.employee_id);
     meta_disposition.property("value", data.disposition);
@@ -906,6 +837,12 @@ function inspection_report_selected(data)
     // populate the receiver numbers
     populate_receiver_numbers(data.report_id);
     populate_purchase_orders(data.report_id);
+
+    // update the current report identification label
+    inspection_report_ident.text(`Current Report: ${data.report_id} // ${data.item} // ${data.drawing} // ${data.revision}`)
+
+    // populate the characteristic table with the current settings
+    retrieve_characteristics();
 }
 
 // #endregion

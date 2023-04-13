@@ -211,8 +211,8 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     background-color: transparent;
     color: hsl(0, 0%, 20%);
     font-size: 21px;
-    margin: 12px 0px 6px 6px;
-    padding: 6px;
+    margin: 6px 6px 0px 6px;
+    padding: 2px;
     text-align: left;
     grid-column: var(--grid-column);
     grid-row: var(--grid-row);
@@ -222,7 +222,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     background-color: transparent;
     color: hsl(0, 0%, 20%);
     font-size: 12px;
-    margin: 6px 9px 0px 6px;
+    margin: 6px 6px 0px 6px;
     padding: 2px;
     text-align: left;
     grid-column: var(--grid-column);
@@ -341,25 +341,28 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 
 .data_table_start_cell {
     border-radius: 6px 0px 0px 6px;
+    padding: 0px 6px;
 }
 
 .data_table_end_cell {
     border-radius: 0px 6px 6px 0px;
+    padding: 0px 6px;
 }
 
 .data_table_light {
     background-color: transparent;
     color: hsl(0, 0%, 20%);
-    margin: 0px 9px;
-    table-layout: fixed;
+    margin: 0px;
     width: 100%;
+    table-layout: fixed;
     grid-column: var(--grid-column);
     grid-row: var(--grid-row);
 }
 
 .data_table_light thead th {
     font-size: 15px;
-    padding: 6px 9px;
+    margin: 6px 0px;
+    padding: 6px;
     vertical-align: middle;
     text-align: center;
 }
@@ -389,12 +392,27 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 
 /* #region table controls */
 
+.table_label {
+    background-color: transparent;
+    border-width: 0px;
+    color: hsl(0, 0%, 20%);
+    font-size: 15px;
+    text-align: right;
+    margin: 0px 6px;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 6px;
+    outline: none;
+    cursor: pointer;
+}
+
 .table_input {
     background-color: transparent;
     border-width: 0px;
     color: hsl(0, 0%, 20%);
     font-size: 15px;
     text-align: right;
+    box-sizing: border-box;
     width: 100%;
     margin: 0px 6px;
     padding: 6px;
@@ -412,6 +430,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     color: hsl(0, 0%, 20%);
     font-size: 15px;
     text-align: right;
+    box-sizing: border-box;
     width: 100%;
     margin: 0px 6px;
     padding: 6px;

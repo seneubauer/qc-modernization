@@ -1001,8 +1001,8 @@ def remove_purchase_order_association(report_id:int, receiver_number:str):
     # get the new list
     return get_filtered_purchase_orders(report_id, "")
 
-@app.route("/get_inspection_report_filtered_characteristics/<int:report_id>/<string:name>/<string:gauge_id>/<string:gauge_type>/<string:spec_type>/<string:char_type>/<int:inspector_id>/<string:is_gdt>/")
-def get_inspection_report_filtered_characteristics(report_id:int, name:str, gauge_id:str, gauge_type:str, spec_type:str, char_type:str, inspector_id:int, is_gdt:str):
+@app.route("/get_inspection_report_filtered_characteristics/<int:report_id>/<string:name>/<string:gauge_id>/<string:gauge_type>/<string:spec_type>/<string:char_type>/<int:inspector_id>/")
+def get_inspection_report_filtered_characteristics(report_id:int, name:str, gauge_id:str, gauge_type:str, spec_type:str, char_type:str, inspector_id:int):
 
     # condition the arguments
     if name == "__null":
@@ -1016,12 +1016,6 @@ def get_inspection_report_filtered_characteristics(report_id:int, name:str, gaug
     if char_type == "__null":
         char_type = ""
 
-    gdt_dict = {
-        "0": None,
-        "1": True,
-        "2": False
-    }
-
     # define the columns
     columns = [
         characteristics.id,
@@ -1033,10 +1027,9 @@ def get_inspection_report_filtered_characteristics(report_id:int, name:str, gaug
         characteristics.precision,
         characteristics.gauge_id,
         gauge_types.id,
-        specification_types.id,
-        characteristic_types.id,
-        characteristics.employee_id,
-        characteristic_types.is_gdt
+        characteristics.specification_type_id,
+        characteristics.characteristic_type_id,
+        characteristics.employee_id
     ]
 
     try:
@@ -1046,8 +1039,6 @@ def get_inspection_report_filtered_characteristics(report_id:int, name:str, gaug
 
         # query the database
         results = session.query(*columns)\
-            .join(specification_types, (characteristics.specification_type_id == specification_types.id))\
-            .join(characteristic_types, (characteristics.characteristic_type_id == characteristic_types.id))\
             .join(employees, (characteristics.employee_id == employees.id))\
             .join(gauges, (characteristics.gauge_id == gauges.id))\
             .join(inspection_reports, (characteristics.part_id == inspection_reports.part_id))\
@@ -1065,19 +1056,16 @@ def get_inspection_report_filtered_characteristics(report_id:int, name:str, gaug
             results = results.filter(gauge_types.id.like(f"%{gauge_type}%"))
 
         if spec_type != "__null":
-            results = results.filter(specification_types.id.like(f"%{spec_type}%"))
+            results = results.filter(characteristics.specification_type_id.like(f"%{spec_type}%"))
 
         if char_type != "__null":
-            results = results.filter(characteristic_types.id.like(f"%{char_type}%"))
+            results = results.filter(characteristics.characteristic_type_id.like(f"%{char_type}%"))
 
         if inspector_id != 0:
             results = results.filter(characteristics.employee_id == inspector_id)
 
-        if gdt_dict[is_gdt] is not None:
-            results = results.filter(characteristic_types.is_gdt == gdt_dict[is_gdt])
-
         # convert to a list of tuples
-        results_all = results.all()
+        results_all = results.order_by(characteristics.name.asc()).all()
 
         # close the session
         session.close()
@@ -1098,13 +1086,6 @@ def get_inspection_report_filtered_characteristics(report_id:int, name:str, gaug
     else:
         list_status = False
 
-    # gauge type ids
-    gauge_type_ids = get_all_gauge_type_ids()
-    if gauge_type_ids["status"] == "ok":
-        gauge_type_ids = gauge_type_ids["response"]
-    else:
-        list_status = False
-
     # inspectors
     inspectors = get_all_employees_ids()
     if inspectors["status"] == "ok":
@@ -1112,24 +1093,10 @@ def get_inspection_report_filtered_characteristics(report_id:int, name:str, gaug
     else:
         list_status = False
 
-    # specification type ids
-    specification_type_ids = get_all_specification_types()
-    if specification_type_ids["status"] == "ok":
-        specification_type_ids = specification_type_ids["response"]
-    else:
-        list_status = False
-
-    # characteristic type ids
-    characteristic_type_ids = get_all_characteristic_types()
-    if characteristic_type_ids["status"] == "ok":
-        characteristic_type_ids = characteristic_type_ids["response"]
-    else:
-        list_status = False
-
     # return the result
     if len(results_all) > 0 and list_status:
         output_arr = []
-        for id, name, nominal, usl, lsl, measured, precision, gauge_id, gauge_type_id, spec_type_id, char_type_id, employee_id, is_gdt in results_all:
+        for id, name, nominal, usl, lsl, measured, precision, gauge_id, gauge_type_id, spec_type_id, char_type_id, employee_id in results_all:
             
             nominal_float = round(float(nominal), precision)
             usl_float = round(float(usl), precision)
@@ -1158,8 +1125,7 @@ def get_inspection_report_filtered_characteristics(report_id:int, name:str, gaug
                 "gauge_type_id": gauge_type_id,
                 "spec_type_id": spec_type_id,
                 "char_type_id": char_type_id,
-                "inspector": employee_id,
-                "is_gdt": is_gdt,
+                "employee_id": employee_id,
                 "state": state
             })
 
@@ -1168,10 +1134,7 @@ def get_inspection_report_filtered_characteristics(report_id:int, name:str, gaug
             "response": {
                 "data_array": output_arr,
                 "gauge_ids": gauge_ids,
-                "gauge_type_ids": gauge_type_ids,
-                "inspectors": inspectors,
-                "specification_type_ids": specification_type_ids,
-                "characteristic_type_ids": characteristic_type_ids
+                "inspectors": inspectors
             }
         }
     else:
@@ -1180,12 +1143,90 @@ def get_inspection_report_filtered_characteristics(report_id:int, name:str, gaug
             "response": "no matching records found"
         }
 
-@app.route("/commit_characteristic_data/", methods = ["POST"])
-def commit_characteristic_data():
+@app.route("/commit_characteristic_data/<int:report_id>/", methods = ["POST"])
+def commit_characteristic_data(report_id:int):
 
-    test_data = request.form["test_input"]
-    print(test_data)
-    return test_data
+    # mapping dictionary
+    map_dict = {
+        "measured": characteristics.measured,
+        "precision": characteristics.precision,
+        "gauge_id": characteristics.gauge_id,
+        "gauge_type_id": gauge_types.id,
+        "spec_type_id": specification_types.id,
+        "char_type_id": characteristic_types.id
+    }
+
+    # store raw incoming data into new list
+    char_data = {}
+    for k, v in request.form.items():
+
+        key_split = k.split("-")
+        char_id = int(key_split[0])
+        field = str(key_split[1])
+
+        if char_id in char_data:
+            char_data[char_id].append({
+                "field": field,
+                "value": v
+            })
+        else:
+            char_data[char_id] = [{
+                "field": field,
+                "value": v
+            }]
+
+    # proceed if the dictionary has contents
+    if len(char_data) > 0:
+        try:
+
+            # open the session
+            session = Session(engine)
+
+            # iterate through the incoming data dictionary
+            for k, v in request.form.items():
+
+                key_split = k.split("-")
+
+                # characteristic id
+                char_id = int(key_split[0])
+
+                # field
+                field = str(key_split[1])
+
+
+
+                # create the join table
+                results = session.query(characteristics.id)\
+                    .join(specification_types, (characteristics.specification_type_id == specification_types.id))\
+                    .join(characteristic_types, (characteristics.characteristic_type_id == characteristic_types.id))\
+                    .join(employees, (characteristics.employee_id == employees.id))\
+                    .join(gauges, (characteristics.gauge_id == gauges.id))\
+                    .join(inspection_reports, (characteristics.part_id == inspection_reports.part_id))\
+                    .join(parts, (characteristics.part_id == parts.id))\
+                    .join(gauge_types, (gauges.gauge_type_id == gauge_types.id))\
+                    .filter(inspection_reports.id == report_id)\
+                    .filter(characteristics.id == char_id)
+
+            # close the session
+            session.close()
+
+        except SQLAlchemyError as e:
+            error_msg = str(e.__dict__["orig"])
+            return {
+                "status": "not_ok",
+                "response": error_msg
+            }
+
+        return {
+            "status": "ok",
+            "reponse": 0
+        }
+
+    else:
+        return {
+            "status": "ok_alt",
+            "response": "no data passed to flask server"
+        }
 
 
 

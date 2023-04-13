@@ -33,104 +33,99 @@
     </div>
 
     <!-- characteristics -->
-    <div class="grid_container" style="margin: 0px 300px; --grid-template-columns: repeat(4, minmax(0, 1fr));">
+    <form class="grid_container" id="characteristics_form_id" name="characteristics_form" method="post" style="margin: 0px 300px; --grid-template-columns: repeat(3, minmax(0, 1fr));">
+
+        <!-- current inspection report -->
+        <label class="header_light" id="current_report_ident" style="
+            --grid-column: 1 / 4;
+            --grid-row: 1;
+            margin-top: 9px;
+            margin-bottom: 15px;">Current Report:</label>
 
         <!-- filter options -->
-        <label class="header_light" id="charfilter_header" style="
-            --grid-column: 1 / 5;
-            --grid-row: 1;">Display Options</label>
+        <label class="header_light" style="
+            --grid-column: 1 / 4;
+            --grid-row: 2;">Filter Options</label>
 
         <label class="label_over_light" for="charfilter_name" style="
             --grid-column: 1;
-            --grid-row: 2;">Dimension Name</label>
+            --grid-row: 3;">Dimension Name</label>
         <input class="text_input_light" id="charfilter_name" type="text" style="
             --grid-column: 1;
-            --grid-row: 3;">
+            --grid-row: 4;">
 
         <label class="label_over_light" for="charfilter_gauge_id" style="
             --grid-column: 2;
-            --grid-row: 2;">Gauge ID</label>
+            --grid-row: 3;">Gauge ID</label>
         <input class="text_input_light" id="charfilter_gauge_id" type="text" style="
             --grid-column: 2;
-            --grid-row: 3;">
+            --grid-row: 4;">
 
         <label class="label_over_light" for="charfilter_gauge_type" style="
             --grid-column: 3;
-            --grid-row: 2;">Gauge Type</label>
+            --grid-row: 3;">Gauge Type</label>
         <input class="text_input_light" id="charfilter_gauge_type" type="text" style="
             --grid-column: 3;
-            --grid-row: 3;">
-
-        <label class="label_over_light" for="charfilter_is_gdt" style="
-            --grid-column: 4;
-            --grid-row: 2;">Is GD&T</label>
-        <select class="select_light" id="charfilter_is_gdt" style="
-            --grid-column: 4;
-            --grid-row: 3;">
-            <option value="0">N/A</option>
-            <option value="1">Yes</option>
-            <option value="2">No</option>
-        </select>
+            --grid-row: 4;">
 
         <label class="label_over_light" for="charfilter_specification_type" style="
             --grid-column: 1;
-            --grid-row: 4;">Specification Type</label>
+            --grid-row: 5;">Specification Type</label>
         <input class="text_input_light" id="charfilter_specification_type" type="text" style="
             --grid-column: 1;
-            --grid-row: 5;">
+            --grid-row: 6;">
 
         <label class="label_over_light" for="charfilter_characteristic_type" style="
             --grid-column: 2;
-            --grid-row: 4;">Characteristic Type</label>
+            --grid-row: 5;">Characteristic Type</label>
         <input class="text_input_light" id="charfilter_characteristic_type" type="text" style="
             --grid-column: 2;
-            --grid-row: 5;">
+            --grid-row: 6;">
 
         <label class="label_over_light" for="charfilter_inspector" style="
             --grid-column: 3;
-            --grid-row: 4;">Inspector ID</label>
+            --grid-row: 5;">Inspector ID</label>
         <input class="text_input_light" id="charfilter_inspector" type="text" style="
             --grid-column: 3;
-            --grid-row: 5;">
+            --grid-row: 6;">
 
-        <label class="label_over_light" for="charfilter_display_type" style="
-            --grid-column: 4;
-            --grid-row: 4;">Table Display</label>
-        <select class="select_light" id="charfilter_display_type" style="
-            --grid-column: 4;
-            --grid-row: 5;">
-            <option value="0">Data Entry</option>
-            <option value="1">Metadata</option>
-            <option value="2">All</option>
-        </select>
-
+        <!-- characteristic table -->
         <label class="header_light" style="
-            --grid-column: 1 / 5;
-            --grid-row: 6;">Controls</label>
+            --grid-column: 1 / 4;
+            --grid-row: 7;">Characteristics</label>
 
-        <form class="grid_sub_container" id="characteristics_form_id" name="characteristics_form" method="post" style="
-            --grid-template-columns: repeat(8, minmax(0, 1fr));
-            --grid-column: 1 / 5;
-            --grid-row: 7;">
-            <button class="button_light" id="apply_characteristic_filter" type="button" style="
-                --grid-column: 1;
-                --grid-row: 1;">Apply Filter</button>
-            <button class="button_light" id="save_characteristics" type="button" style="
-                --grid-column: 2;
-                --grid-row: 1;">Save</button>
-            <label class="header_light" style="
-                --grid-column: 1 / 9;
-                --grid-row: 2;">Characteristics</label>
-            <table class="data_table_light" id="char_table" style="
-                --grid-column: 1 / 9;
-                --grid-row: 3;"></table>
-        </form>
-    </div>
+        <table class="data_table_light" id="char_table" style="
+            --grid-column: 1 / 4;
+            --grid-row: 8;"></table>
+    </form>
 
     <!-- create a new inspection report -->
-    <div class="sidebar_toggle" id="inspection_report_new" style="top: 62px;">
-        <button class="sidebar_button" type="button">
-            New Report
+    <div class="sidebar" id="inspection_report_controls_sidebar">
+        <div class="grid_container" style="--grid-template-columns: repeat(1, minmax(0, 1fr));">
+
+            <button class="button_dark" id="new_report_btn" type="button" style="
+                --grid-column: 1;
+                --grid-row: 1;">New</button>
+
+            <button class="button_dark" id="save_report_btn" type="button" style="
+                --grid-column: 1;
+                --grid-row: 2;">Save</button>
+
+            <label class="label_over_dark" for="select_display_type" style="
+                --grid-column: 1;
+                --grid-row: 3;">Characteristic Table Display</label>
+            <select class="select_dark" id="select_display_type" style="
+                --grid-column: 1;
+                --grid-row: 4;">
+                <option value="0">Data Entry</option>
+                <option value="1">Metadata</option>
+                <option value="2">All</option>
+            </select>
+        </div>
+    </div>
+    <div class="sidebar_toggle" id="inspection_report_controls" style="top: 62px;">
+        <button class="sidebar_button" id="sidebar_btn_controls" type="button" onclick="toggle_options('controls', '250px')">
+            Report Controls
         </button>
     </div>
 
