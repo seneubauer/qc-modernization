@@ -1146,16 +1146,6 @@ def get_inspection_report_filtered_characteristics(report_id:int, name:str, gaug
 @app.route("/commit_characteristic_data/<int:report_id>/", methods = ["POST"])
 def commit_characteristic_data(report_id:int):
 
-    # mapping dictionary
-    map_dict = {
-        "measured": characteristics.measured,
-        "precision": characteristics.precision,
-        "gauge_id": characteristics.gauge_id,
-        "gauge_type_id": gauge_types.id,
-        "spec_type_id": specification_types.id,
-        "char_type_id": characteristic_types.id
-    }
-
     # store raw incoming data into new list
     char_data = {}
     for k, v in request.form.items():
@@ -1166,13 +1156,11 @@ def commit_characteristic_data(report_id:int):
 
         if char_id in char_data:
             char_data[char_id].append({
-                "field": field,
-                "value": v
+                field: v
             })
         else:
             char_data[char_id] = [{
-                "field": field,
-                "value": v
+                field: v
             }]
 
     # proceed if the dictionary has contents
@@ -1182,33 +1170,51 @@ def commit_characteristic_data(report_id:int):
             # open the session
             session = Session(engine)
 
-            # iterate through the incoming data dictionary
-            for k, v in request.form.items():
+            affected_count = 0
+            for k, v in char_data.items():
 
-                key_split = k.split("-")
+                # get the part id
+                part_id = session.query(inspection_reports.part_id)\
+                    .join(parts, (parts.id == inspection_reports.part_id))\
+                    .filter(inspection_reports.id == report_id).first()[0]
 
-                # characteristic id
-                char_id = int(key_split[0])
+                if part_id is not None:
+                    results = session.query(characteristics)\
+                        .filter(characteristics.id == k)\
+                        .filter(characteristics.part_id == part_id)
 
-                # field
-                field = str(key_split[1])
+                    row_affected = 0
+                    for d in v:
+                        key = list(d.keys())[0]
+                        value = d[key]
+                        row_affected = results.update({ key: value })
+                    if row_affected > 0:
+                        affected_count += 1
+                else:
+                    return {
+                        "status": "ok_alt",
+                        "response": "no part id found"
+                    }
 
-
-
-                # create the join table
-                results = session.query(characteristics.id)\
-                    .join(specification_types, (characteristics.specification_type_id == specification_types.id))\
-                    .join(characteristic_types, (characteristics.characteristic_type_id == characteristic_types.id))\
-                    .join(employees, (characteristics.employee_id == employees.id))\
-                    .join(gauges, (characteristics.gauge_id == gauges.id))\
-                    .join(inspection_reports, (characteristics.part_id == inspection_reports.part_id))\
-                    .join(parts, (characteristics.part_id == parts.id))\
-                    .join(gauge_types, (gauges.gauge_type_id == gauge_types.id))\
-                    .filter(inspection_reports.id == report_id)\
-                    .filter(characteristics.id == char_id)
+            # commit the changes
+            session.commit()
 
             # close the session
             session.close()
+
+            # return the result
+            if affected_count > 0:
+                return {
+                    "status": "ok",
+                    "response": {
+                        "rows_affected": affected_count
+                    }
+                }
+            else:
+                return {
+                    "status": "ok_alt",
+                    "response": "no rows affected"
+                }
 
         except SQLAlchemyError as e:
             error_msg = str(e.__dict__["orig"])
@@ -1217,18 +1223,68 @@ def commit_characteristic_data(report_id:int):
                 "response": error_msg
             }
 
-        return {
-            "status": "ok",
-            "reponse": 0
-        }
-
     else:
         return {
             "status": "ok_alt",
             "response": "no data passed to flask server"
         }
 
+@app.route("/get_schema_type_lists/")
+def get_schema_type_lists():
 
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results_spec_types = session.query(specification_types.id).order_by(specification_types.id.asc()).all()
+        results_char_types = session.query(characteristic_types.id).order_by(characteristic_types.id.asc()).all()
+        results_gauge_types = session.query(gauge_types.id).order_by(gauge_types.id.asc()).all()
+
+        # close the session
+        session.close()
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "not_ok",
+            "response": error_msg
+        }
+
+    # return the results
+    if len(results_spec_types) > 0 and len(results_char_types) > 0 and len(results_gauge_types) > 0:
+        output_arr_spec_types = []
+        for id in results_spec_types:
+            output_arr_spec_types.append({
+                "item": id[0]
+            })
+
+        output_arr_char_types = []
+        for id in results_char_types:
+            output_arr_char_types.append({
+                "item": id[0]
+            })
+
+        output_arr_gauge_types = []
+        for id in results_gauge_types:
+            output_arr_gauge_types.append({
+                "item": id[0]
+            })
+
+        return {
+            "status": "ok",
+            "response": {
+                "spec_types": output_arr_spec_types,
+                "char_types": output_arr_char_types,
+                "gauge_types": output_arr_gauge_types
+            }
+        }
+    else:
+        return {
+            "status": "ok_alt",
+            "response": "no records found"
+        }
 
 
 

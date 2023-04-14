@@ -201,6 +201,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 
 .button_dark:hover {
     background-color: hsl(0, 50%, 40%);
+    cursor: pointer;
 }
 
 .button_dark:active {
@@ -305,7 +306,9 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 .data_table_dark {
     background-color: transparent;
     color: hsl(0, 0%, 95%);
-    margin: 18px 9px;
+    margin: 0px;
+    width: 100%;
+    box-sizing: border-box;
     table-layout: fixed;
     grid-column: var(--grid-column);
     grid-row: var(--grid-row);
@@ -313,7 +316,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 
 .data_table_dark thead th {
     font-size: 15px;
-    padding: 6px 9px;
+    padding: 6px;
     vertical-align: middle;
     text-align: center;
 }
@@ -335,18 +338,18 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 
 .data_table_dark tbody td {
     vertical-align: middle;
-    padding: 6px 9px;
+    padding: 0px;
     font-size: 15px;
 }
 
 .data_table_start_cell {
     border-radius: 6px 0px 0px 6px;
-    padding: 0px 6px;
+    padding: 0px;
 }
 
 .data_table_end_cell {
     border-radius: 0px 6px 6px 0px;
-    padding: 0px 6px;
+    padding: 0px;
 }
 
 .data_table_light {
@@ -354,6 +357,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     color: hsl(0, 0%, 20%);
     margin: 0px;
     width: 100%;
+    box-sizing: border-box;
     table-layout: fixed;
     grid-column: var(--grid-column);
     grid-row: var(--grid-row);
@@ -361,7 +365,6 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 
 .data_table_light thead th {
     font-size: 15px;
-    margin: 6px 0px;
     padding: 6px;
     vertical-align: middle;
     text-align: center;
@@ -384,7 +387,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 
 .data_table_light tbody td {
     vertical-align: middle;
-    padding: 0px 6px;
+    padding: 0px;
     font-size: 15px;
 }
 
@@ -392,21 +395,25 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 
 /* #region table controls */
 
-.table_label {
+.table_label_light {
     background-color: transparent;
     border-width: 0px;
     color: hsl(0, 0%, 20%);
     font-size: 15px;
     text-align: right;
-    margin: 0px 6px;
+    margin: 0px;
+    padding: 6px;
     box-sizing: border-box;
     width: 100%;
-    padding: 6px;
     outline: none;
     cursor: pointer;
 }
 
-.table_input {
+.table_label_light:hover {
+    background-color: hsl(0, 50%, 60%);
+}
+
+.table_input_light {
     background-color: transparent;
     border-width: 0px;
     color: hsl(0, 0%, 20%);
@@ -414,16 +421,14 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     text-align: right;
     box-sizing: border-box;
     width: 100%;
-    margin: 0px 6px;
     padding: 6px;
 }
 
-.table_input:hover {
+.table_input_light:hover {
     background-color: hsl(0, 50%, 60%);
-    border-radius: 6px;
 }
 
-.table_select {
+.table_select_light {
     appearance: none;
     background-color: transparent;
     border-width: 0px;
@@ -432,16 +437,67 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     text-align: right;
     box-sizing: border-box;
     width: 100%;
-    margin: 0px 6px;
     padding: 6px;
 }
 
-.table_select:hover {
+.table_select_light:hover {
     background-color: hsl(0, 50%, 60%);
-    border-radius: 6px;
 }
 
-.table_select:focus-within {
+.table_select_light:focus-within {
+    outline: none;
+}
+
+.table_label_dark {
+    background-color: transparent;
+    border-width: 0px;
+    color: hsl(0, 0%, 95%);
+    font-size: 15px;
+    text-align: right;
+    margin: 0px;
+    padding: 6px;
+    box-sizing: border-box;
+    width: 100%;
+    outline: none;
+    cursor: pointer;
+}
+
+.table_label_dark:hover {
+    background-color: hsl(0, 50%, 60%);
+}
+
+.table_input_dark {
+    background-color: transparent;
+    border-width: 0px;
+    color: hsl(0, 0%, 95%);
+    font-size: 15px;
+    text-align: right;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 6px;
+}
+
+.table_input_dark:hover {
+    background-color: hsl(0, 50%, 60%);
+}
+
+.table_select_dark {
+    appearance: none;
+    background-color: transparent;
+    border-width: 0px;
+    color: hsl(0, 0%, 95%);
+    font-size: 15px;
+    text-align: right;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 6px;
+}
+
+.table_select_dark:hover {
+    background-color: hsl(0, 50%, 60%);
+}
+
+.table_select_dark:focus-within {
     outline: none;
 }
 

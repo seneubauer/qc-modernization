@@ -371,10 +371,46 @@
 
     <!-- view/edit characteristic schema -->
     <div class="sidebar" id="inspection_report_characteristic_schema_sidebar">
+        <form class="grid_container" id="characteristic_schema_form_id" name="characteristic_schema_form" method="post" style="--grid-template-columns: repeat(2, minmax(0, 1fr));">
+            <button class="button_dark" id="commit_schema_btn" type="button" style="
+                --grid-column: 1 / 3;
+                --grid-row: 1;">Commit Schema</button>
 
+            <button class="button_dark" id="load_schema_file_btn" type="button" style="
+                --grid-column: 1;
+                --grid-row: 2;">Load Schema CSV</button>
+
+            <button class="button_dark" id="save_schema_file_btn" type="button" style="
+                --grid-column: 1;
+                --grid-row: 3;">Save Schema CSV</button>
+
+            <button class="button_dark" id="add_schema_row_btn" type="button" style="
+                --grid-column: 2;
+                --grid-row: 2;">Add Row</button>
+
+            <button class="button_dark" id="remove_schema_row_btn" type="button" style="
+                --grid-column: 2;
+                --grid-row: 3;">Remove Row</button>
+
+            <table class="data_table_dark" id="characteristic_schema_table" style="
+                --grid-column: 1 / 3;
+                --grid-row: 4;">
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Nominal</th>
+                        <th scope="col">USL</th>
+                        <th scope="col">LSL</th>
+                        <th scope="col">Specification Type</th>
+                        <th scope="col">Characteristic Type</th>
+                        <th scope="col">Gauge Type</th>
+                    </tr>
+                </thead>
+            </table>
+        </form>
     </div>
     <div class="sidebar_toggle" id="inspection_report_characteristic_schema" style="top: 327px;">
-        <button class="sidebar_button" id="sidebar_btn_charschema" type="button" onclick="toggle_options('characteristic_schema', '350px')">
+        <button class="sidebar_button" id="sidebar_btn_charschema" type="button" onclick="toggle_options('characteristic_schema', '1200px')">
             Characteristic Schema
         </button>
     </div>

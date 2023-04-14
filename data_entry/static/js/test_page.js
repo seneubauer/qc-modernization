@@ -63,6 +63,14 @@ const po_value = d3.select("#po_value");
 const po_list = d3.select("#po_list");
 const po_button = d3.select("#po_button");
 
+// characteristic schema
+const schema_commit = d3.select("#commit_schema_btn");
+const schema_load = d3.select("#load_schema_file_btn");
+const schema_save = d3.select("#save_schema_file_btn");
+const schema_add = d3.select("#add_schema_row_btn");
+const schema_remove = d3.select("#remove_schema_row_btn");
+const schema_table = d3.select("#characteristic_schema_table");
+
 // characteristic table columns
 const char_table_columns = [
     { key: "name", data_entry: true, metadata: true, all: true, display: "Name", ctl_type: "label" },
@@ -73,9 +81,9 @@ const char_table_columns = [
     { key: "employee_id", data_entry: true, metadata: false, all: true, display: "Inspector", ctl_type: "dropdown" },
     { key: "gauge_id", data_entry: true, metadata: false, all: true, display: "Gauge ID", ctl_type: "dropdown" },
     { key: "precision", data_entry: false, metadata: true, all: true, display: "Precision", ctl_type: "label" },
-    { key: "spec_type_id", data_entry: false, metadata: true, all: true, display: "Specification Type ID", ctl_type: "label" },
-    { key: "char_type_id", data_entry: false, metadata: true, all: true, display: "Characteristic Type ID", ctl_type: "label" },
-    { key: "gauge_type_id", data_entry: false, metadata: true, all: true, display: "Gauge Type ID", ctl_type: "label" },
+    { key: "spec_type_id", data_entry: false, metadata: true, all: true, display: "Specification Type", ctl_type: "label" },
+    { key: "char_type_id", data_entry: false, metadata: true, all: true, display: "Characteristic Type", ctl_type: "label" },
+    { key: "gauge_type_id", data_entry: false, metadata: true, all: true, display: "Gauge Type", ctl_type: "label" },
 ];
 
 init();
@@ -118,6 +126,7 @@ function init()
     });
 
     // report controls
+    ctl_save_report.on("click", submit_characteristics);
     ctl_display_type.on("change", retrieve_characteristics);
 
     // existing reports events
@@ -161,6 +170,13 @@ function init()
         }
     });
     po_button.on("click", assign_purchase_order_association);
+
+    // characteristic schema
+    schema_commit.on("click", commit_schema);
+    schema_load.on("click", load_schema_csv);
+    schema_save.on("click", save_schema_csv);
+    schema_add.on("click", add_schema_row);
+    schema_remove.on("click", remove_schema_row);
 
     // populate selectors
     populate_selectors();
@@ -544,7 +560,17 @@ function retrieve_characteristics()
                             return true;
                         }
                     })
-                    .attr("class", "data_table_end_cell");
+                    .attr("class", "data_table_end_cell")
+                    .selectAll((x) => {
+                        console.log(x);
+                        if (x.column.ctl_type == "label" || x.column.ctl_type == "input") {
+                            return "input";
+                        }
+                        else if (x.column.ctl_type == "dropdown") {
+                            return "select";
+                        }
+                    })
+                    .style("border-radius", "6px 0px 0px 6px");
 
                 // assign label values to cells
                 cells.filter((x) => {
@@ -553,7 +579,7 @@ function retrieve_characteristics()
                         }
                     })
                     .insert("input")
-                    .attr("class", "table_label")
+                    .attr("class", "table_label_light")
                     .attr("readonly", true)
                     .attr("value", (x) => {
                         switch (x.column.key) {
@@ -571,7 +597,7 @@ function retrieve_characteristics()
                         }
                     })
                     .insert("input")
-                    .attr("class", "table_input")
+                    .attr("class", "table_input_light")
                     .attr("value", (x) => x.row.value)
                     .attr("name", (x) => `${x.row.index}-${x.column.key}`);
 
@@ -582,7 +608,7 @@ function retrieve_characteristics()
                         }
                     })
                     .insert("select")
-                    .attr("class", "table_select")
+                    .attr("class", "table_select_light")
                     .selectAll("option")
                     .data(gauge_ids)
                     .enter()
@@ -605,7 +631,7 @@ function retrieve_characteristics()
                         }
                     })
                     .insert("select")
-                    .attr("class", "table_select")
+                    .attr("class", "table_select_light")
                     .selectAll("option")
                     .data(inspector_ids)
                     .enter()
@@ -648,7 +674,12 @@ function submit_characteristics()
             throw new Error("Server response wasn't cool");
         }
     }).then((json) => {
-        console.log(json);
+        if (json.status == "ok") {
+            alert(`Records Affected: ${json.response.rows_affected}`);
+        }
+        else {
+            alert(json.response);
+        }
     });
 }
 
@@ -782,7 +813,9 @@ function update_existing_inspection_reports()
                 })
                 .enter()
                 .append("td")
-                .text((x) => x.value);
+                .insert("input")
+                .attr("class", "table_input_dark")
+                .attr("value", (x) => x.value);
 
             // set the start cell class
             rows.selectAll("td")
@@ -791,7 +824,9 @@ function update_existing_inspection_reports()
                         return true;
                     }
                 })
-                .attr("class", "data_table_start_cell");
+                .attr("class", "data_table_start_cell")
+                .selectAll("input")
+                .style("border-radius", "6px 0px 0px 6px");
 
             // set the end cell class
             rows.selectAll("td")
@@ -800,7 +835,9 @@ function update_existing_inspection_reports()
                         return true;
                     }
                 })
-                .attr("class", "data_table_end_cell");
+                .attr("class", "data_table_end_cell")
+                .selectAll("input")
+                .style("border-radius", "0px 6px 6px 0px");
         }
         else {
             console.log(returned_object.response);
@@ -1086,6 +1123,173 @@ function remove_purchase_order_association(pointer, data)
 // #endregion
 
 // #region characteristic schema
+
+function commit_schema()
+{
+
+}
+
+function load_schema_csv()
+{
+
+}
+
+function save_schema_csv()
+{
+
+}
+
+function add_schema_row()
+{
+    let initial_data = [
+        { name: "DIM x", nominal: "1.000", usl: "1.005", lsl: "0.995", spec_type: "two_tailed", char_type: "diameter", gauge_type: "caliper" }
+    ];
+
+    let rows = schema_table.append("tbody")
+        .selectAll("tr")
+        .data(initial_data)
+        .enter()
+        .append("tr");
+
+    let cells = rows.selectAll("td")
+        .data((r) => {
+            return ["name", "nominal", "usl", "lsl", "spec_type", "char_type", "gauge_type"].map((c) => {
+                return { col: c, value: r[c] };
+            });
+        })
+        .enter()
+        .append("td");
+
+    // numerical inputs
+    cells.filter((x) => {
+            if (x.col == "nominal" || x.col == "usl" || x.col == "lsl") {
+                return true;
+            }
+        })
+        .insert("input")
+        .attr("class", "table_input_dark")
+        .attr("type", "number")
+        .attr("value", (x) => x.value);
+
+    // text inputs
+    cells.filter((x) => {
+            if (x.col == "name") {
+                return true;
+            }
+        })
+        .insert("input")
+        .attr("class", "table_input_dark")
+        .attr("type", "text")
+        .attr("value", (x) => x.value);
+
+    // specification types
+    d3.json("/get_schema_type_lists/").then((returned_object) => {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+            let spec_types_list = dataset.spec_types;
+            let char_types_list = dataset.char_types;
+            let gauge_types_list = dataset.gauge_types;
+
+            // populate the specifycation types
+            cells.filter((x) => {
+                    if (x.col == "spec_type") {
+                        return true;
+                    }
+                })
+                .insert("select")
+                .attr("class", "table_select_dark")
+                .selectAll("option")
+                .data(spec_types_list)
+                .enter()
+                .append("option")
+                .attr("value", (x) => x.item)
+                .text((x) => x.item);
+            cells.filter((x) => {
+                    if (x.col == "spec_type") {
+                        return true;
+                    }
+                })
+                .selectAll("select")
+                .property("value", (x) => x.value);
+
+            // populate the characteristic types
+            cells.filter((x) => {
+                    if (x.col == "char_type") {
+                        return true;
+                    }
+                })
+                .insert("select")
+                .attr("class", "table_select_dark")
+                .selectAll("option")
+                .data(char_types_list)
+                .enter()
+                .append("option")
+                .attr("value", (x) => x.item)
+                .text((x) => x.item);
+            cells.filter((x) => {
+                    if (x.col == "char_type") {
+                        return true;
+                    }
+                })
+                .selectAll("select")
+                .property("value", (x) => x.value);
+
+            // populate the gauge types
+            cells.filter((x) => {
+                    if (x.col == "gauge_type") {
+                        return true;
+                    }
+                })
+                .insert("select")
+                .attr("class", "table_select_dark")
+                .selectAll("option")
+                .data(gauge_types_list)
+                .enter()
+                .append("option")
+                .attr("value", (x) => x.item)
+                .text((x) => x.item);
+            cells.filter((x) => {
+                    if (x.col == "gauge_type") {
+                        return true;
+                    }
+                })
+                .selectAll("select")
+                .property("value", (x) => x.value);
+        }
+        else if (returned_object.status == "ok_alt") {
+            alert(returned_object.response);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+
+    // set the start/end cell rounded corners
+    rows.selectAll("td").filter((x) => {
+            if (x.col == "name") {
+                return true;
+            }
+        })
+        .attr("class", "data_table_start_cell");
+    rows.selectAll("td").filter((x) => {
+            if (x.col == "gauge_type") {
+                return true;
+            }
+        })
+        .attr("class", "data_table_end_cell");
+    
+    
+}
+
+function remove_schema_row()
+{
+    let rows_data = schema_table.selectAll("tbody").selectAll("tr").data();
+    rows_data.pop();
+
+    console.log(rows_data);
+}
 
 // #endregion
 
