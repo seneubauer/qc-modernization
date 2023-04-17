@@ -33,7 +33,7 @@
     </div>
 
     <!-- characteristics -->
-    <form class="grid_container" id="characteristics_form_id" name="characteristics_form" method="post" style="margin: 0px 300px; --grid-template-columns: repeat(3, minmax(0, 1fr));">
+    <form class="grid_container" id="characteristics_form_id" name="characteristics_form" method="post" style="margin: 0px 250px; --grid-template-columns: repeat(3, minmax(0, 1fr));">
 
         <!-- current inspection report -->
         <label class="header_light" id="current_report_ident" style="
@@ -266,7 +266,7 @@
             <select class="select_dark" id="metadata_full_inspect_type" style="
                 --grid-column: 1;
                 --grid-row: 13;"></select>
-            <input class="number_input_dark" id="metadata_full_inspect_qty" style="
+            <input class="number_input_dark" type="number" id="metadata_full_inspect_qty" style="
                 --grid-column: 2;
                 --grid-row: 13;">
 
@@ -276,7 +276,7 @@
             <select class="select_dark" id="metadata_released_type" style="
                 --grid-column: 1;
                 --grid-row: 15;"></select>
-            <input class="number_input_dark" id="metadata_released_qty" style="
+            <input class="number_input_dark" type="number" id="metadata_released_qty" style="
                 --grid-column: 2;
                 --grid-row: 15;">
 
@@ -286,7 +286,7 @@
             <select class="select_dark" id="metadata_completed_type" style="
                 --grid-column: 1;
                 --grid-row: 17;"></select>
-            <input class="number_input_dark" id="metadata_completed_qty" style="
+            <input class="number_input_dark" type="number" id="metadata_completed_qty" style="
                 --grid-column: 2;
                 --grid-row: 17;">
         </div>
@@ -304,7 +304,7 @@
             <label class="label_over_dark" for="rn_filter" style="
                 --grid-column: 1;
                 --grid-row: 1;">Filter</label>
-            <input class="text_input_dark" id="rn_filter" style="
+            <input class="text_input_dark" type="text" id="rn_filter" style="
                 --grid-column: 1;
                 --grid-row: 2;">
 
@@ -340,7 +340,7 @@
             <label class="label_over_dark" for="po_filter" style="
                 --grid-column: 1;
                 --grid-row: 1;">Filter</label>
-            <input class="text_input_dark" id="po_filter" style="
+            <input class="text_input_dark" type="text" id="po_filter" style="
                 --grid-column: 1;
                 --grid-row: 2;">
 
@@ -372,40 +372,58 @@
     <!-- view/edit characteristic schema -->
     <div class="sidebar" id="inspection_report_characteristic_schema_sidebar">
         <form class="grid_container" id="characteristic_schema_form_id" name="characteristic_schema_form" method="post" style="--grid-template-columns: repeat(2, minmax(0, 1fr));">
+
+            <label class="label_over_dark" for="schema_list" style="
+                --grid-column: 1;
+                --grid-row: 1;">Characteristic Schemas</label>
+            <ul class="list_dark" id="schema_list" style="
+                --grid-column: 1;
+                --grid-row: 2 / 8;"></ul>
+
+            <label class="label_over_dark" for="cs_filter" style="
+                --grid-column: 2;
+                --grid-row: 1;">Characteristic Schema Filter</label>
+            <input class="text_input_dark" type="text" id="cs_filter" style="
+                --grid-column: 2;
+                --grid-row: 2;">
+
+            <button class="button_dark" id="new_char_schema" type="button" style="
+                --grid-column: 2;
+                --grid-row: 3;">New Characteristic Schema</button>
+
+            <label class="label_over_dark" style="
+                --grid-column: 2;
+                --grid-row: 4;
+                margin-top: 75px;">Current Schema Controls</label>
+
             <button class="button_dark" id="commit_schema_btn" type="button" style="
-                --grid-column: 1 / 3;
-                --grid-row: 1;">Commit Schema</button>
-
-            <button class="button_dark" id="load_schema_file_btn" type="button" style="
-                --grid-column: 1;
-                --grid-row: 2;">Load Schema CSV</button>
-
-            <button class="button_dark" id="save_schema_file_btn" type="button" style="
-                --grid-column: 1;
-                --grid-row: 3;">Save Schema CSV</button>
+                --grid-column: 2;
+                --grid-row: 5;">Apply Schema</button>
 
             <button class="button_dark" id="add_schema_row_btn" type="button" style="
                 --grid-column: 2;
-                --grid-row: 2;">Add Row</button>
+                --grid-row: 6;">Add Row</button>
 
             <button class="button_dark" id="remove_schema_row_btn" type="button" style="
                 --grid-column: 2;
-                --grid-row: 3;">Remove Row</button>
+                --grid-row: 7;">Remove Row</button>
 
             <table class="data_table_dark" id="characteristic_schema_table" style="
                 --grid-column: 1 / 3;
-                --grid-row: 4;">
+                --grid-row: 8;">
                 <thead>
                     <tr>
                         <th scope="col">Name</th>
                         <th scope="col">Nominal</th>
                         <th scope="col">USL</th>
                         <th scope="col">LSL</th>
+                        <th scope="col">Precision</th>
                         <th scope="col">Specification Type</th>
                         <th scope="col">Characteristic Type</th>
                         <th scope="col">Gauge Type</th>
                     </tr>
                 </thead>
+                <tbody></tbody>
             </table>
         </form>
     </div>

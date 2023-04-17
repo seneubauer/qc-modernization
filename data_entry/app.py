@@ -9,12 +9,15 @@ from sqlalchemy import create_engine, and_, or_, cast, String
 
 # import general dependencies
 import datetime
+import pandas as pd
 from math import isnan
+from os.path import join, isfile, splitext
+from os import listdir, remove
 
 # import confidential information
 from sys import path
 path.insert(0, "..")
-from config import pg_key, pg_db, pg_host, pg_port, pg_user
+from config import pg_key, pg_db, pg_host, pg_port, pg_user, char_schema_destination
 
 # create the sqlalchemy engine
 engine = create_engine(f"postgresql://{pg_user}:{pg_key}@{pg_host}:{pg_port}/{pg_db}", pool_pre_ping = True, echo = False)
@@ -1286,10 +1289,145 @@ def get_schema_type_lists():
             "response": "no records found"
         }
 
+@app.route("/get_filtered_char_schemas/<string:search_term>/")
+def get_filtered_char_schemas(search_term:str):
 
+    # handle the null value
+    if search_term == "__null":
+        search_term = ""
 
+    try:
+        schema_list = list(filter(lambda item:
+                                isfile(join(char_schema_destination, item))
+                                and item[-len(".csv"):].lower() == ".csv"
+                                and search_term in item, listdir(char_schema_destination)))
+    except OSError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "not_ok",
+            "response": error_msg
+        }
 
+    if len(schema_list) > 0:
+        return {
+            "status": "ok",
+            "response": [splitext(x)[0] for x in schema_list]
+        }
+    else:
+        return {
+            "status": "ok_alt",
+            "response": "no matching records found"
+        }
 
+@app.route("/save_schema_csv/<string:file_name>/", methods = ["POST"])
+def save_schema_csv(file_name:str):
+
+    # interpret the form data
+    schema_data = {
+        "name": [],
+        "nominal": [],
+        "usl": [],
+        "lsl": [],
+        "precision": [],
+        "spec_type": [],
+        "char_type": [],
+        "gauge_type": []
+    }
+
+    for k, v in request.form.items():
+        key_split = k.split("-")
+        field = str(key_split[1])
+        schema_data[field].append(v)
+
+    if not schema_data:
+        return {
+            "status": "ok_alt",
+            "response": "no data to be saved"
+        }
+
+    try:
+        pd.DataFrame(schema_data).to_csv(join("char_schema_templates", f"{file_name}.csv"), index = False)
+        return {
+            "status": "ok",
+            "response": "schema file successfully saved"
+        }
+    except Exception as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "not_ok",
+            "response": error_msg
+        }
+
+@app.route("/load_schema_from_csv/<string:file_name>/")
+def load_schema_from_csv(file_name:str):
+
+    # attach the file extension
+    file_name = f"{file_name}.csv"
+
+    try:
+        available_files = listdir(char_schema_destination)
+        if file_name in available_files:
+
+            # read the file into a dataframe
+            df = pd.read_csv(join(char_schema_destination, file_name))
+
+            # construct the output object
+            output_arr = []
+            for index, row in df.iterrows():
+                output_arr.append({
+                    "name": row["name"],
+                    "nominal": row["nominal"],
+                    "usl": row["usl"],
+                    "lsl": row["lsl"],
+                    "precision": row["precision"],
+                    "spec_type": row["spec_type"],
+                    "char_type": row["char_type"],
+                    "gauge_type": row["gauge_type"]
+                })
+
+            return {
+                "status": "ok",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_alt",
+                "response": "file not found"
+            }
+
+    except OSError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "not_ok",
+            "response": error_msg
+        }
+
+@app.route("/delete_schema/<string:file_name>/")
+def delete_schema(file_name:str):
+
+    # attach the file extension
+    file_name = f"{file_name}.csv"
+
+    try:
+        available_files = listdir(char_schema_destination)
+        if file_name in available_files:
+            remove(join(char_schema_destination, file_name))
+            return {
+                "status": "ok",
+                "response": "schema file successfully deleted"
+            }
+        else:
+            return {
+                "status": "ok_alt",
+                "response": "file not found"
+            }
+
+    except OSError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "not_ok",
+            "response": error_msg
+        }
 
 
 

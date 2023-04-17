@@ -65,8 +65,9 @@ const po_button = d3.select("#po_button");
 
 // characteristic schema
 const schema_commit = d3.select("#commit_schema_btn");
-const schema_load = d3.select("#load_schema_file_btn");
-const schema_save = d3.select("#save_schema_file_btn");
+const schema_list = d3.select("#schema_list");
+const schema_filter = d3.select("#cs_filter");
+const schema_new = d3.select("#new_char_schema");
 const schema_add = d3.select("#add_schema_row_btn");
 const schema_remove = d3.select("#remove_schema_row_btn");
 const schema_table = d3.select("#characteristic_schema_table");
@@ -172,10 +173,9 @@ function init()
     po_button.on("click", assign_purchase_order_association);
 
     // characteristic schema
+    schema_new.on("click", new_schema);
     schema_commit.on("click", commit_schema);
-    schema_load.on("click", load_schema_csv);
-    schema_save.on("click", save_schema_csv);
-    schema_add.on("click", add_schema_row);
+    schema_add.on("click", (x) => { add_schema_row([{ name: "DIM x", nominal: "1.000", usl: "1.005", lsl: "0.995", precision: 3, spec_type: "two_tailed", char_type: "diameter", gauge_type: "caliper" }])});
     schema_remove.on("click", remove_schema_row);
 
     // populate selectors
@@ -186,6 +186,9 @@ function init()
     eir_finish_before.property("value", "2100-01-01");
     meta_start_date.property("value", "1970-01-01");
     meta_finish_date.property("value", "2100-01-01");
+
+    // populate the list of characteristic schemas
+    populate_char_schema_list();
 
     // set the disabled state
     set_disabled_state(true);
@@ -541,37 +544,6 @@ function retrieve_characteristics()
                         }
                     });
 
-                // set the start cell class
-                rows.selectAll("td")
-                    .filter((x) => {
-                        if (x.column.key == "name") {
-                            return true;
-                        }
-                    })
-                    .attr("class", "data_table_start_cell");
-
-                // set the end cell class
-                rows.selectAll("td")
-                    .filter((x) => {
-                        let index = char_table_columns.slice().filter((c) => {
-                            return c[key];
-                        }).reverse()[0].key;
-                        if (x.column.key == index) {
-                            return true;
-                        }
-                    })
-                    .attr("class", "data_table_end_cell")
-                    .selectAll((x) => {
-                        console.log(x);
-                        if (x.column.ctl_type == "label" || x.column.ctl_type == "input") {
-                            return "input";
-                        }
-                        else if (x.column.ctl_type == "dropdown") {
-                            return "select";
-                        }
-                    })
-                    .style("border-radius", "6px 0px 0px 6px");
-
                 // assign label values to cells
                 cells.filter((x) => {
                         if (x.row.ctl_type == "label") {
@@ -646,6 +618,31 @@ function retrieve_characteristics()
                     .selectAll("select")
                     .property("value", (x) => x.row.value)
                     .attr("name", (x) => `${x.row.index}-${x.column.key}`);
+
+                // set the start cell class
+                rows.selectAll("td")
+                    .filter((x) => {
+                        if (x.column.key == "name") {
+                            return true;
+                        }
+                    })
+                    .attr("class", "data_table_start_cell")
+                    .selectAll("input")
+                    .style("border-radius", "6px 0px 0px 6px");
+
+                // set the end cell class
+                rows.selectAll("td")
+                    .filter((x) => {
+                        let index = char_table_columns.slice().filter((c) => {
+                            return c[key];
+                        }).reverse()[0].key;
+                        if (x.column.key == index) {
+                            return true;
+                        }
+                    })
+                    .attr("class", "data_table_end_cell")
+                    .selectAll("*")
+                    .style("border-radius", "0px 6px 6px 0px");
             }
             else if (returned_object.status == "ok_alt") {
                 alert(returned_object.response);
@@ -815,6 +812,8 @@ function update_existing_inspection_reports()
                 .append("td")
                 .insert("input")
                 .attr("class", "table_input_dark")
+                .style("cursor", "pointer")
+                .attr("readonly", true)
                 .attr("value", (x) => x.value);
 
             // set the start cell class
@@ -1124,37 +1123,144 @@ function remove_purchase_order_association(pointer, data)
 
 // #region characteristic schema
 
+function populate_char_schema_list()
+{
+    // get the input parameters
+    let filter = schema_filter.property("value");
+    
+    // handle null value
+    if (filter == "") {
+        filter = "__null";
+    }
+
+    // build the route
+    let route = `/get_filtered_char_schemas/${filter}/`;
+
+    // query the flask server
+    d3.json(route).then((returned_object) => {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // populate the list
+            populate_item_list(schema_list, dataset);
+        }
+        else if (returned_object.status == "ok_alt") {
+            alert(returned_object.response);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
+function new_schema()
+{
+    let dataset = ["schema_itemnumber_drawing_revision"]
+    let current_data = schema_list.selectAll("li").data();
+    if (current_data.length > 0) {
+        dataset = current_data.concat(dataset);
+    }
+
+    // repopulate the list
+    populate_item_list(schema_list, dataset);
+}
+
+function load_schema_csv(file_name)
+{
+    // build the route
+    let route = `/load_schema_from_csv/${file_name}/`;
+
+    // query the flask server
+    d3.json(route).then((returned_object) => {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // remove the previous rows
+            schema_table.select("tbody").selectAll("tr").remove();
+
+            // repopulate the table
+            add_schema_row(dataset);
+        }
+        else if (returned_object.status == "ok_alt") {
+            alert(returned_object.response);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
+function save_schema_csv(file_name)
+{
+    let my_form = document.querySelector("#characteristic_schema_form_id");
+    let form_data = new FormData(my_form);
+    fetch(`/save_schema_csv/${file_name}/`, {
+        method: "POST",
+        body: form_data
+    }).then((response) => {
+        if (response.ok) {
+            return response.json();
+        }
+        else {
+            throw new Error("Server response wasn't cool");
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+            alert(`Records Affected: ${json.response.rows_affected}`);
+        }
+        else {
+            alert(json.response);
+        }
+    });
+}
+
+function delete_schema_csv(file_name, id)
+{
+    // build the route
+    let route = `/delete_schema/${file_name}/`;
+
+    // query the flask server
+    d3.json(route).then((returned_object) => {
+        if (returned_object.status == "ok") {
+            schema_list.select("#div-id-" + id).remove();
+            alert(returned_object.response);
+        }
+        else if (returned_object.status == "ok_alt") {
+            alert(returned_object.response);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
 function commit_schema()
 {
 
 }
 
-function load_schema_csv()
+function add_schema_row(dataset)
 {
+    let current_data = schema_table.selectAll("tbody").selectAll("tr").data();
+    if (current_data.length > 0) {
+        dataset = current_data.concat(dataset);
+    }
+    schema_table.select("tbody").selectAll("tr").remove();
 
-}
-
-function save_schema_csv()
-{
-
-}
-
-function add_schema_row()
-{
-    let initial_data = [
-        { name: "DIM x", nominal: "1.000", usl: "1.005", lsl: "0.995", spec_type: "two_tailed", char_type: "diameter", gauge_type: "caliper" }
-    ];
-
-    let rows = schema_table.append("tbody")
+    let rows = schema_table.select("tbody")
         .selectAll("tr")
-        .data(initial_data)
+        .data(dataset)
         .enter()
         .append("tr");
 
     let cells = rows.selectAll("td")
-        .data((r) => {
-            return ["name", "nominal", "usl", "lsl", "spec_type", "char_type", "gauge_type"].map((c) => {
-                return { col: c, value: r[c] };
+        .data((r, i) => {
+            return ["name", "nominal", "usl", "lsl", "precision", "spec_type", "char_type", "gauge_type"].map((c) => {
+                return { col: c, value: r[c], index: i };
             });
         })
         .enter()
@@ -1162,13 +1268,14 @@ function add_schema_row()
 
     // numerical inputs
     cells.filter((x) => {
-            if (x.col == "nominal" || x.col == "usl" || x.col == "lsl") {
+            if (x.col == "nominal" || x.col == "usl" || x.col == "lsl" || x.col == "precision") {
                 return true;
             }
         })
         .insert("input")
         .attr("class", "table_input_dark")
         .attr("type", "number")
+        .attr("name", (x) => `${x.index}-${x.col}`)
         .attr("value", (x) => x.value);
 
     // text inputs
@@ -1180,7 +1287,9 @@ function add_schema_row()
         .insert("input")
         .attr("class", "table_input_dark")
         .attr("type", "text")
-        .attr("value", (x) => x.value);
+        .attr("value", (x) => x.value)
+        .attr("name", (x) => `${x.index}-${x.col}`)
+        .style("border-radius", "6px 0px 0px 6px");
 
     // specification types
     d3.json("/get_schema_type_lists/").then((returned_object) => {
@@ -1192,7 +1301,7 @@ function add_schema_row()
             let char_types_list = dataset.char_types;
             let gauge_types_list = dataset.gauge_types;
 
-            // populate the specifycation types
+            // populate the specification types
             cells.filter((x) => {
                     if (x.col == "spec_type") {
                         return true;
@@ -1200,6 +1309,7 @@ function add_schema_row()
                 })
                 .insert("select")
                 .attr("class", "table_select_dark")
+                .attr("name", (x) => `${x.index}-${x.col}`)
                 .selectAll("option")
                 .data(spec_types_list)
                 .enter()
@@ -1222,6 +1332,7 @@ function add_schema_row()
                 })
                 .insert("select")
                 .attr("class", "table_select_dark")
+                .attr("name", (x) => `${x.index}-${x.col}`)
                 .selectAll("option")
                 .data(char_types_list)
                 .enter()
@@ -1244,6 +1355,7 @@ function add_schema_row()
                 })
                 .insert("select")
                 .attr("class", "table_select_dark")
+                .attr("name", (x) => `${x.index}-${x.col}`)
                 .selectAll("option")
                 .data(gauge_types_list)
                 .enter()
@@ -1256,7 +1368,8 @@ function add_schema_row()
                     }
                 })
                 .selectAll("select")
-                .property("value", (x) => x.value);
+                .property("value", (x) => x.value)
+                .style("border-radius", "0px 6px 6px 0px");
         }
         else if (returned_object.status == "ok_alt") {
             alert(returned_object.response);
@@ -1279,16 +1392,11 @@ function add_schema_row()
             }
         })
         .attr("class", "data_table_end_cell");
-    
-    
 }
 
 function remove_schema_row()
 {
-    let rows_data = schema_table.selectAll("tbody").selectAll("tr").data();
-    rows_data.pop();
-
-    console.log(rows_data);
+    schema_table.select("tbody").select("tr:last-child").remove();
 }
 
 // #endregion
@@ -1334,6 +1442,54 @@ function populate_association_list(list_container, dataset, direction)
                 break;
         }
     }
+}
+
+function populate_item_list(list_container, dataset)
+{
+    // remove previous data
+    list_container.selectAll("li").remove();
+
+    // populate the list
+    let items = list_container.selectAll("li")
+        .data(dataset)
+        .enter()
+        .append("li")
+        .append("div")
+        .attr("id", (x) => "div-id-" + x)
+        .attr("class", "grid_container_item")
+        .style("--grid-template-columns", "3fr 1fr 1fr 1fr");
+
+    items.append("input")
+        .style("--grid-column", "1")
+        .style("--grid-row", "1")
+        .style("border-radius", "6px 0px 0px 6px")
+        .style("text-align", "left")
+        .attr("class", "table_input_dark")
+        .attr("id", (x) => `input-${x}`)
+        .attr("value", (x) => x);
+    
+    items.append("button")
+        .style("--grid-column", "2")
+        .style("--grid-row", "1")
+        .style("border-radius", "0px")
+        .attr("type", "button")
+        .text("Load")
+        .on("click", (pointer, data) => { load_schema_csv(d3.select("#input-" + data).property("value")); })
+
+    items.append("button")
+        .style("--grid-column", "2")
+        .style("--grid-row", "1")
+        .style("border-radius", "0px")
+        .attr("type", "button")
+        .text("Save")
+        .on("click", (pointer, data) => { save_schema_csv(d3.select("#input-" + data).property("value")); })
+
+    items.append("button")
+        .style("--grid-column", "2")
+        .style("--grid-row", "1")
+        .attr("type", "button")
+        .text("Delete")
+        .on("click", (pointer, data) => { delete_schema_csv(d3.select("#input-" + data).property("value"), data); })
 }
 
 // #endregion

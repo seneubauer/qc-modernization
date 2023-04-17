@@ -428,6 +428,10 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     background-color: hsl(0, 50%, 60%);
 }
 
+.table_input_light:focus-within {
+    background-color: hsl(0, 50%, 60%);
+}
+
 .table_select_light {
     appearance: none;
     background-color: transparent;
@@ -445,6 +449,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 }
 
 .table_select_light:focus-within {
+    background-color: hsl(0, 50%, 60%);
     outline: none;
 }
 
@@ -481,6 +486,10 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     background-color: hsl(0, 50%, 60%);
 }
 
+.table_input_dark:focus-within {
+    background-color: hsl(0, 50%, 60%);
+}
+
 .table_select_dark {
     appearance: none;
     background-color: transparent;
@@ -498,6 +507,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 }
 
 .table_select_dark:focus-within {
+    background-color: hsl(0, 50%, 60%);
     outline: none;
 }
 

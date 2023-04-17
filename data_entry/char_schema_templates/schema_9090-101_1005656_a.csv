@@ -1,0 +1,9 @@
+﻿name,nominal,usl,lsl,precision,spec_type,char_type,gauge_type
+DIM 1,2,2.005,1.995,3,two_tailed,diameter,caliper
+DIM 2,1.5,1.502,1.498,3,two_tailed,distance,caliper
+DIM 3,3,3.01,2.99,2,two_tailed,radius,vision_system
+DIM 4,0,0.005,0,0,upper_tailed,position,hexagon_cmm
+DIM 5,35,36,34,0,two_tailed,angle,hexagon_cmm
+DIM 6,0.55,0.551,0.549,3,two_tailed,distance,hexagon_cmm
+DIM 7,0.25,0.251,0.249,3,two_tailed,distance,hexagon_cmm
+DIM 8,2,2.005,1.995,3,two_tailed,diameter,indicator
