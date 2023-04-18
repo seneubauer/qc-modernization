@@ -23,6 +23,9 @@ const char_table = d3.select("#char_table");
 // report controls
 const ctl_new_report = d3.select("#new_report_btn");
 const ctl_save_report = d3.select("#save_report_btn");
+const ctl_item_number = d3.select("#select_new_item");
+const ctl_drawing = d3.select("#select_new_drawing");
+const ctl_revision = d3.select("#input_new_revision");
 const ctl_display_type = d3.select("#select_display_type");
 
 // existing inspection report controls
@@ -127,6 +130,7 @@ function init()
     });
 
     // report controls
+    ctl_new_report.on("click", create_new_inspection_report);
     ctl_save_report.on("click", submit_characteristics);
     ctl_display_type.on("change", retrieve_characteristics);
 
@@ -201,7 +205,7 @@ function set_disabled_state(is_disabled)
     sidebar_btn_metadata.property("disabled", is_disabled);
     sidebar_btn_receiver.property("disabled", is_disabled);
     sidebar_btn_purchase.property("disabled", is_disabled);
-    sidebar_btn_charschema.property("disabled", is_disabled);
+    schema_commit.property("disabled", is_disabled);
 
     // metadata
     meta_inspector_id.property("disabled", is_disabled);
@@ -222,6 +226,7 @@ function set_disabled_state(is_disabled)
     meta_completed_qty.property("disabled", is_disabled);
 }
 
+// populate the generic selectors
 function populate_selectors()
 {
     // inspector id
@@ -269,12 +274,20 @@ function populate_selectors()
             // extract the requested data
             let dataset = returned_object.response;
 
-            // populate the selector
+            // populate the selectors
             meta_item_number.selectAll("option")
                 .data(dataset)
                 .enter()
                 .append("option")
                 .text((x) => x.item);
+            ctl_item_number.selectAll("option")
+                .data(dataset)
+                .enter()
+                .append("option")
+                .text((x) => x.item);
+        }
+        else if (returned_object.status == "ok_alt") {
+            alert(returned_object.response);
         }
         else {
             console.log(returned_object.response);
@@ -294,6 +307,14 @@ function populate_selectors()
                 .enter()
                 .append("option")
                 .text((x) => x.item);
+            ctl_drawing.selectAll("option")
+                .data(dataset)
+                .enter()
+                .append("option")
+                .text((x) => x.item);
+        }
+        else if (returned_object.status == "ok_alt") {
+            alert(returned_object.response);
         }
         else {
             console.log(returned_object.response);
@@ -660,24 +681,38 @@ function submit_characteristics()
     let report_id = meta_report_id.property("data-meta");
     let my_form = document.querySelector("#characteristics_form_id");
     let form_data = new FormData(my_form);
-    fetch(`/commit_characteristic_data/${report_id}/`, {
-        method: "POST",
-        body: form_data
-    }).then((response) => {
-        if (response.ok) {
-            return response.json();
-        }
-        else {
-            throw new Error("Server response wasn't cool");
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-            alert(`Records Affected: ${json.response.rows_affected}`);
-        }
-        else {
-            alert(json.response);
-        }
-    });
+
+    // handle null report id
+    if (report_id == "") {
+        report_id = -1;
+    }
+
+    if (char_table.select("tbody").selectAll("tr").data().length > 0) {
+        fetch(`/commit_characteristic_data/${report_id}/`, {
+            method: "POST",
+            body: form_data
+        }).then((response) => {
+            if (response.ok) {
+                return response.json();
+            }
+            else {
+                throw new Error("Server response wasn't cool");
+            }
+        }).then((json) => {
+            if (json.status == "ok") {
+                alert(`Records Affected: ${json.response.rows_affected}`);
+            }
+            else if (json.status == "ok_alt") {
+                alert(json.response);
+            }
+            else {
+                alert(json.response);
+            }
+        });
+    }
+    else {
+        alert("No data to be sent")
+    }
 }
 
 // #endregion
@@ -939,6 +974,7 @@ function drawing_changed()
 
 // #region receiver numbers
 
+// populate the receiver number list
 function populate_receiver_numbers(report_id = -1)
 {
     // get the input parameters
@@ -971,6 +1007,7 @@ function populate_receiver_numbers(report_id = -1)
     });
 }
 
+// assign a new receiver number association
 function assign_receiver_number_association()
 {
     // get the input parameters
@@ -999,6 +1036,7 @@ function assign_receiver_number_association()
     });
 }
 
+// remove the selected receiver number association
 function remove_receiver_number_association(pointer, data)
 {
     // get the input arguments
@@ -1031,6 +1069,7 @@ function remove_receiver_number_association(pointer, data)
 
 // #region purchase orders
 
+// populate the purchase orders list
 function populate_purchase_orders(report_id = -1)
 {
     // get the input parameters
@@ -1063,6 +1102,7 @@ function populate_purchase_orders(report_id = -1)
     });
 }
 
+// assign a new purchase order association
 function assign_purchase_order_association()
 {
     // get the input parameters
@@ -1091,6 +1131,7 @@ function assign_purchase_order_association()
     });
 }
 
+// remove the selected purchase order association
 function remove_purchase_order_association(pointer, data)
 {
     // get the input arguments
@@ -1121,8 +1162,9 @@ function remove_purchase_order_association(pointer, data)
 
 // #endregion
 
-// #region characteristic schema
+// #region characteristic schemas
 
+// populate the characteristic schema list
 function populate_char_schema_list()
 {
     // get the input parameters
@@ -1155,6 +1197,7 @@ function populate_char_schema_list()
     });
 }
 
+// create a new characteristic schema
 function new_schema()
 {
     let dataset = ["schema_itemnumber_drawing_revision"]
@@ -1167,6 +1210,7 @@ function new_schema()
     populate_item_list(schema_list, dataset);
 }
 
+// load the selected schema file
 function load_schema_csv(file_name)
 {
     // build the route
@@ -1194,6 +1238,7 @@ function load_schema_csv(file_name)
     });
 }
 
+// save the current characteristic schema to the selected name
 function save_schema_csv(file_name)
 {
     let my_form = document.querySelector("#characteristic_schema_form_id");
@@ -1218,6 +1263,7 @@ function save_schema_csv(file_name)
     });
 }
 
+// delete a schema file and list entry
 function delete_schema_csv(file_name, id)
 {
     // build the route
@@ -1230,6 +1276,7 @@ function delete_schema_csv(file_name, id)
             alert(returned_object.response);
         }
         else if (returned_object.status == "ok_alt") {
+            schema_list.select("#div-id-" + id).remove();
             alert(returned_object.response);
         }
         else {
@@ -1238,11 +1285,44 @@ function delete_schema_csv(file_name, id)
     });
 }
 
+// send the current characteristic schema to the current inspection report
 function commit_schema()
 {
+    // get the data
+    let my_form = document.querySelector("#characteristic_schema_form_id");
+    let form_data = new FormData(my_form);
 
+    // build the route
+    let item = meta_item_number.property("value");
+    let drawing = meta_drawing.property("value");
+    let revision = meta_revision.property("value");
+    let route = `/commit_new_characteristic_schema/${item}/${drawing}/${revision}/`;
+
+    // send the POST
+    fetch(route, {
+        method: "POST",
+        body: form_data
+    }).then((response) => {
+        if (response.ok) {
+            return response.json();
+        }
+        else {
+            throw new Error("Server response wasn't cool");
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+            console.log(json.response);
+        }
+        else if (json.status == "ok_alt") {
+            alert(json.response);
+        }
+        else {
+            console.log(json.response);
+        }
+    });
 }
 
+// add a new row to the current characteristic schema
 function add_schema_row(dataset)
 {
     let current_data = schema_table.selectAll("tbody").selectAll("tr").data();
@@ -1394,9 +1474,47 @@ function add_schema_row(dataset)
         .attr("class", "data_table_end_cell");
 }
 
+// remove the last row from the current characteristic schema
 function remove_schema_row()
 {
     schema_table.select("tbody").select("tr:last-child").remove();
+}
+
+// #endregion
+
+// #region report controls
+
+function create_new_inspection_report()
+{
+    // get the new values
+    let item = ctl_item_number.property("value");
+    let drawing = ctl_drawing.property("value");
+    let revision = ctl_revision.property("value");
+
+    // handle null values
+    if (revision == "") {
+        revision = "__null";
+    }
+
+    // build the route
+    let route = `/create_new_inspection_report/${item}/${drawing}/${revision}/`;
+
+    // query the flask server
+    d3.json(route).then((returned_object) => {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            console.log(dataset);
+        }
+        else if (returned_object.status == "ok_alt") {
+            alert(returned_object.response);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
 }
 
 // #endregion
@@ -1444,6 +1562,7 @@ function populate_association_list(list_container, dataset, direction)
     }
 }
 
+// populate an item list
 function populate_item_list(list_container, dataset)
 {
     // remove previous data

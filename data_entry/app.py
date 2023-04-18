@@ -606,6 +606,9 @@ def get_all_purchase_orders():
 @app.route("/get_drawing_from_item_number/<string:item_number>/")
 def get_drawing_from_item_number(item_number:str):
 
+    # enforce lower case
+    item_number = item_number.lower()
+
     try:
 
         # open the database session
@@ -638,6 +641,9 @@ def get_drawing_from_item_number(item_number:str):
 
 @app.route("/get_item_number_from_drawing/<string:drawing>/")
 def get_item_number_from_drawing(drawing:str):
+
+    # enforce lower case
+    drawing = drawing.lower()
 
     try:
 
@@ -679,6 +685,10 @@ def get_filtered_inspection_reports(item_number:str, drawing:str, start_day:int,
         item_number = ""
     if drawing == "__null":
         drawing = ""
+
+    # enforce lower case
+    item_number = item_number.lower()
+    drawing = drawing.lower()
 
     # define the required fields
     columns = [
@@ -733,7 +743,7 @@ def get_filtered_inspection_reports(item_number:str, drawing:str, start_day:int,
                 "disposition": disposition,
                 "item": item,
                 "drawing": drawing,
-                "revision": revision,
+                "revision": revision.upper(),
                 "job_order_id": job_order_id,
                 "material_type_id": material_type_id,
                 "supplier_id": supplier_id,
@@ -770,6 +780,9 @@ def get_filtered_receiver_numbers(report_id:int, filter:str):
     # convert the incoming filter if needed
     if filter == "__null":
         filter = ""
+
+    # enforce lower case
+    filter = filter.lower()
 
     try:
 
@@ -816,6 +829,9 @@ def get_filtered_receiver_numbers(report_id:int, filter:str):
 @app.route("/assign_receiver_number_association/<int:report_id>/<string:receiver_number>/")
 def assign_receiver_number_association(report_id:int, receiver_number:str):
 
+    # enforce lower case
+    receiver_number = receiver_number.lower()
+
     try:
 
         # open the database session
@@ -851,6 +867,9 @@ def assign_receiver_number_association(report_id:int, receiver_number:str):
 
 @app.route("/remove_receiver_number_association/<int:report_id>/<string:receiver_number>/")
 def remove_receiver_number_association(report_id:int, receiver_number:str):
+
+    # enforce lower case
+    receiver_number = receiver_number.lower()
 
     try:
 
@@ -890,6 +909,9 @@ def get_filtered_purchase_orders(report_id:int, filter:str):
     # convert the incoming filter if needed
     if filter == "__null":
         filter = ""
+
+    # enforce lower case
+    filter = filter.lower()
 
     try:
     
@@ -936,6 +958,9 @@ def get_filtered_purchase_orders(report_id:int, filter:str):
 @app.route("/assign_purchase_order_association/<int:report_id>/<string:purchase_order>/")
 def assign_purchase_order_association(report_id:int, purchase_order:str):
 
+    # enforce lower case
+    purchase_order = purchase_order.lower()
+
     try:
 
         # open the database session
@@ -972,6 +997,9 @@ def assign_purchase_order_association(report_id:int, purchase_order:str):
 @app.route("/remove_purchase_order_association/<int:report_id>/<string:receiver_number>/")
 def remove_purchase_order_association(report_id:int, receiver_number:str):
 
+    # enforce lower case
+    receiver_number = receiver_number.lower()
+
     try:
 
         # open the database session
@@ -1006,6 +1034,13 @@ def remove_purchase_order_association(report_id:int, receiver_number:str):
 
 @app.route("/get_inspection_report_filtered_characteristics/<int:report_id>/<string:name>/<string:gauge_id>/<string:gauge_type>/<string:spec_type>/<string:char_type>/<int:inspector_id>/")
 def get_inspection_report_filtered_characteristics(report_id:int, name:str, gauge_id:str, gauge_type:str, spec_type:str, char_type:str, inspector_id:int):
+
+    # enforce lower case
+    name = name.lower()
+    gauge_id = gauge_id.lower()
+    gauge_type = gauge_type.lower()
+    spec_type = spec_type.lower()
+    char_type = char_type.lower()
 
     # condition the arguments
     if name == "__null":
@@ -1148,6 +1183,13 @@ def get_inspection_report_filtered_characteristics(report_id:int, name:str, gaug
 
 @app.route("/commit_characteristic_data/<int:report_id>/", methods = ["POST"])
 def commit_characteristic_data(report_id:int):
+
+    # handle a null report id
+    if report_id == -1:
+        return {
+            "status": "ok_alt",
+            "response": "report id is null"
+        }
 
     # store raw incoming data into new list
     char_data = {}
@@ -1296,6 +1338,9 @@ def get_filtered_char_schemas(search_term:str):
     if search_term == "__null":
         search_term = ""
 
+    # enforce lower case
+    search_term = search_term.lower()
+
     try:
         schema_list = list(filter(lambda item:
                                 isfile(join(char_schema_destination, item))
@@ -1321,6 +1366,9 @@ def get_filtered_char_schemas(search_term:str):
 
 @app.route("/save_schema_csv/<string:file_name>/", methods = ["POST"])
 def save_schema_csv(file_name:str):
+
+    # enforce lower case
+    file_name = file_name.lower()
 
     # interpret the form data
     schema_data = {
@@ -1362,7 +1410,7 @@ def save_schema_csv(file_name:str):
 def load_schema_from_csv(file_name:str):
 
     # attach the file extension
-    file_name = f"{file_name}.csv"
+    file_name = f"{file_name}.csv".lower()
 
     try:
         available_files = listdir(char_schema_destination)
@@ -1406,7 +1454,7 @@ def load_schema_from_csv(file_name:str):
 def delete_schema(file_name:str):
 
     # attach the file extension
-    file_name = f"{file_name}.csv"
+    file_name = f"{file_name}.csv".lower()
 
     try:
         available_files = listdir(char_schema_destination)
@@ -1429,12 +1477,93 @@ def delete_schema(file_name:str):
             "response": error_msg
         }
 
+@app.route("/commit_new_characteristic_schema/<string:item>/<string:drawing>/<string:revision>/", methods = ["POST"])
+def commit_new_characteristic_schema(item:str, drawing:str, revision:str):
+
+    # enforce lower case
+    item = item.lower()
+    drawing = drawing.lower()
+    revision = revision.lower()
+
+    # interpret the form data
+    schema_data = {
+        "name": [],
+        "nominal": [],
+        "usl": [],
+        "lsl": [],
+        "precision": [],
+        "spec_type": [],
+        "char_type": [],
+        "gauge_type": []
+    }
+
+    for k, v in request.form.items():
+        key_split = k.split("-")
+        field = str(key_split[1])
+        schema_data[field].append(v)
+
+    print(schema_data)
 
 
 
 
+    return {
+        "status": "ok",
+        "response": "hello world"
+    }
 
+@app.route("/create_new_inspection_report/<string:item>/<string:drawing>/<string:revision>/")
+def create_new_inspection_report(item:str, drawing:str, revision:str):
 
+    # handle null values
+    if revision == "__null":
+        return {
+            "status": "ok_alt",
+            "response": "revision must be defined"
+        }
+    
+    # enforce lower case
+    item = item.lower()
+    drawing = drawing.lower()
+    revision = revision.lower()
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # make sure the inputs exist in the database
+        results = session.query(parts.id)\
+            .filter(parts.item == item)\
+            .filter(parts.drawing == drawing)\
+            .filter(parts.revision == revision).first()
+
+        if results is None:
+            return {
+                "status": "ok_alt",
+                "resposne": f"referenced part ({item}, {drawing}, {revision}) does not exist in the database"
+            }
+
+        # get the integer list of inspection report ids
+        results = session.query(inspection_reports.id).order_by(inspection_reports.id.asc()).all()
+        print(results)
+
+        
+
+        # close the database session
+        session.close()
+
+        return {
+            "status": "ok",
+            "response": "None"
+        }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "not_ok",
+            "response": error_msg
+        }
 
 
 
