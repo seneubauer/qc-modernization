@@ -5,7 +5,7 @@ from flask import Flask, render_template, request
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, and_, or_, cast, String
+from sqlalchemy import create_engine, and_, or_, func
 
 # import general dependencies
 import datetime
@@ -96,7 +96,7 @@ def get_all_gauge_ids():
     else:
         return {
             "status": "ok_alt",
-            "response": "no records found"
+            "response": "no records found in 'gauges'"
         }
 
 @app.route("/get_all_gauge_type_ids/")
@@ -134,7 +134,7 @@ def get_all_gauge_type_ids():
     else:
         return {
             "status": "ok_alt",
-            "response": "no records found"
+            "response": "no records found in 'gauge_types'"
         }
 
 @app.route("/get_all_specification_types/")
@@ -172,7 +172,7 @@ def get_all_specification_types():
     else:
         return {
             "status": "ok_alt",
-            "response": "no records found"
+            "response": "no records found in 'specification_types'"
         }
 
 @app.route("/get_all_characteristic_types/")
@@ -210,7 +210,7 @@ def get_all_characteristic_types():
     else:
         return {
             "status": "ok_alt",
-            "response": "no records found"
+            "response": "no records found in 'characteristic_types'"
         }
 
 @app.route("/get_all_employee_ids/")
@@ -249,7 +249,7 @@ def get_all_employees_ids():
     else:
         return {
             "status": "ok_alt",
-            "response": "no records found"
+            "response": "no records found in 'employees'"
         }
 
 @app.route("/get_all_disposition_types/")
@@ -288,7 +288,7 @@ def get_all_disposition_types():
     else:
         return {
             "status": "ok_alt",
-            "response": "no records found"
+            "response": "no records found in 'disposition_types'"
         }
 
 @app.route("/get_all_item_numbers/")
@@ -315,6 +315,7 @@ def get_all_item_numbers():
     # return the results
     if len(results) > 0:
         output_arr = []
+        results = list(set(results))
         for id in results:
             output_arr.append({
                 "item": id[0]
@@ -327,7 +328,7 @@ def get_all_item_numbers():
     else:
         return {
             "status": "ok_alt",
-            "response": "no records found"
+            "response": "no records found in 'parts'"
         }
 
 @app.route("/get_all_drawings/")
@@ -354,6 +355,7 @@ def get_all_drawings():
     # return the results
     if len(results) > 0:
         output_arr = []
+        results = list(set(results))
         for id in results:
             output_arr.append({
                 "item": id[0]
@@ -366,7 +368,7 @@ def get_all_drawings():
     else:
         return {
             "status": "ok_alt",
-            "response": "no records found"
+            "response": "no records found in 'parts'"
         }
 
 @app.route("/get_all_job_order_ids/")
@@ -405,7 +407,7 @@ def get_all_job_order_ids():
     else:
         return {
             "status": "ok_alt",
-            "response": "no records found"
+            "response": "no records found in 'job_orders'"
         }
 
 @app.route("/get_all_material_types/")
@@ -444,7 +446,7 @@ def get_all_material_types():
     else:
         return {
             "status": "ok_alt",
-            "response": "no records found"
+            "response": "no records found in 'material_types'"
         }
 
 @app.route("/get_all_suppliers/")
@@ -483,7 +485,7 @@ def get_all_suppliers():
     else:
         return {
             "status": "ok_alt",
-            "response": "no records found"
+            "response": "no records found in 'suppliers'"
         }
 
 @app.route("/get_all_quantity_types/")
@@ -522,7 +524,7 @@ def get_all_quantity_types():
     else:
         return {
             "status": "ok_alt",
-            "response": "no records found"
+            "response": "no records found in 'quantity_types'"
         }
 
 @app.route("/get_all_receiver_numbers/")
@@ -561,7 +563,7 @@ def get_all_receiver_numbers():
     else:
         return {
             "status": "ok_alt",
-            "response": "no records found"
+            "response": "no record found in 'receiver_numbers'"
         }
 
 @app.route("/get_all_purchase_orders/")
@@ -600,7 +602,7 @@ def get_all_purchase_orders():
     else:
         return {
             "status": "ok_alt",
-            "response": "no records found"
+            "response": "no records found in 'purchase_orders'"
         }
 
 @app.route("/get_drawing_from_item_number/<string:item_number>/")
@@ -615,28 +617,37 @@ def get_drawing_from_item_number(item_number:str):
         session = Session(engine)
 
         # query the database
-        result = session.query(parts.drawing).filter(parts.item == item_number).first()
+        results = session.query(parts.drawing, parts.revision).filter(func.lower(parts.item) == item_number).all()
 
         # close the session
         session.close()
+
+        # return the result
+        if len(results) > 0:
+            print(results)
+            drawing = results[0][0]
+            rev_arr = []
+            for drawing, revision in results:
+                rev_arr.append(revision.upper())
+
+            return {
+                "status": "ok",
+                "response": {
+                    "drawing": drawing,
+                    "revisions": rev_arr
+                }
+            }
+        else:
+            return {
+                "status": "ok_alt",
+                "response": "no matching records found in 'parts'"
+            }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
             "status": "not_ok",
             "response": error_msg
-        }
-
-    # return the result
-    if result is not None:
-        return {
-            "status": "ok",
-            "response": result[0]
-        }
-    else:
-        return {
-            "status": "ok_alt",
-            "response": "no matching records found"
         }
 
 @app.route("/get_item_number_from_drawing/<string:drawing>/")
@@ -651,28 +662,36 @@ def get_item_number_from_drawing(drawing:str):
         session = Session(engine)
 
         # query the database
-        result = session.query(parts.item).filter(parts.drawing == drawing).first()
+        results = session.query(parts.item, parts.revision).filter(func.lower(parts.drawing) == drawing).all()
 
         # close the session
         session.close()
+
+        # return the result
+        if len(results) > 0:
+            item = results[0][0]
+            rev_arr = []
+            for item, revision in results:
+                rev_arr.append(revision.upper())
+
+            return {
+                "status": "ok",
+                "response": {
+                    "item_number": item,
+                    "revisions": rev_arr
+                }
+            }
+        else:
+            return {
+                "status": "ok_alt",
+                "response": "no matching records found in 'parts'"
+            }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
             "status": "not_ok",
             "response": error_msg
-        }
-
-    # return the result
-    if result is not None:
-        return {
-            "status": "ok",
-            "response": result[0]
-        }
-    else:
-        return {
-            "status": "ok_alt",
-            "response": "no matching records found"
         }
 
 @app.route("/get_filtered_inspection_reports/<string:item_number>/<string:drawing>/<int:start_day>/<int:start_month>/<int:start_year>/<int:finish_day>/<int:finish_month>/<int:finish_year>/")
@@ -695,6 +714,7 @@ def get_filtered_inspection_reports(item_number:str, drawing:str, start_day:int,
         inspection_reports.id,
         inspection_reports.employee_id,
         inspection_reports.disposition,
+        parts.id,
         parts.item,
         parts.drawing,
         parts.revision,
@@ -718,9 +738,10 @@ def get_filtered_inspection_reports(item_number:str, drawing:str, start_day:int,
 
         # query the database
         results = session.query(*columns).join(inspection_reports, (inspection_reports.part_id == parts.id))\
-            .filter(and_(inspection_reports.day_started >= started_after, inspection_reports.day_finished <= finished_before))\
-            .filter(parts.item.like(f"%{item_number}%"))\
-            .filter(parts.drawing.like(f"%{drawing}%"))\
+            .filter(inspection_reports.day_started >= started_after)\
+            .filter(or_(inspection_reports.day_finished <= finished_before, inspection_reports.day_finished == None))\
+            .filter(parts.item.ilike(f"%{item_number}%"))\
+            .filter(parts.drawing.ilike(f"%{drawing}%"))\
             .order_by(parts.drawing.asc()).all()
 
         # close the database session
@@ -736,9 +757,22 @@ def get_filtered_inspection_reports(item_number:str, drawing:str, start_day:int,
     # return the results
     if len(results) > 0:
         output_arr = []
-        for report_id, employee_id, disposition, item, drawing, revision, job_order_id, material_type_id, supplier_id, day_started, day_finished, full_inspect_type, full_inspect_qty, released_type, released_qty, completed_type, completed_qty in results:
+        for report_id, employee_id, disposition, part_id, item, drawing, revision, job_order_id, material_type_id, supplier_id, day_started, day_finished, full_inspect_type, full_inspect_qty, released_type, released_qty, completed_type, completed_qty in results:
+
+            output_day_started = f"{day_started.month:02}/{day_started.day:02}/{day_started.year:04}"
+            output_day_started_js = f"{day_started.year:04}-{day_started.month:02}-{day_started.day:02}"
+            output_day_finished = ""
+            output_day_finished_js = ""
+            if day_finished is None:
+                output_day_finished = "n/a"
+                output_day_finished_js = None
+            else:
+                output_day_finished = f"{day_finished.month:02}/{day_finished.day:02}/{day_finished.year:04}"
+                output_day_finished_js = f"{day_finished.year:04}-{day_finished.month:02}-{day_finished.day:02}"
+
             output_arr.append({
                 "report_id": report_id,
+                "part_id": part_id,
                 "employee_id": employee_id,
                 "disposition": disposition,
                 "item": item,
@@ -747,10 +781,10 @@ def get_filtered_inspection_reports(item_number:str, drawing:str, start_day:int,
                 "job_order_id": job_order_id,
                 "material_type_id": material_type_id,
                 "supplier_id": supplier_id,
-                "day_started": f"{day_started.month:02}/{day_started.day:02}/{day_started.year:04}",
-                "day_finished": f"{day_finished.month:02}/{day_finished.day:02}/{day_finished.year:04}",
-                "js_day_started": f"{day_started.year:04}-{day_started.month:02}-{day_started.day:02}",
-                "js_day_finished": f"{day_finished.year:04}-{day_finished.month:02}-{day_finished.day:02}",
+                "day_started": output_day_started,
+                "day_finished": output_day_finished,
+                "js_day_started": output_day_started_js,
+                "js_day_finished": output_day_finished_js,
                 "full_inspect_type": full_inspect_type,
                 "full_inspect_qty": full_inspect_qty,
                 "released_type": released_type,
@@ -766,13 +800,8 @@ def get_filtered_inspection_reports(item_number:str, drawing:str, start_day:int,
     else:
         return {
             "status": "ok_alt",
-            "response": "no matching records found"
+            "response": "no matching inspection reports found"
         }
-
-# data entry
-# @app.route("/data_entry")
-# def data_entry_route():
-    return render_template("data_entry.html")
 
 @app.route("/get_filtered_receiver_numbers/<int:report_id>/<string:filter>/")
 def get_filtered_receiver_numbers(report_id:int, filter:str):
@@ -794,7 +823,7 @@ def get_filtered_receiver_numbers(report_id:int, filter:str):
             .join(inspection_receiver_numbers, (receiver_numbers.id == inspection_receiver_numbers.receiver_number_id))\
             .join(inspection_reports, (inspection_reports.id == inspection_receiver_numbers.inspection_id))\
             .filter(inspection_reports.id == report_id)\
-            .filter(receiver_numbers.id.like(f"%{filter}%"))\
+            .filter(receiver_numbers.id.ilike(f"%{filter}%"))\
             .order_by(receiver_numbers.id.asc()).all()
 
         # close the session
@@ -823,7 +852,7 @@ def get_filtered_receiver_numbers(report_id:int, filter:str):
     else:
         return {
             "status": "ok_alt",
-            "response": "no matching records found"
+            "response": "no connection found between 'inspection_reports', 'receiver_numbers', and 'inspection_receiver_numbers'"
         }
 
 @app.route("/assign_receiver_number_association/<int:report_id>/<string:receiver_number>/")
@@ -839,7 +868,7 @@ def assign_receiver_number_association(report_id:int, receiver_number:str):
 
         # check if the association already exists
         results = session.query(inspection_receiver_numbers.inspection_id)\
-            .filter(and_(inspection_receiver_numbers.inspection_id == report_id, inspection_receiver_numbers.receiver_number_id == receiver_number)).all()
+            .filter(and_(inspection_receiver_numbers.inspection_id == report_id, func.lower(inspection_receiver_numbers.receiver_number_id) == receiver_number)).all()
 
         # logic gate
         if len(results) > 0:
@@ -878,7 +907,7 @@ def remove_receiver_number_association(report_id:int, receiver_number:str):
 
         # delete the record that matches the provided criteria
         results = session.query(inspection_receiver_numbers)\
-            .filter(and_(inspection_receiver_numbers.inspection_id == report_id, inspection_receiver_numbers.receiver_number_id == receiver_number))\
+            .filter(and_(inspection_receiver_numbers.inspection_id == report_id, func.lower(inspection_receiver_numbers.receiver_number_id) == receiver_number))\
             .delete()
 
         # logic gate
@@ -923,7 +952,7 @@ def get_filtered_purchase_orders(report_id:int, filter:str):
             .join(inspection_purchase_orders, (purchase_orders.id == inspection_purchase_orders.purchase_order_id))\
             .join(inspection_reports, (inspection_reports.id == inspection_purchase_orders.inspection_id))\
             .filter(inspection_reports.id == report_id)\
-            .filter(purchase_orders.id.like(f"%{filter}%"))\
+            .filter(purchase_orders.id.ilike(f"%{filter}%"))\
             .order_by(purchase_orders.id.asc()).all()
 
         # close the session
@@ -952,7 +981,7 @@ def get_filtered_purchase_orders(report_id:int, filter:str):
     else:
         return {
             "status": "ok_alt",
-            "response": "no matching records found"
+            "response": "no connection found between 'inspection_reports', 'purchase_orders', and 'inspection_purchase_orders'"
         }
 
 @app.route("/assign_purchase_order_association/<int:report_id>/<string:purchase_order>/")
@@ -968,7 +997,7 @@ def assign_purchase_order_association(report_id:int, purchase_order:str):
 
         # check if the association already exists
         results = session.query(inspection_purchase_orders.inspection_id)\
-            .filter(and_(inspection_purchase_orders.inspection_id == report_id, inspection_purchase_orders.purchase_order_id == purchase_order)).all()
+            .filter(and_(inspection_purchase_orders.inspection_id == report_id, func.lower(inspection_purchase_orders.purchase_order_id) == purchase_order)).all()
 
         # logic gate
         if len(results) > 0:
@@ -1007,7 +1036,7 @@ def remove_purchase_order_association(report_id:int, receiver_number:str):
 
         # delete the record that matches the provided criteria
         results = session.query(inspection_purchase_orders)\
-            .filter(and_(inspection_purchase_orders.inspection_id == report_id, inspection_purchase_orders.purchase_order_id == receiver_number))\
+            .filter(and_(inspection_purchase_orders.inspection_id == report_id, func.lower(inspection_purchase_orders.purchase_order_id) == receiver_number))\
             .delete()
 
         # logic gate
@@ -1078,26 +1107,26 @@ def get_inspection_report_filtered_characteristics(report_id:int, name:str, gaug
         # query the database
         results = session.query(*columns)\
             .join(employees, (characteristics.employee_id == employees.id))\
-            .join(gauges, (characteristics.gauge_id == gauges.id))\
+            .join(gauges, (func.lower(characteristics.gauge_id) == gauges.id))\
             .join(inspection_reports, (characteristics.part_id == inspection_reports.part_id))\
             .join(parts, (characteristics.part_id == parts.id))\
-            .join(gauge_types, (gauges.gauge_type_id == gauge_types.id))\
+            .join(gauge_types, (func.lower(gauges.gauge_type_id) == gauge_types.id))\
             .filter(inspection_reports.id == report_id)
 
         if name != "__null":
-            results = results.filter(characteristics.name.like(f"%{name}%"))
+            results = results.filter(characteristics.name.ilike(f"%{name}%"))
 
         if gauge_id != "__null":
-            results = results.filter(characteristics.gauge_id.like(f"%{gauge_id}%"))
+            results = results.filter(characteristics.gauge_id.ilike(f"%{gauge_id}%"))
 
         if gauge_type != "__null":
-            results = results.filter(gauge_types.id.like(f"%{gauge_type}%"))
+            results = results.filter(gauge_types.id.ilike(f"%{gauge_type}%"))
 
         if spec_type != "__null":
-            results = results.filter(characteristics.specification_type_id.like(f"%{spec_type}%"))
+            results = results.filter(characteristics.specification_type_id.ilike(f"%{spec_type}%"))
 
         if char_type != "__null":
-            results = results.filter(characteristics.characteristic_type_id.like(f"%{char_type}%"))
+            results = results.filter(characteristics.characteristic_type_id.ilike(f"%{char_type}%"))
 
         if inspector_id != 0:
             results = results.filter(characteristics.employee_id == inspector_id)
@@ -1178,7 +1207,7 @@ def get_inspection_report_filtered_characteristics(report_id:int, name:str, gaug
     else:
         return {
             "status": "ok_alt",
-            "response": "no matching records found"
+            "response": "no matching characteristics found"
         }
 
 @app.route("/commit_characteristic_data/<int:report_id>/", methods = ["POST"])
@@ -1328,7 +1357,7 @@ def get_schema_type_lists():
     else:
         return {
             "status": "ok_alt",
-            "response": "no records found"
+            "response": "no schema type records found"
         }
 
 @app.route("/get_filtered_char_schemas/<string:search_term>/")
@@ -1345,7 +1374,7 @@ def get_filtered_char_schemas(search_term:str):
         schema_list = list(filter(lambda item:
                                 isfile(join(char_schema_destination, item))
                                 and item[-len(".csv"):].lower() == ".csv"
-                                and search_term in item, listdir(char_schema_destination)))
+                                and search_term in item.lower(), listdir(char_schema_destination)))
     except OSError as e:
         error_msg = str(e.__dict__["orig"])
         return {
@@ -1361,7 +1390,7 @@ def get_filtered_char_schemas(search_term:str):
     else:
         return {
             "status": "ok_alt",
-            "response": "no matching records found"
+            "response": "no matching schema files found"
         }
 
 @app.route("/save_schema_csv/<string:file_name>/", methods = ["POST"])
@@ -1387,7 +1416,7 @@ def save_schema_csv(file_name:str):
         field = str(key_split[1])
         schema_data[field].append(v)
 
-    if not schema_data:
+    if len(schema_data["name"]) == 0:
         return {
             "status": "ok_alt",
             "response": "no data to be saved"
@@ -1502,15 +1531,45 @@ def commit_new_characteristic_schema(item:str, drawing:str, revision:str):
         field = str(key_split[1])
         schema_data[field].append(v)
 
-    print(schema_data)
+    if len(schema_data["name"]) == 0:
+        return {
+            "status": "ok_alt",
+            "response": "no schema data to be applied"
+        }
 
+    try:
 
+        # open the database session
+        session = Session(engine)
 
+        # check if the inspection report already exists
+        results = session.query(inspection_reports.id)\
+            .join(parts, (inspection_reports.part_id == parts.id))\
+            .filter(func.lower(parts.item) == item)\
+            .filter(func.lower(parts.drawing) == drawing)\
+            .filter(func.lower(parts.revision) == revision).all()
+        if len(results) == 0:
+            return {
+                "status": "ok_alt",
+                "response": f"no matching inspection report for the part ({item}, {drawing}, {revision})"
+            }
 
-    return {
-        "status": "ok",
-        "response": "hello world"
-    }
+        print(schema_data)
+
+        # close the database session
+        session.close()
+
+        return {
+            "status": "ok",
+            "response": "hello world"
+        }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "not_ok",
+            "response": error_msg
+        }
 
 @app.route("/create_new_inspection_report/<string:item>/<string:drawing>/<string:revision>/")
 def create_new_inspection_report(item:str, drawing:str, revision:str):
@@ -1521,7 +1580,7 @@ def create_new_inspection_report(item:str, drawing:str, revision:str):
             "status": "ok_alt",
             "response": "revision must be defined"
         }
-    
+
     # enforce lower case
     item = item.lower()
     drawing = drawing.lower()
@@ -1534,28 +1593,58 @@ def create_new_inspection_report(item:str, drawing:str, revision:str):
 
         # make sure the inputs exist in the database
         results = session.query(parts.id)\
-            .filter(parts.item == item)\
-            .filter(parts.drawing == drawing)\
-            .filter(parts.revision == revision).first()
+            .filter(func.lower(parts.item) == item)\
+            .filter(func.lower(parts.drawing) == drawing)\
+            .filter(func.lower(parts.revision) == revision).first()
 
         if results is None:
             return {
                 "status": "ok_alt",
-                "resposne": f"referenced part ({item}, {drawing}, {revision}) does not exist in the database"
+                "response": f"referenced part ({item}, {drawing}, {revision}) does not exist in the database"
             }
 
-        # get the integer list of inspection report ids
-        results = session.query(inspection_reports.id).order_by(inspection_reports.id.asc()).all()
-        print(results)
+        # define the associated part id
+        part_id = results[0]
 
-        
+        # check if this part is already associated with an inspection report
+        results = session.query(inspection_reports.id)\
+            .filter(inspection_reports.part_id == part_id).first()
+        if results is not None:
+            return {
+                "status": "ok_alt",
+                "response": f"referenced part ({item}, {drawing}, {revision}) is already associated with an inspection report"
+            }
+
+        # define the new inspection report id
+        new_id = len(session.query(inspection_reports.id).order_by(inspection_reports.id.asc()).all())
+
+        # get today's date
+        dt_now = datetime.datetime.now()
+        today = datetime.date(dt_now.year, dt_now.month, dt_now.day)
+
+        # add the record
+        session.add(inspection_reports(
+            id = new_id,
+            day_started = today,
+            full_inspect_qty = 0,
+            full_inspect_qty_type = "custom",
+            released_qty = 0,
+            released_qty_type = "custom",
+            completed_qty = 0,
+            completed_qty_type = "custom",
+            material_type_id = "aluminum",
+            disposition = "incomplete",
+            part_id = part_id))
+
+        # commit the changes
+        session.commit()
 
         # close the database session
         session.close()
 
         return {
             "status": "ok",
-            "response": "None"
+            "response": f"new inspection report (ID: {new_id}) added"
         }
 
     except SQLAlchemyError as e:

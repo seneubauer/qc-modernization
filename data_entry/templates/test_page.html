@@ -140,7 +140,8 @@
 
             <table class="data_table_dark" id="characteristic_schema_table" style="
                 --grid-column: 1 / 3;
-                --grid-row: 8;">
+                --grid-row: 8;
+                margin-top: 18px;">
                 <thead>
                     <tr>
                         <th scope="col">Name</th>
@@ -175,33 +176,41 @@
                 --grid-column: 1;
                 --grid-row: 2;">New</button>
 
+            <label class="header_dark" style="
+                --grid-column: 1;
+                --grid-row: 3;">New Inspection Report Part</label>
+
             <label class="label_over_dark" for="select_new_item" style="
                 --grid-column: 1;
-                --grid-row: 3;">Item Number (New Inspection Report)</label>
+                --grid-row: 4;">Item Number</label>
             <select class="select_dark" id="select_new_item" style="
                 --grid-column: 1;
-                --grid-row: 4;"></select>
+                --grid-row: 5;"></select>
 
             <label class="label_over_dark" for="select_new_drawing" style="
                 --grid-column: 1;
-                --grid-row: 5;">Drawing (New Inspection Report)</label>
+                --grid-row: 6;">Drawing</label>
             <select class="select_dark" id="select_new_drawing" style="
                 --grid-column: 1;
-                --grid-row: 6;"></select>
+                --grid-row: 7;"></select>
 
             <label class="label_over_dark" for="input_new_revision" style="
                 --grid-column: 1;
-                --grid-row: 7;">Revision (New Inspection Report)</label>
-            <input class="text_input_dark" id="input_new_revision" type="text" style="
+                --grid-row: 8;">Revision</label>
+            <select class="select_dark" id="input_new_revision" style="
                 --grid-column: 1;
-                --grid-row: 8;">
+                --grid-row: 9;"></select>
+
+            <label class="header_dark" style="
+                --grid-column: 1;
+                --grid-row: 10;">Table View Options</label>
 
             <label class="label_over_dark" for="select_display_type" style="
                 --grid-column: 1;
-                --grid-row: 9;">Characteristic Table Display</label>
+                --grid-row: 11;">Characteristic Table Columns</label>
             <select class="select_dark" id="select_display_type" style="
                 --grid-column: 1;
-                --grid-row: 10;">
+                --grid-row: 12;">
                 <option value="0">Data Entry</option>
                 <option value="1">Metadata</option>
                 <option value="2">All</option>
@@ -209,7 +218,7 @@
         </div>
     </div>
     <div class="sidebar_toggle" id="inspection_report_controls" style="top: 115px;">
-        <button class="sidebar_button" id="sidebar_btn_controls" type="button" onclick="toggle_options('controls', '300px')">
+        <button class="sidebar_button" id="sidebar_btn_controls" type="button" onclick="toggle_options('controls', '400px')">
             Report Controls
         </button>
     </div>
@@ -248,7 +257,8 @@
 
             <table class="data_table_dark" id="select_report_table" style="
                 --grid-column: 1 / 3;
-                --grid-row: 5;">
+                --grid-row: 5;
+                margin-top: 18px;">
                 <thead>
                     <tr>
                         <th scope="col">Drawing</th>
@@ -262,7 +272,7 @@
         </div>
     </div>
     <div class="sidebar_toggle" id="inspection_report_existing" style="top: 168px;">
-        <button class="sidebar_button" id="sidebar_btn_existing" type="button" onclick="toggle_options('existing', '700px')">
+        <button class="sidebar_button" id="sidebar_btn_existing" type="button" onclick="toggle_options('existing', '600px')">
             Existing Reports
         </button>
     </div>
@@ -271,109 +281,122 @@
     <div class="sidebar" id="inspection_report_metadata_sidebar">
         <div class="grid_container" style="--grid-template-columns: repeat(2, minmax(0, 1fr));">
 
-            <label class="header_dark" id="metadata_report_id" data-meta="0" style="
-                --grid-column: 1;
+            <label class="header_dark" id="metadata_report_id" data-meta="" style="
+                --grid-column: 1 / 3;
                 --grid-row: 1;">Report ID: #</label>
 
-            <label class="label_over_dark" for="metadata_inspector_id" style="
-                --grid-column: 1;
-                --grid-row: 2;">Inspector ID</label>
-            <select class="select_dark" id="metadata_inspector_id" style="
-                --grid-column: 1;
-                --grid-row: 3;"></select>
+            <label class="header_dark" id="metadata_part_id" data-meta="" style="
+                --grid-column: 1 / 3;
+                --grid-row: 2;">Part ID: #</label>
 
+            <label class="header_dark" id="metadata_part_details" data-item="" data-drawing="" data-revision="" style="
+                --grid-column: 1 / 3;
+                --grid-row: 3;">Part Details: item / drawing / rev</label>
+
+            <!-- row -->
             <label class="label_over_dark" for="metadata_disposition" style="
-                --grid-column: 2;
-                --grid-row: 2;">Disposition</label>
+                --grid-column: 1;
+                --grid-row: 4;">Disposition</label>
             <select class="select_dark" id="metadata_disposition" style="
-                --grid-column: 2;
-                --grid-row: 3;"></select>
-
-            <label class="label_over_dark" for="metadata_item_number" style="
-                --grid-column: 1;
-                --grid-row: 4;">Item Number</label>
-            <select class="select_dark" id="metadata_item_number" style="
                 --grid-column: 1;
                 --grid-row: 5;"></select>
 
-            <label class="label_over_dark" for="metadata_drawing" style="
+            <label class="label_over_dark" for="metadata_material_type" style="
                 --grid-column: 2;
-                --grid-row: 4;">Drawing</label>
-            <select class="select_dark" id="metadata_drawing" style="
+                --grid-row: 4;">Material Type</label>
+            <select class="select_dark" id="metadata_material_type" style="
                 --grid-column: 2;
                 --grid-row: 5;"></select>
 
-            <label class="label_over_dark" for="metadata_revision" style="
+            <!-- row -->
+            <label class="label_over_dark" for="metadata_start_date" style="
                 --grid-column: 1;
-                --grid-row: 6;">Revision</label>
-            <input class="text_input_dark" id="metadata_revision" type="text" style="
+                --grid-row: 6;">Start Date</label>
+            <input class="date_input_dark" id="metadata_start_date" type="date" style="
                 --grid-column: 1;
                 --grid-row: 7;">
 
-            <label class="label_over_dark" for="metadata_job_order" style="
-                --grid-column: 2;
-                --grid-row: 6;">Job Order</label>
-            <select class="select_dark" id="metadata_job_order" style="
-                --grid-column: 2;
-                --grid-row: 7;"></select>
-
-            <label class="label_over_dark" for="metadata_material_type" style="
-                --grid-column: 1;
-                --grid-row: 8;">Material Type</label>
-            <select class="select_dark" id="metadata_material_type" style="
-                --grid-column: 1;
-                --grid-row: 9;"></select>
-
-            <label class="label_over_dark" for="metadata_supplier" style="
-                --grid-column: 2;
-                --grid-row: 8;">Supplier</label>
-            <select class="select_dark" id="metadata_supplier" style="
-                --grid-column: 2;
-                --grid-row: 9;"></select>
-
-            <label class="label_over_dark" for="metadata_start_date" style="
-                --grid-column: 1;
-                --grid-row: 10;">Start Date</label>
-            <input class="date_input_dark" id="metadata_start_date" type="date" style="
-                --grid-column: 1;
-                --grid-row: 11;">
-
             <label class="label_over_dark" for="metadata_finish_date" style="
                 --grid-column: 2;
-                --grid-row: 10;">Finish Date</label>
+                --grid-row: 6;">Finish Date</label>
             <input class="date_input_dark" id="metadata_finish_date" type="date" style="
                 --grid-column: 2;
-                --grid-row: 11;">
+                --grid-row: 7;">
 
-            <label class="label_over_dark" for="metadata_full_inspect_type" style="
+            <!-- row -->
+            <label class="label_over_dark" for="metadata_inspector_id" style="
+                --grid-column: 1 / 3;
+                --grid-row: 8;">Inspector ID</label>
+            <select class="select_dark" id="metadata_inspector_isnull" style="
                 --grid-column: 1;
-                --grid-row: 12;">QC Full Inspect Quantity</label>
+                --grid-row: 9;">
+                <option value="1">Keep Track</option>
+                <option value="0">Ignore</option>
+            </select>
+            <select class="select_dark" id="metadata_inspector_id" style="
+                --grid-column: 2;
+                --grid-row: 9;"></select>
+
+            <!-- row -->
+            <label class="label_over_dark" for="metadata_job_order" style="
+                --grid-column: 1 / 3;
+                --grid-row: 10;">Job Order</label>
+            <select class="select_dark" id="metadata_joborder_isnull" style="
+                --grid-column: 1;
+                --grid-row: 11;">
+                <option value="1">Keep Track</option>
+                <option value="0">Ignore</option>
+            </select>
+            <select class="select_dark" id="metadata_job_order" style="
+                --grid-column: 2;
+                --grid-row: 11;"></select>
+
+            <!-- row -->
+            <label class="label_over_dark" for="metadata_supplier" style="
+                --grid-column: 1 / 3;
+                --grid-row: 12;">Supplier</label>
+            <select class="select_dark" id="metadata_supplier_isnull" style="
+                --grid-column: 1;
+                --grid-row: 13;">
+                <option value="1">Keep Track</option>
+                <option value="0">Ignore</option>
+            </select>
+            <select class="select_dark" id="metadata_supplier" style="
+                --grid-column: 2;
+                --grid-row: 13;"></select>
+
+            <!-- row -->
+            <label class="label_over_dark" for="metadata_full_inspect_qty" style="
+                --grid-column: 1 / 3;
+                --grid-row: 14;">QC Full Inspect Quantity</label>
             <select class="select_dark" id="metadata_full_inspect_type" style="
                 --grid-column: 1;
-                --grid-row: 13;"></select>
-            <input class="number_input_dark" type="number" id="metadata_full_inspect_qty" style="
-                --grid-column: 2;
-                --grid-row: 13;">
-
-            <label class="label_over_dark" for="metadata_released_type" style="
-                --grid-column: 1;
-                --grid-row: 14;">Released Quantity</label>
-            <select class="select_dark" id="metadata_released_type" style="
-                --grid-column: 1;
                 --grid-row: 15;"></select>
-            <input class="number_input_dark" type="number" id="metadata_released_qty" style="
+            <input class="number_input_dark" type="number" id="metadata_full_inspect_qty" style="
                 --grid-column: 2;
                 --grid-row: 15;">
 
-            <label class="label_over_dark" for="metadata_completed_type" style="
-                --grid-column: 1;
-                --grid-row: 16;">Completed Quantity</label>
-            <select class="select_dark" id="metadata_completed_type" style="
+            <!-- row -->
+            <label class="label_over_dark" for="metadata_released_qty" style="
+                --grid-column: 1 / 3;
+                --grid-row: 16;">Released Quantity</label>
+            <select class="select_dark" id="metadata_released_type" style="
                 --grid-column: 1;
                 --grid-row: 17;"></select>
-            <input class="number_input_dark" type="number" id="metadata_completed_qty" style="
+            <input class="number_input_dark" type="number" id="metadata_released_qty" style="
                 --grid-column: 2;
                 --grid-row: 17;">
+
+            <!-- row -->
+            <label class="label_over_dark" for="metadata_completed_qty" style="
+                --grid-column: 1;
+                --grid-row: 18;">Completed Quantity</label>
+            <select class="select_dark" id="metadata_completed_type" style="
+                --grid-column: 1;
+                --grid-row: 19;"></select>
+            <input class="number_input_dark" type="number" id="metadata_completed_qty" style="
+                --grid-column: 2;
+                --grid-row: 19;">
         </div>
     </div>
     <div class="sidebar_toggle" id="inspection_report_metadata" style="top: 221px;">
@@ -413,7 +436,7 @@
         </div>
     </div>
     <div class="sidebar_toggle" id="inspection_report_receiver_numbers" style="top: 274px;">
-        <button class="sidebar_button" id="sidebar_btn_receiver_numbers" type="button" onclick="toggle_options('receiver_numbers', '350px')">
+        <button class="sidebar_button" id="sidebar_btn_receiver_numbers" type="button" onclick="toggle_options('receiver_numbers', '400px')">
             Receiver Numbers
         </button>
     </div>
@@ -449,7 +472,7 @@
         </div>
     </div>
     <div class="sidebar_toggle" id="inspection_report_purchase_orders" style="top: 327px;">
-        <button class="sidebar_button" id="sidebar_btn_purchase_orders" type="button" onclick="toggle_options('purchase_orders', '350px')">
+        <button class="sidebar_button" id="sidebar_btn_purchase_orders" type="button" onclick="toggle_options('purchase_orders', '400px')">
             Purchase Orders
         </button>
     </div>

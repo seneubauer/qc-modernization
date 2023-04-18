@@ -36,12 +36,11 @@ const eir_finish_before = d3.select("#select_report_finish");
 const eir_table = d3.select("#select_report_table");
 
 // metadata controls
+const meta_details = d3.select("#metadata_part_details");
 const meta_report_id = d3.select("#metadata_report_id");
+const meta_part_id = d3.select("#metadata_part_id");
 const meta_inspector_id = d3.select("#metadata_inspector_id");
 const meta_disposition = d3.select("#metadata_disposition");
-const meta_item_number = d3.select("#metadata_item_number");
-const meta_drawing = d3.select("#metadata_drawing");
-const meta_revision = d3.select("#metadata_revision");
 const meta_job_order = d3.select("#metadata_job_order");
 const meta_material_type = d3.select("#metadata_material_type");
 const meta_supplier = d3.select("#metadata_supplier");
@@ -133,6 +132,8 @@ function init()
     ctl_new_report.on("click", create_new_inspection_report);
     ctl_save_report.on("click", submit_characteristics);
     ctl_display_type.on("change", retrieve_characteristics);
+    ctl_item_number.on("change", report_item_number_changed);
+    ctl_drawing.on("change", report_drawing_changed);
 
     // existing reports events
     eir_item_number.on("keydown", (x) => {
@@ -156,10 +157,6 @@ function init()
         }
     });
 
-    // metadata events
-    meta_item_number.on("change", item_number_changed);
-    meta_drawing.on("change", drawing_changed);
-
     // receiver number events
     rn_filter.on("keydown", (x) => {
         if (x.keyCode == 13) {
@@ -177,6 +174,11 @@ function init()
     po_button.on("click", assign_purchase_order_association);
 
     // characteristic schema
+    schema_filter.on("keydown", (x) => {
+        if (x.keyCode == 13) {
+            populate_char_schema_list();
+        }
+    })
     schema_new.on("click", new_schema);
     schema_commit.on("click", commit_schema);
     schema_add.on("click", (x) => { add_schema_row([{ name: "DIM x", nominal: "1.000", usl: "1.005", lsl: "0.995", precision: 3, spec_type: "two_tailed", char_type: "diameter", gauge_type: "caliper" }])});
@@ -210,9 +212,6 @@ function set_disabled_state(is_disabled)
     // metadata
     meta_inspector_id.property("disabled", is_disabled);
     meta_disposition.property("disabled", is_disabled);
-    meta_item_number.property("disabled", is_disabled);
-    meta_drawing.property("disabled", is_disabled);
-    meta_revision.property("disabled", is_disabled);
     meta_job_order.property("disabled", is_disabled);
     meta_material_type.property("disabled", is_disabled);
     meta_supplier.property("disabled", is_disabled);
@@ -275,11 +274,6 @@ function populate_selectors()
             let dataset = returned_object.response;
 
             // populate the selectors
-            meta_item_number.selectAll("option")
-                .data(dataset)
-                .enter()
-                .append("option")
-                .text((x) => x.item);
             ctl_item_number.selectAll("option")
                 .data(dataset)
                 .enter()
@@ -302,11 +296,6 @@ function populate_selectors()
             let dataset = returned_object.response;
 
             // populate the selector
-            meta_drawing.selectAll("option")
-                .data(dataset)
-                .enter()
-                .append("option")
-                .text((x) => x.item);
             ctl_drawing.selectAll("option")
                 .data(dataset)
                 .enter()
@@ -666,7 +655,8 @@ function retrieve_characteristics()
                     .style("border-radius", "0px 6px 6px 0px");
             }
             else if (returned_object.status == "ok_alt") {
-                alert(returned_object.response);
+                char_table.selectAll("tbody").remove();
+                console.log(returned_object.response);
             }
             else {
                 console.log(returned_object.response);
@@ -887,12 +877,15 @@ function inspection_report_selected(data)
 
     // set the metadata values
     meta_report_id.text(`Report ID: ${data.report_id}`);
+    meta_part_id.text(`Part ID: ${data.part_id}`);
+    meta_details.text(`Part Details: ${data.item} / ${data.drawing} / ${data.revision}`)
     meta_report_id.property("data-meta", data.report_id);
+    meta_part_id.property("data-meta", data.part_id);
     meta_inspector_id.property("value", data.employee_id);
     meta_disposition.property("value", data.disposition);
-    meta_item_number.property("value", data.item);
-    meta_drawing.property("value", data.drawing);
-    meta_revision.property("value", data.revision);
+    meta_details.property("data-item", data.item);
+    meta_details.property("data-drawing", data.drawing);
+    meta_details.property("data-revision", data.revision);
     meta_job_order.property("value", data.job_order_id);
     meta_material_type.property("value", data.material_type_id);
     meta_supplier.property("value", data.supplier_id);
@@ -919,56 +912,6 @@ function inspection_report_selected(data)
 // #endregion
 
 // #region metadata
-
-// item number selection has changed
-function item_number_changed()
-{
-    // get the current item number
-    let item_number = meta_item_number.property("value");
-
-    // build the route
-    let route = `/get_drawing_from_item_number/${item_number}/`
-
-    // query the flask server
-    d3.json(route).then((returned_object) => {
-        if (returned_object.status == "ok") {
-
-            // extract the requested data
-            let dataset = returned_object.response;
-
-            // set the drawing
-            meta_drawing.property("value", dataset);
-        }
-        else {
-            console.log(returned_object.response);
-        }
-    });
-}
-
-// drawing selection has changed
-function drawing_changed()
-{
-    // get the current drawing
-    let drawing = meta_drawing.property("value");
-
-    // build the route
-    let route = `/get_item_number_from_drawing/${drawing}/`
-
-    // query the flask server
-    d3.json(route).then((returned_object) => {
-        if (returned_object.status == "ok") {
-
-            // extract the requested data
-            let dataset = returned_object.response;
-
-            // set the item number
-            meta_item_number.property("value", dataset);
-        }
-        else {
-            console.log(returned_object.response);
-        }
-    });
-}
 
 // #endregion
 
@@ -1000,6 +943,9 @@ function populate_receiver_numbers(report_id = -1)
 
             // populate the list
             populate_association_list(rn_list, dataset, "receiver_number");
+        }
+        else if (returned_object.status == "ok_alt") {
+            console.log(returned_object.response);
         }
         else {
             console.log(returned_object.response);
@@ -1096,6 +1042,9 @@ function populate_purchase_orders(report_id = -1)
             // populate the list
             populate_association_list(po_list, dataset, "purchase_order");
         }
+        else if (returned_object.status == "ok_alt") {
+            console.log(returned_object.response);
+        }
         else {
             console.log(returned_object.response);
         }
@@ -1189,7 +1138,7 @@ function populate_char_schema_list()
             populate_item_list(schema_list, dataset);
         }
         else if (returned_object.status == "ok_alt") {
-            alert(returned_object.response);
+            console.log(returned_object.response);
         }
         else {
             console.log(returned_object.response);
@@ -1200,47 +1149,80 @@ function populate_char_schema_list()
 // create a new characteristic schema
 function new_schema()
 {
-    let dataset = ["schema_itemnumber_drawing_revision"]
+    let dataset = []
+
+    // get existing details
+    let item = meta_details.property("data-item");
+    let drawing = meta_details.property("data-drawing");
+    let revision = meta_details.property("data-revision");
+
+    // get the current data
     let current_data = schema_list.selectAll("li").data();
+
+    if (item != undefined && drawing != undefined && revision != undefined) {
+        let temp = `schema_${item}_${drawing}_${revision.toLowerCase()}`;
+        if (!current_data.includes(temp)) {
+            dataset = [temp]
+        }
+        else {
+            dataset = ["schema_itemnumber_drawing_revision"]
+        }
+    }
+    else {
+        dataset = ["schema_itemnumber_drawing_revision"]
+    }
+
     if (current_data.length > 0) {
         dataset = current_data.concat(dataset);
     }
 
     // repopulate the list
     populate_item_list(schema_list, dataset);
+
+    // save the new file
+    save_schema_csv(dataset.slice(-1), false);
 }
 
 // load the selected schema file
 function load_schema_csv(file_name)
 {
-    // build the route
-    let route = `/load_schema_from_csv/${file_name}/`;
+    if (confirm("This will reset the schema table. Continue?")) {
 
-    // query the flask server
-    d3.json(route).then((returned_object) => {
-        if (returned_object.status == "ok") {
+        // build the route
+        let route = `/load_schema_from_csv/${file_name}/`;
 
-            // extract the requested data
-            let dataset = returned_object.response;
+        // query the flask server
+        d3.json(route).then((returned_object) => {
+            if (returned_object.status == "ok") {
 
-            // remove the previous rows
-            schema_table.select("tbody").selectAll("tr").remove();
+                // extract the requested data
+                let dataset = returned_object.response;
 
-            // repopulate the table
-            add_schema_row(dataset);
-        }
-        else if (returned_object.status == "ok_alt") {
-            alert(returned_object.response);
-        }
-        else {
-            console.log(returned_object.response);
-        }
-    });
+                // remove the previous rows
+                schema_table.select("tbody").selectAll("tr").remove();
+
+                // repopulate the table
+                add_schema_row(dataset);
+            }
+            else if (returned_object.status == "ok_alt") {
+                alert(returned_object.response);
+            }
+            else {
+                console.log(returned_object.response);
+            }
+        });
+    }
 }
 
 // save the current characteristic schema to the selected name
-function save_schema_csv(file_name)
+function save_schema_csv(file_name, request_permission)
 {
+    if (request_permission) {
+        if (!confirm("This will overwrite the existing file if it already exists. Continue?")) {
+            return;
+        }
+    }
+
     let my_form = document.querySelector("#characteristic_schema_form_id");
     let form_data = new FormData(my_form);
     fetch(`/save_schema_csv/${file_name}/`, {
@@ -1255,63 +1237,7 @@ function save_schema_csv(file_name)
         }
     }).then((json) => {
         if (json.status == "ok") {
-            alert(`Records Affected: ${json.response.rows_affected}`);
-        }
-        else {
             alert(json.response);
-        }
-    });
-}
-
-// delete a schema file and list entry
-function delete_schema_csv(file_name, id)
-{
-    // build the route
-    let route = `/delete_schema/${file_name}/`;
-
-    // query the flask server
-    d3.json(route).then((returned_object) => {
-        if (returned_object.status == "ok") {
-            schema_list.select("#div-id-" + id).remove();
-            alert(returned_object.response);
-        }
-        else if (returned_object.status == "ok_alt") {
-            schema_list.select("#div-id-" + id).remove();
-            alert(returned_object.response);
-        }
-        else {
-            console.log(returned_object.response);
-        }
-    });
-}
-
-// send the current characteristic schema to the current inspection report
-function commit_schema()
-{
-    // get the data
-    let my_form = document.querySelector("#characteristic_schema_form_id");
-    let form_data = new FormData(my_form);
-
-    // build the route
-    let item = meta_item_number.property("value");
-    let drawing = meta_drawing.property("value");
-    let revision = meta_revision.property("value");
-    let route = `/commit_new_characteristic_schema/${item}/${drawing}/${revision}/`;
-
-    // send the POST
-    fetch(route, {
-        method: "POST",
-        body: form_data
-    }).then((response) => {
-        if (response.ok) {
-            return response.json();
-        }
-        else {
-            throw new Error("Server response wasn't cool");
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-            console.log(json.response);
         }
         else if (json.status == "ok_alt") {
             alert(json.response);
@@ -1320,6 +1246,71 @@ function commit_schema()
             console.log(json.response);
         }
     });
+}
+
+// delete a schema file and list entry
+function delete_schema_csv(file_name, id)
+{
+    if (confirm("This will permanently delete the schema file. Continue?")) {
+
+        // build the route
+        let route = `/delete_schema/${file_name}/`;
+
+        // query the flask server
+        d3.json(route).then((returned_object) => {
+            if (returned_object.status == "ok") {
+                schema_list.select("#div-id-" + id).remove();
+                alert(returned_object.response);
+            }
+            else if (returned_object.status == "ok_alt") {
+                schema_list.select("#div-id-" + id).remove();
+                alert(returned_object.response);
+            }
+            else {
+                console.log(returned_object.response);
+            }
+        });
+    }
+}
+
+// send the current characteristic schema to the current inspection report
+function commit_schema()
+{
+    if (confirm("This action cannot be reverted. Continue?")) {
+
+        // get the data
+        let my_form = document.querySelector("#characteristic_schema_form_id");
+        let form_data = new FormData(my_form);
+
+        // build the route
+        let item = meta_details.property("data-item");
+        let drawing = meta_details.property("data-drawing");
+        let revision = meta_details.property("data-revision");
+        let route = `/commit_new_characteristic_schema/${item}/${drawing}/${revision}/`;
+
+        // send the POST
+        fetch(route, {
+            method: "POST",
+            body: form_data
+        }).then((response) => {
+            if (response.ok) {
+                return response.json();
+            }
+            else {
+                throw new Error("Server response wasn't cool");
+            }
+        }).then((json) => {
+            if (json.status == "ok") {
+                console.log(json.response);
+            }
+            else if (json.status == "ok_alt") {
+                alert(json.response);
+            }
+            else {
+                console.log(json.response);
+            }
+        });
+    }
 }
 
 // add a new row to the current characteristic schema
@@ -1484,6 +1475,78 @@ function remove_schema_row()
 
 // #region report controls
 
+function report_item_number_changed()
+{
+    // get the current item number
+    let item_number = ctl_item_number.property("value");
+
+    // build the route
+    let route = `/get_drawing_from_item_number/${item_number}/`
+
+    // query the flask server
+    d3.json(route).then((returned_object) => {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // set the drawing
+            ctl_drawing.property("value", dataset.drawing);
+
+            // set the revision(s)
+            ctl_revision.selectAll("option").remove();
+            ctl_revision.selectAll("option")
+                .data(dataset.revisions)
+                .enter()
+                .append("option")
+                .attr("value", (x) => x)
+                .text((x) => x);
+        }
+        else if (returned_object.status == "ok_alt") {
+            alert(returned_object.response);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
+function report_drawing_changed()
+{
+    // get the current drawing
+    let drawing = ctl_drawing.property("value");
+
+    // build the route
+    let route = `/get_item_number_from_drawing/${drawing}/`
+
+    // query the flask server
+    d3.json(route).then((returned_object) => {
+        if (returned_object.status == "ok") {
+
+            // extract the requested data
+            let dataset = returned_object.response;
+
+            // set the item number
+            ctl_item_number.property("value", dataset.item_number);
+
+            // set the revision(s)
+            ctl_revision.selectAll("option").remove();
+            ctl_revision.selectAll("option")
+                .data(dataset.revisions)
+                .enter()
+                .append("option")
+                .attr("value", (x) => x)
+                .text((x) => x);
+        }
+        else if (returned_object.status == "ok_alt") {
+            alert(returned_object.response);
+        }
+        else {
+            console.log(returned_object.response);
+        }
+    });
+}
+
 function create_new_inspection_report()
 {
     // get the new values
@@ -1506,7 +1569,8 @@ function create_new_inspection_report()
             // extract the requested data
             let dataset = returned_object.response;
 
-            console.log(dataset);
+            // notify the user
+            alert(dataset);
         }
         else if (returned_object.status == "ok_alt") {
             alert(returned_object.response);
@@ -1601,7 +1665,7 @@ function populate_item_list(list_container, dataset)
         .style("border-radius", "0px")
         .attr("type", "button")
         .text("Save")
-        .on("click", (pointer, data) => { save_schema_csv(d3.select("#input-" + data).property("value")); })
+        .on("click", (pointer, data) => { save_schema_csv(d3.select("#input-" + data).property("value"), true); })
 
     items.append("button")
         .style("--grid-column", "2")
