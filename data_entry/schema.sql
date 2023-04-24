@@ -271,16 +271,16 @@ create table machines
     constraint fk_machine_type foreign key (machine_type_id) references machine_types(id),
 
     -- many machines relate to one location
-    location_id integer not null,
+    machine_location_id integer not null,
     constraint fk_machine_location foreign key (machine_location_id) references locations(id)
 );
 
 create table inspection_reports
 (
     id serial not null,
-    full_inspect_interval int not null,
-    released_qty int not null,
-    completed_qty int not null,
+    full_inspect_interval integer not null,
+    released_qty integer not null,
+    completed_qty integer not null,
 
     -- primary key and unique constraints
     constraint pk_inspection_reports primary key (id),
@@ -304,7 +304,7 @@ create table inspection_reports
 
     -- many inspection reports relate to one disposition type
     disposition_id integer not null,
-    constraint fk_disposition_ins foreign key (disposition) references disposition_types(id)
+    constraint fk_disposition_ins foreign key (disposition_id) references disposition_types(id)
 );
 
 create table parts

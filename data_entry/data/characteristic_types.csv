@@ -1,22 +1,22 @@
-id,is_gdt
-diameter,False
-radius,False
-form,False
-position,True
-distance,False
-angle,False
-concentricity,True
-coaxiality,True
-circularity,True
-cylindricity,True
-straightness,True
-flatness,True
-perpendicularity,True
-parallelism,True
-total_runout,True
-circular_runout,True
-profile_surface,True
-profile_line,True
-angularity,True
-symmetry,True
-size,True
+id,name,is_gdt
+0,Diameter,FALSE
+1,Radius,FALSE
+2,Form,FALSE
+3,Position,TRUE
+4,Distance,FALSE
+5,Angle,FALSE
+6,Concentricity,TRUE
+7,Coaxiality,TRUE
+8,Circularity,TRUE
+9,Cylindricity,TRUE
+10,Straightness,TRUE
+11,Flatness,TRUE
+12,Perpendicularity,TRUE
+13,Parallelism,TRUE
+14,Total Runout,TRUE
+15,Circular Runout,TRUE
+16,Profile Surface,TRUE
+17,Profile Line,TRUE
+18,Angularity,TRUE
+19,Symmetry,TRUE
+20,Size,TRUE

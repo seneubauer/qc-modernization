@@ -1,4 +1,4 @@
-id,description,day_started,day_finished,project_type
-p0000022587,generic project description,2023-01-01,2023-01-01,product_development
-c0000034255,generic project description,2023-01-01,2023-01-01,continuous_improvement
-m0003345279,generic project description,2023-01-01,2023-01-01,market_research
+name,description,day_started,day_finished,project_type_id
+p0000022587,generic project description,1/20/2023,1/25/2023,0
+c0000034255,generic project description,2/20/2023,2/25/2023,1
+m0003345279,generic project description,3/20/2023,,2

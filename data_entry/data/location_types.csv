@@ -1,7 +1,7 @@
-id
-work_station
-machine_pad
-conference_room
-working_remote
-main_entry
-work_location
+id,name
+0,Work Station
+1,Machine Pad
+2,Conference Room
+3,Working Remote
+4,Main Entry
+5,Work Location

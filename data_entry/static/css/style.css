@@ -1,15 +1,3 @@
-#label_type_major {
-    width: 125px;
-}
-
-#existing_reports {
-    width: 600px;
-}
-
-#report_characteristics {
-    text-align: center;
-    vertical-align: middle;
-}
 
 /* #region globals */
 
@@ -111,6 +99,26 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 /* #endregion sidebar_basics */
 
 /* #region controls */
+
+.inline_display_label_dark {
+    background-color: transparent;
+    color: hsl(0, 0%, 95%);
+    padding: 6px;
+    text-align: left;
+    font-size: 18px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+}
+
+.inline_display_value_dark {
+    background-color: transparent;
+    color: hsl(0, 0%, 95%);
+    padding: 6px;
+    text-align: left;
+    font-size: 15px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+}
 
 .header_dark {
     background-color: transparent;
