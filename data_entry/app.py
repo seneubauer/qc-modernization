@@ -48,14 +48,14 @@ departments = base.classes.departments
 locations = base.classes.locations
 employees = base.classes.employees
 machines = base.classes.machines
-parts = base.classes.parts
 inspection_reports = base.classes.inspection_reports
+parts = base.classes.parts
 gauges = base.classes.gauges
 checks = base.classes.checks
 characteristics = base.classes.characteristics
 employee_projects = base.classes.employee_projects
-inspection_receiver_numbers = base.classes.inspection_receiver_numbers
 inspection_purchase_orders = base.classes.inspection_purchase_orders
+inspection_receiver_numbers = base.classes.inspection_receiver_numbers
 inspection_lots = base.classes.inspection_lots
 
 # instantiate the flask app
