@@ -32,10 +32,11 @@ base = automap_base()
 base.prepare(engine, reflect = True)
 
 # instantiate the database tables
-inspection_lots = base.classes.inspection_lots
+inspection_lot_numbers = base.classes.inspection_lot_numbers
 inspection_receiver_numbers = base.classes.inspection_receiver_numbers
 inspection_purchase_orders = base.classes.inspection_purchase_orders
 employee_projects = base.classes.employee_projects
+deviations = base.classes.deviations
 characteristics = base.classes.characteristics
 checks = base.classes.checks
 gauges = base.classes.gauges
@@ -50,8 +51,7 @@ receiver_numbers = base.classes.receiver_numbers
 purchase_orders = base.classes.purchase_orders
 job_orders = base.classes.job_orders
 suppliers = base.classes.suppliers
-lots = base.classes.lots
-deviations = base.classes.deviations
+lot_numbers = base.classes.lot_numbers
 frequency_types = base.classes.frequency_types
 material_types = base.classes.material_types
 project_types = base.classes.project_types
@@ -133,8 +133,7 @@ for i, r in disposition_types_df.iterrows():
 session.commit()
 
 # retrieve record data
-deviations_df = pd.read_csv(join("data", "deviations.csv"))
-lots_df = pd.read_csv(join("data", "lots.csv"))
+lot_numbers_df = pd.read_csv(join("data", "lot_numbers.csv"))
 suppliers_df = pd.read_csv(join("data", "suppliers.csv"))
 job_orders_df = pd.read_csv(join("data", "job_orders.csv"))
 purchase_orders_df = pd.read_csv(join("data", "purchase_orders.csv"))
@@ -149,19 +148,11 @@ parts_df = pd.read_csv(join("data", "parts.csv"))
 gauges_df = pd.read_csv(join("data", "gauges.csv"))
 checks_df = pd.read_csv(join("data", "checks.csv"))
 characteristics_df = pd.read_csv(join("data", "characteristics.csv"))
+deviations_df = pd.read_csv(join("data", "deviations.csv"))
 
 # populate record data
-for i, r in deviations_df.iterrows():
-    session.add(deviations(
-        nominal = r["nominal"],
-        usl = r["usl"],
-        lsl = r["lsl"],
-        precision = r["precision"],
-        notes = r["notes"]))
-session.commit()
-
-for i, r in lots_df.iterrows():
-    session.add(lots(
+for i, r in lot_numbers_df.iterrows():
+    session.add(lot_numbers(
         name = r["name"]))
 session.commit()
 
@@ -228,14 +219,23 @@ for i, r in machines_df.iterrows():
 session.commit()
 
 for i, r in inspection_reports_df.iterrows():
+    supplier_id_val = r["supplier_id"]
+    job_order_id_val = r["job_order_id"]
+    employee_id_val = r["employee_id"]
+    if isnan(supplier_id_val):
+        supplier_id_val = None
+    if isnan(job_order_id_val):
+        job_order_id_val = None
+    if isnan(employee_id_val):
+        employee_id_val = None
     session.add(inspection_reports(
         full_inspect_interval = r["full_inspect_interval"],
         released_qty = r["released_qty"],
         completed_qty = r["completed_qty"],
         material_type_id = r["material_type_id"],
-        supplier_id = r["supplier_id"],
-        job_order_id = r["job_order_id"],
-        employee_id = r["employee_id"],
+        supplier_id = supplier_id_val,
+        job_order_id = job_order_id_val,
+        employee_id = employee_id_val,
         disposition_id = r["disposition_id"]))
 session.commit()
 
@@ -276,9 +276,6 @@ session.commit()
 for i, r in characteristics_df.iterrows():
 
     measured_val = r["measured"]
-    deviation_id_val = r["deviation_id"]
-    if isnan(deviation_id_val):
-        deviation_id_val = None
     if isnan(measured_val):
         measured_val = None
 
@@ -289,20 +286,28 @@ for i, r in characteristics_df.iterrows():
         lsl = r["lsl"],
         measured = measured_val,
         precision = r["precision"],
-        is_deviated = r["is_deviated"],
         check_id = r["check_id"],
         specification_type_id = r["specification_type_id"],
         characteristic_type_id = r["characteristic_type_id"],
-        deviation_id = deviation_id_val,
         frequency_type_id = r["frequency_type_id"],
         gauge_id = r["gauge_id"]))
+session.commit()
+
+for i, r in deviations_df.iterrows():
+    session.add(deviations(
+        nominal = r["nominal"],
+        usl = r["usl"],
+        lsl = r["lsl"],
+        precision = r["precision"],
+        notes = r["notes"],
+        characteristic_id = r["characteristic_id"]))
 session.commit()
 
 # retrieve linking data
 employee_projects_df = pd.read_csv(join("data", "employee_projects.csv"))
 inspection_purchase_orders_df = pd.read_csv(join("data", "inspection_purchase_orders.csv"))
 inspection_receiver_numbers_df = pd.read_csv(join("data", "inspection_receiver_numbers.csv"))
-inspection_lots_df = pd.read_csv(join("data", "inspection_lots.csv"))
+inspection_lots_df = pd.read_csv(join("data", "inspection_lot_numbers.csv"))
 
 # populate linking data
 for i, r in employee_projects_df.iterrows():
@@ -324,9 +329,9 @@ for i, r in inspection_receiver_numbers_df.iterrows():
 session.commit()
 
 for i, r in inspection_lots_df.iterrows():
-    session.add(inspection_lots(
+    session.add(inspection_lot_numbers(
         inspection_id = r["inspection_id"],
-        lot_id = r["lot_id"]))
+        lot_number_id = r["lot_number_id"]))
 session.commit()
 
 # close the connection

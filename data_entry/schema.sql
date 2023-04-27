@@ -1,8 +1,9 @@
 -- database reset
-drop table inspection_lots;
+drop table inspection_lot_numbers;
 drop table inspection_receiver_numbers;
 drop table inspection_purchase_orders;
 drop table employee_projects;
+drop table deviations;
 drop table characteristics;
 drop table checks;
 drop table gauges;
@@ -17,8 +18,7 @@ drop table receiver_numbers;
 drop table purchase_orders;
 drop table job_orders;
 drop table suppliers;
-drop table lots;
-drop table deviations;
+drop table lot_numbers;
 drop table frequency_types;
 drop table material_types;
 drop table project_types;
@@ -124,28 +124,14 @@ create table frequency_types
 
 -- record tables
 
-create table deviations
-(
-    id serial not null,
-    nominal decimal not null,
-    usl decimal not null,
-    lsl decimal not null,
-    precision integer not null,
-    notes text,
-
-    -- primary key and unique constraints
-    constraint pk_deviations primary key (id),
-    constraint uc_deviations unique (id)
-);
-
-create table lots
+create table lot_numbers
 (
     id serial not null,
     name varchar(32) not null unique,
 
     -- primary key and unique constraints
-    constraint pk_lots primary key (id),
-    constraint uc_lots unique (id)
+    constraint pk_lot_numbers primary key (id),
+    constraint uc_lot_numbers unique (id)
 );
 
 create table suppliers
@@ -360,7 +346,7 @@ create table checks
     constraint fk_check_part foreign key (part_id) references parts(id),
 
     -- many checks can relate to one employee
-    employee_id integer,
+    employee_id integer not null,
     constraint fk_employee_char foreign key (employee_id) references employees(id),
 
     -- primary key and unique constraints
@@ -380,7 +366,6 @@ create table characteristics
     lsl decimal not null,
     measured decimal,
     precision integer not null,
-    is_deviated boolean not null,
 
     -- primary key and unique constraints
     constraint pk_characteristics primary key (id),
@@ -398,10 +383,6 @@ create table characteristics
     characteristic_type_id integer not null,
     constraint fk_characteristic_type_id foreign key (characteristic_type_id) references characteristic_types(id),
 
-    -- one characteristic can relate to one deviation
-    deviation_id integer unique,
-    constraint fk_deviation_id foreign key (deviation_id) references deviations(id),
-
     -- many characteristics relate to one frequency type
     frequency_type_id integer not null,
     constraint fk_frequency_type_id foreign key (frequency_type_id) references frequency_types(id),
@@ -409,6 +390,24 @@ create table characteristics
     -- many characteristics relate to one gauge
     gauge_id integer not null,
     constraint fk_gauge_id foreign key (gauge_id) references gauges(id)
+);
+
+create table deviations
+(
+    id serial not null,
+    nominal decimal not null,
+    usl decimal not null,
+    lsl decimal not null,
+    precision integer not null,
+    notes text,
+
+    -- many deviations relate to one characteristic
+    characteristic_id integer not null,
+    constraint fk_char_deviation foreign key (characteristic_id) references characteristics(id),
+
+    -- primary key and unique constraints
+    constraint pk_deviations primary key (id),
+    constraint uc_deviations unique (id)
 );
 
 -- linking tables
@@ -440,11 +439,11 @@ create table inspection_receiver_numbers
     constraint uc_inspection_receiver_numbers unique (inspection_id, receiver_number_id)
 );
 
-create table inspection_lots
+create table inspection_lot_numbers
 (
     id serial not null unique,
     inspection_id integer not null references inspection_reports(id) on update cascade,
-    lot_id integer not null references lots(id) on update cascade,
-    constraint pk_inspection_lots primary key (id),
-    constraint uc_inspection_lots unique (inspection_id, lot_id)
+    lot_number_id integer not null references lot_numbers(id) on update cascade,
+    constraint pk_inspection_lot_number primary key (id),
+    constraint uc_inspection_lot_number unique (inspection_id, lot_number_id)
 );

@@ -1,5 +1,6 @@
-nominal,usl,lsl,precision,notes
-8.5,8.75,8.25,2,some elaborate reason here
-7,7.005,6.995,3,some other elaborate reason here with notes and a link
-1.25,1.5,1.15,2,moved and widened the tolerance to match working parts
-1.8,1.9,1.7,1,widened tolerance to match working parts
+nominal,usl,lsl,precision,notes,characteristic_id
+8.5,8.75,8.25,2,some elaborate reason here,13
+8.45,8.75,8.25,2,some elaborate reason here with more details,13
+7,7.005,6.995,3,some other elaborate reason here with notes and a link,50
+1.25,1.5,1.15,2,moved and widened the tolerance to match working parts,81
+1.8,1.9,1.7,1,widened tolerance to match working parts,82
