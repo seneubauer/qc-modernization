@@ -6,6 +6,10 @@ body {
     background-color: hsl(0, 0%, 95%);
 }
 
+textarea {
+    outline: none;
+}
+
 input {
     outline: none;
 }
@@ -187,6 +191,19 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     margin: 6px;
     padding: 6px;
     font-family: sans-serif;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+}
+
+.textarea_dark {
+    background-color: hsl(0, 0%, 95%);
+    border-width: 0px;
+    border-radius: 3px;
+    color: hsl(0, 0%, 20%);
+    margin: 6px;
+    padding: 6px;
+    font-family: sans-serif;
+    resize: none;
     grid-column: var(--grid-column);
     grid-row: var(--grid-row);
 }
@@ -599,4 +616,57 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     background-color: hsl(0, 50%, 40%);
 }
 
+.grid_container_item_header {
+    display: grid;
+    grid-auto-rows: auto;
+    grid-template-columns: var(--grid-template-columns);
+    gap: 0px;
+    margin: 0px 9px;
+    border-radius: 6px;
+}
+
+.grid_container_item_header label {
+    padding: 6px;
+    font-size: 15px;
+    text-align: center;
+    color: hsl(0, 0%, 95%);
+}
+
 /* #endregion grid_layout */
+
+/* #region context_menu */
+
+.context_menu {
+    position: fixed;
+    z-index: 10000;
+    width: 200px;
+    background-color: hsl(0, 0%, 20%);
+    border-radius: 6px;
+    display: none;
+}
+
+.context_menu.visible {
+    display: block;
+}
+
+.context_menu button {
+    background-color: transparent;
+    border-width: 0px;
+    border-radius: inherit;
+    color: hsl(0, 0%, 95%);
+    width: 100%;
+    text-align: left;
+    padding: 6px 9px;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.context_menu button:hover {
+    background-color: hsl(0, 50%, 40%);
+}
+
+.context_menu button:active {
+    background-color: hsl(0, 50%, 30%);
+}
+
+/* #endregion context_menu */

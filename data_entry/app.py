@@ -2,19 +2,16 @@
 from flask import Flask, render_template, request
 
 # import dependencies for sqlalchemy
-from sqlalchemy.exc import SQLAlchemyError, InvalidRequestError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
-from sqlalchemy.orm.evaluator import UnevaluatableError
 from sqlalchemy import create_engine, and_, or_, func
 
 # import general dependencies
 import json
 import datetime
-import pandas as pd
-from math import isnan
 from os.path import join, isfile, splitext
-from os import listdir, remove
+from os import listdir
 
 # import confidential information
 from sys import path
@@ -29,6 +26,7 @@ base = automap_base()
 base.prepare(engine, reflect = True)
 
 # instantiate the database tables
+deviation_types = base.classes.deviation_types
 disposition_types = base.classes.disposition_types
 location_types = base.classes.location_types
 machine_types = base.classes.machine_types
@@ -310,7 +308,7 @@ def get_all_employees():
         session = Session(engine)
 
         # query the database
-        results = session.query(*columns).order_by(employees.id.asc()).all()
+        results = session.query(*columns).order_by(employees.last_name.asc(), employees.first_name.asc()).all()
 
         # close the session
         session.close()
@@ -1041,7 +1039,7 @@ def data_entry_get_filter_selector_lists():
             .join(parts, (checks.part_id == parts.id))\
             .filter(checks.inspection_id == inspection_id)\
             .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
-            .order_by(employees.last_name.asc()).distinct(employees.first_name, employees.last_name).all()
+            .order_by(employees.last_name.asc(), employees.first_name.asc()).distinct(employees.first_name, employees.last_name).all()
 
         # gauges list
         gauges_query = session.query(gauges.id, gauges.name)\
@@ -1187,6 +1185,7 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
     inspection_id = int(form_data["identity"]["inspection_id"])
     item = form_data["identity"]["item"]
     drawing = form_data["identity"]["drawing"]
+    part_index = int(form_data["content"]["part_index"])
     check_id = int(form_data["content"]["check_id"])
     frequency_type_id = int(form_data["content"]["frequency_type_id"])
     revision = form_data["content"]["revision"]
@@ -1240,6 +1239,8 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
 
         if check_id > 0:
             results = results.filter(checks.id == check_id)
+        if part_index > 0:
+            results = results.filter(checks.part_index == part_index)
         if frequency_type_id > 0:
             results = results.filter(characteristics.frequency_type_id == frequency_type_id)
         if has_deviations > 0:
@@ -1265,7 +1266,7 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
             deviations_list.append(id[0])
 
         # get the list of inspectors
-        inspectors_list = session.query(employees.id, employees.first_name, employees.last_name).order_by(employees.last_name.asc()).all()
+        inspectors_list = session.query(employees.id, employees.first_name, employees.last_name).order_by(employees.last_name.asc(), employees.first_name.asc()).all()
 
         # get the list of gauges
         gauges_list = session.query(gauges.id, gauges.name).order_by(gauges.name.asc()).all()
@@ -1301,6 +1302,7 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
                 check_id_list.append(check_id)
                 output_characteristics_list.append({
                     "has_deviations": characteristic_id in deviations_list,
+                    "characteristic_id": characteristic_id,
                     "check_id": check_id,
                     "part_index": part_index,
                     "revision": revision.upper(),
@@ -1483,7 +1485,7 @@ def data_entry_get_matching_revisions():
             for id, revision, full_inspect_interval, released_qty, completed_qty in results:
                 output_arr.append({
                     "id": id,
-                    "revision": revision,
+                    "revision": revision.upper(),
                     "full_inspect_interval": full_inspect_interval,
                     "released_qty": released_qty,
                     "completed_qty": completed_qty
@@ -1572,7 +1574,7 @@ def data_entry_save_metadata():
                 "response": "no records in 'inspection_reports' and 'parts' updated"
             }
 
-    except UnevaluatableError as e:
+    except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
             "status": "err_log",
@@ -2152,6 +2154,163 @@ def data_entry_remove_lot_number_association():
             return {
                 "status": "ok_log",
                 "response": "no connection found between 'inspection_reports', 'lot_numbers', and 'inspection_lot_numbers'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+#endregion
+
+#region data entry - deviations
+
+@app.route("/data_entry/save_deviations/", methods = ["POST"])
+def data_entry_save_deviations():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+    print(form_data)
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        is_affected = 0
+        for row in form_data["data"]:
+            deviation_id = row["deviation_id"]
+            results = session.query(deviations).filter(deviations.id == deviation_id)
+
+            for k, v in row["content"].items():
+                is_affected += results.update({ k: v })
+
+        # commit the changes
+        session.commit()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if is_affected > 0:
+            return {
+                "status": "ok_alert",
+                "response": f"{is_affected} records in 'deviations' has been successfully updated"
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records in 'deviations' have been updated"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/get_matching_deviations/", methods = ["POST"])
+def data_entry_get_matching_deviations():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    characteristic_id = form_data["characteristic_id"]
+
+    # define the columns
+    columns = [
+        deviations.id,
+        deviations.nominal,
+        deviations.usl,
+        deviations.lsl,
+        deviations.precision,
+        deviations.date_implemented,
+        deviations.notes,
+        deviation_types.id,
+        deviation_types.name,
+        employees.id,
+        employees.first_name,
+        employees.last_name
+    ]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(*columns)\
+            .join(employees, (employees.id == deviations.employee_id))\
+            .join(deviation_types, (deviation_types.id == deviations.deviation_type_id))\
+            .filter(deviations.characteristic_id == characteristic_id)\
+            .order_by(deviations.id.asc())\
+            .distinct(deviations.id).all()
+        deviation_type_list = session.query(deviation_types.id, deviation_types.name)\
+            .order_by(deviation_types.name.asc()).all()
+        employee_list = session.query(employees.id, employees.first_name, employees.last_name)\
+            .order_by(employees.last_name.asc(), employees.first_name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0 and len(deviation_type_list) > 0 and len(employee_list) > 0:
+
+            output_arr = []
+            for id, nominal, usl, lsl, precision, date_implemented, notes, deviation_type_id, deviation_type, employee_id, first_name, last_name in results:
+
+                # parse decimal to float
+                nominal_flt = round(float(nominal), precision)
+                usl_flt = round(float(usl), precision)
+                lsl_flt = round(float(lsl), precision)
+
+                # parse date to string
+                date_implemented_str = date_implemented.strftime("%Y-%m-%d")
+
+                output_arr.append({
+                    "id": id,
+                    "nominal": nominal_flt,
+                    "usl": usl_flt,
+                    "lsl": lsl_flt,
+                    "precision": precision,
+                    "date_implemented": date_implemented_str,
+                    "notes": notes,
+                    "deviation_type_id": deviation_type_id,
+                    "deviation_type": deviation_type,
+                    "employee_id": employee_id,
+                    "employee": f"{last_name}, {first_name}"
+                })
+
+            deviation_types_lst = []
+            for id, name in deviation_type_list:
+                deviation_types_lst.append({
+                    "id": id,
+                    "name": name
+                })
+
+            employees_lst = []
+            for id, first_name, last_name in employee_list:
+                employees_lst.append({
+                    "id": id,
+                    "name": f"{last_name}, {first_name}"
+                })
+
+            return {
+                "status": "ok_func",
+                "response": {
+                    "main": output_arr,
+                    "deviations": deviation_types_lst,
+                    "employees": employees_lst
+                }
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no matching deviations found"
             }
 
     except SQLAlchemyError as e:

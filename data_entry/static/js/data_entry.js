@@ -4,6 +4,8 @@ const navbar_info = d3.select("#navbar_info");
 
 // characteristics
 const main_characteristic_table = d3.select("#main_char_table");
+const context_menu = document.getElementById("char_context_menu");
+const scope = document.querySelector("body");
 
 // inspection_reports
 const ir_button_save = d3.select("#inspection_report_save_btn");
@@ -43,7 +45,7 @@ const md_select_material_type = d3.select("#metadata_material_type");
 const md_select_inspector = d3.select("#metadata_inspector");
 const md_select_job_order = d3.select("#metadata_job_order");
 const md_select_supplier = d3.select("#metadata_supplier");
-const md_list_quantities = d3.select("#metadata_quantity_list");
+const md_ul_quantities = d3.select("#metadata_quantity_list");
 
 // receiver numbers
 const rn_input_search_term = d3.select("#receiver_numbers_search_term");
@@ -62,6 +64,13 @@ const ln_input_search_term = d3.select("#lot_numbers_search_term");
 const ln_select_selected = d3.select("#lot_numbers_selected");
 const ln_button_add = d3.select("#lot_numbers_add");
 const ln_ul_list = d3.select("#lot_numbers_list");
+
+// deviations
+const dv_button_save = d3.select("#deviations_save");
+const dv_button_add = d3.select("#deviations_add");
+const dv_button_remove = d3.select("#deviations_remove");
+const dv_input_notes = d3.select("#deviations_notes");
+const dv_ul_list = d3.select("#deviations_list");
 
 // main characteristic table columns
 const char_table_columns = [
@@ -90,6 +99,39 @@ function init()
 {
     // populate selectors
     populate_generic_selectors();
+
+    // characteristic table
+    scope.addEventListener("contextmenu", (e) => {
+        if (e.target.tagName != "TH") {
+            e.preventDefault();
+            const { clientX: mouseX, clientY: mouseY } = e;
+            context_menu.style.top = `${mouseY}px`;
+            context_menu.style.left = `${mouseX}px`;
+            context_menu.classList.add("visible");
+
+            d3.select("#tunnel").on("click", () => {
+                cd_select_part_index.property("value", e.target.__data__.row.part_index);
+                get_filtered_characteristics();
+                context_menu.classList.remove("visible");
+            });
+            d3.select("#requery").on("click", () => {
+                get_filtered_characteristics();
+                context_menu.classList.remove("visible");
+            });
+            d3.select("#view_deviations").on("click", () => {
+                if (e.target.__data__.row.has_deviations) {
+                    populate_deviations(e.target.__data__.row.characteristic_id);
+                    toggle_options("deviations", "1000px");
+                }
+                context_menu.classList.remove("visible");
+            });
+        }
+    });
+    scope.addEventListener("click", (e) => {
+        if (e.target.offsetParent != context_menu) {
+            context_menu.classList.remove("visible");
+        }
+    });
 
     // inspection reports
     ir_input_new_item_filter.on("keydown", (x) => {
@@ -155,6 +197,11 @@ function init()
         }
     });
     ln_button_add.on("click", assign_lot_number_association);
+
+    // deviations
+    dv_button_save.on("click", deviations_save);
+    dv_button_add.on("click", deviations_add);
+    dv_button_remove.on("click", deviations_remove);
 }
 
 function populate_generic_selectors()
@@ -1062,7 +1109,8 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
                 .selectAll("tr")
                 .data(json.response.characteristics)
                 .enter()
-                .append("tr");
+                .append("tr")
+                .on("click", (_, x) => populate_deviations(x.characteristic_id));
 
             // create the cells
             let cells = rows.selectAll("td")
@@ -1073,7 +1121,9 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
                             row: {
                                 value: r[c.key],
                                 has_deviations: r.has_deviations,
-                                precision: r.precision
+                                precision: r.precision,
+                                characteristic_id: r.characteristic_id,
+                                part_index: r.part_index
                             }
                         };
                     });
@@ -1095,7 +1145,7 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
                 .insert("input")
                 .attr("class", "table_label_light")
                 .attr("readonly", true)
-                .attr("value", (x) => {
+                .property("value", (x) => {
                     if (x.column.value_type == "number") {
                         return x.row.value.toFixed(x.row.precision);
                     }
@@ -1123,7 +1173,7 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
                 })
                 .insert("input")
                 .attr("class", "table_input_light")
-                .attr("value", (x) => {
+                .property("value", (x) => {
                     if (x.column.key == "measured") {
                         if (x.row.value != null) {
                             return x.row.value.toFixed(x.row.precision);
@@ -1135,6 +1185,8 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
                     else {
                         return x.row.value;
                     }
+                }).on("change", (e, x) => {
+                    x.row.value = parseFloat(e.srcElement.value);
                 });
 
             // gauges
@@ -1157,7 +1209,10 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
                     }
                 })
                 .selectAll("select")
-                .property("value", (x) => x.row.value);
+                .property("value", (x) => x.row.value)
+                .on("change", (e, x) => {
+                    x.row.value = parseInt(e.srcElement.value);
+                });
 
             // inspectors
             cells.filter((x) => {
@@ -1179,7 +1234,10 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
                     }
                 })
                 .selectAll("select")
-                .property("value", (x) => x.row.value);
+                .property("value", (x) => x.row.value)
+                .on("change", (e, x) => {
+                    x.row.value = parseInt(e.srcElement.value);
+                });
 
             // set the start cell class
             rows.selectAll("td")
@@ -1257,10 +1315,10 @@ function populate_metadata(data)
         if (json.status == "ok_func") {
 
             // remove the old entries
-            md_list_quantities.selectAll("li").remove();
+            md_ul_quantities.selectAll("li").remove();
 
             // repopulate the revisions list
-            let items = md_list_quantities.selectAll("li")
+            let items = md_ul_quantities.selectAll("li")
                 .data(json.response)
                 .enter()
                 .append("li")
@@ -1279,10 +1337,8 @@ function populate_metadata(data)
                 .attr("class", "table_input_dark")
                 .attr("type", "number")
                 .property("value", (x) => x.full_inspect_interval)
-                .on("keydown", (e, x) => {
-                    if (e.keyCode == 13) {
-                        x.full_inspect_interval = parseInt(e.srcElement.value);
-                    }
+                .on("change", (e, x) => {
+                    x.full_inspect_interval = parseInt(e.srcElement.value);
                 });
             items.append("input")
                 .style("--grid-column", "3")
@@ -1290,10 +1346,8 @@ function populate_metadata(data)
                 .attr("class", "table_input_dark")
                 .attr("type", "number")
                 .property("value", (x) => x.released_qty)
-                .on("keydown", (e, x) => {
-                    if (e.keyCode == 13) {
-                        x.released_qty = parseInt(e.srcElement.value);
-                    }
+                .on("change", (e, x) => {
+                    x.released_qty = parseInt(e.srcElement.value);
                 });
             items.append("input")
                 .style("--grid-column", "4")
@@ -1302,10 +1356,8 @@ function populate_metadata(data)
                 .attr("type", "number")
                 .style("border-radius", "0px 6px 6px 0px")
                 .property("value", (x) => x.completed_qty)
-                .on("keydown", (e, x) => {
-                    if (e.keyCode == 13) {
-                        x.completed_qty = parseInt(e.srcElement.value);
-                    }
+                .on("change", (e, x) => {
+                    x.completed_qty = parseInt(e.srcElement.value);
                 });
         }
         else if (json.status == "ok_log") {
@@ -1371,7 +1423,7 @@ function metadata_save()
             job_order_id: job_order_id,
             supplier_id: supplier_id
         },
-        sub_data: md_list_quantities.selectAll("li").data()
+        sub_data: md_ul_quantities.selectAll("li").data()
     }
 
     // query the flask server
@@ -1990,6 +2042,210 @@ function remove_lot_number_association(data)
                 .style("border-radius", "0px 6px 6px 0px")
                 .text("Delete")
                 .on("click", (_, d) => console.log(d));
+        }
+        else if (json.status == "ok_log") {
+            console.log(json.response);
+        }
+        else if (json.status == "ok_alert") {
+            alert(json.response);
+        }
+        else if (json.status == "err_log") {
+            console.log(json.response);
+        }
+        else if (json.status == "err_alert") {
+            alert(json.response);
+        }
+    });
+}
+
+// #endregion
+
+// #region deviations
+
+function deviations_save()
+{
+    // request confirmation
+    if (!confirm("This action will write to the database and cannot be reverted. Continue?")) {
+        return;
+    }
+
+    // create the data object
+    let data = [];
+    dv_ul_list.selectAll("li").data().forEach(element => {
+        data.push({
+            deviation_id: element.id,
+            content: {
+                nominal: element.nominal,
+                usl: element.usl,
+                lsl: element.lsl,
+                precision: element.precision,
+                date_implemented: element.date_implemented,
+                notes: element.notes,
+                deviation_type_id: element.deviation_type_id,
+                employee_id: element.employee_id    
+            }
+        });
+    });
+
+    // query the flask server
+    d3.json("/data_entry/save_deviations/", {
+        method: "POST",
+        body: JSON.stringify({
+            data: data
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok_func") {
+            console.log(json.response);
+        }
+        else if (json.status == "ok_alert") {
+            alert(json.response);
+        }
+        else if (json.status == "ok_log") {
+            console.log(json.response);
+        }
+        else if (json.status == "err_alert") {
+            alert(json.response);
+        }
+        else if (json.status == "err_log") {
+            console.log(json.response);
+        }
+    });
+}
+
+function deviations_add()
+{
+
+}
+
+function deviations_remove()
+{
+
+}
+
+function deviation_selected(data)
+{
+    dv_input_notes.property("value", data.notes);
+}
+
+function populate_deviations(characteristic_id)
+{
+    // reset the deviations display
+    dv_ul_list.selectAll("li").remove();
+    dv_input_notes.property("value", "");
+
+    // query the flask server
+    d3.json("/data_entry/get_matching_deviations/", {
+        method: "POST",
+        body: JSON.stringify({
+            characteristic_id: characteristic_id
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok_func") {
+
+            // populate the notes section
+            dv_input_notes.property("value", json.response.main[0].notes);
+
+            // repopulate the deviations list
+            let items = dv_ul_list.selectAll("li")
+                .data(json.response.main)
+                .enter()
+                .append("li")
+                .append("div")
+                .attr("class", "grid_container_item")
+                .style("--grid-template-columns", "2fr 2fr 2fr 1fr 2fr 2fr 2fr")
+                .on("click", (_, d) => deviation_selected(d));
+            let nominal = items.append("input")
+                .style("--grid-column", "1")
+                .style("--grid-row", "1")
+                .style("border-radius", "6px 0px 0px 6px")
+                .attr("class", "table_input_dark")
+                .attr("type", "number")
+                .property("value", (x) => x.nominal.toFixed(x.precision))
+                .on("change", (e, x) => {
+                    x.nominal = parseFloat(e.srcElement.value);
+                });
+            let usl = items.append("input")
+                .style("--grid-column", "2")
+                .style("--grid-row", "1")
+                .attr("class", "table_input_dark")
+                .attr("type", "number")
+                .property("value", (x) => x.usl.toFixed(x.precision))
+                .on("change", (e, x) => {
+                    x.usl = parseFloat(e.srcElement.value);
+                });
+            let lsl = items.append("input")
+                .style("--grid-column", "3")
+                .style("--grid-row", "1")
+                .attr("class", "table_input_dark")
+                .attr("type", "number")
+                .property("value", (x) => x.lsl.toFixed(x.precision))
+                .on("change", (e, x) => {
+                    x.lsl = parseFloat(e.srcElement.value);
+                });
+            items.append("input")
+                .style("--grid-column", "4")
+                .style("--grid-row", "1")
+                .attr("class", "table_input_dark")
+                .attr("type", "number")
+                .property("value", (x) => x.precision)
+                .on("change", (e, x) => {
+                    x.precision = parseInt(e.srcElement.value);
+                    nominal.property("value", x.nominal.toFixed(x.precision));
+                    usl.property("value", x.usl.toFixed(x.precision));
+                    lsl.property("value", x.lsl.toFixed(x.precision));
+                });
+            items.append("input")
+                .style("--grid-column", "5")
+                .style("--grid-row", "1")
+                .attr("class", "table_input_dark")
+                .attr("type", "date")
+                .property("value", (x) => x.date_implemented)
+                .on("change", (e, x) => {
+                    x.date_implemented = e.srcElement.value;
+                });
+            let deviations = items.append("select")
+                .style("--grid-column", "6")
+                .style("--grid-row", "1")
+                .attr("class", "table_select_dark");
+            let employees = items.append("select")
+                .style("--grid-column", "7")
+                .style("--grid-row", "1")
+                .style("border-radius", "0px 6px 6px 0px")
+                .attr("class", "table_select_dark");
+
+            // populate the deviations select
+            deviations.selectAll("option")
+                .data(json.response.deviations)
+                .enter()
+                .append("option")
+                .attr("value", (x) => x.id)
+                .text((x) => x.name);
+
+            // set the deviations select value
+            deviations.property("value", (x) => x.deviation_type_id)
+                .on("change", (e, x) => {
+                    x.deviation_type_id = parseInt(e.srcElement.value);
+                });
+
+            // populate the employees select
+            employees.selectAll("option")
+                .data(json.response.employees)
+                .enter()
+                .append("option")
+                .attr("value", (x) => x.id)
+                .text((x) => x.name);
+
+            // set the employees select value
+            employees.property("value", (x) => x.employee_id)
+                .on("change", (e, x) => {
+                    x.employee_id = parseInt(e.srcElement.value);
+                });
         }
         else if (json.status == "ok_log") {
             console.log(json.response);
