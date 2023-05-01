@@ -61,6 +61,7 @@ gauge_types = base.classes.gauge_types
 machine_types = base.classes.machine_types
 location_types = base.classes.location_types
 disposition_types = base.classes.disposition_types
+deviation_types = base.classes.deviation_types
 
 # instantiate the session
 session = Session(engine)
@@ -75,6 +76,7 @@ gauge_types_df = pd.read_csv(join("data", "gauge_types.csv"))
 machine_types_df = pd.read_csv(join("data", "machine_types.csv"))
 location_types_df = pd.read_csv(join("data", "location_types.csv"))
 disposition_types_df = pd.read_csv(join("data", "disposition_types.csv"))
+deviation_types_df = pd.read_csv(join("data", "deviation_types.csv"))
 
 # populate type data
 for i, r in frequency_types_df.iterrows():
@@ -128,6 +130,12 @@ session.commit()
 
 for i, r in disposition_types_df.iterrows():
     session.add(disposition_types(
+        id = r["id"],
+        name = r["name"]))
+session.commit()
+
+for i, r in deviation_types_df.iterrows():
+    session.add(deviation_types(
         id = r["id"],
         name = r["name"]))
 session.commit()
@@ -229,9 +237,6 @@ for i, r in inspection_reports_df.iterrows():
     if isnan(employee_id_val):
         employee_id_val = None
     session.add(inspection_reports(
-        full_inspect_interval = r["full_inspect_interval"],
-        released_qty = r["released_qty"],
-        completed_qty = r["completed_qty"],
         material_type_id = r["material_type_id"],
         supplier_id = supplier_id_val,
         job_order_id = job_order_id_val,
@@ -243,7 +248,10 @@ for i, r in parts_df.iterrows():
     session.add(parts(
         drawing = r["drawing"],
         revision = r["revision"],
-        item = r["item"]))
+        item = r["item"],
+        full_inspect_interval = r["full_inspect_interval"],
+        released_qty = r["released_qty"],
+        completed_qty = r["completed_qty"]))
 session.commit()
 
 for i, r in gauges_df.iterrows():
@@ -299,7 +307,10 @@ for i, r in deviations_df.iterrows():
         usl = r["usl"],
         lsl = r["lsl"],
         precision = r["precision"],
+        date_implemented = r["date_implemented"],
         notes = r["notes"],
+        deviation_type_id = r["deviation_type_id"],
+        employee_id = r["employee_id"],
         characteristic_id = r["characteristic_id"]))
 session.commit()
 

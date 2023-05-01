@@ -2,9 +2,10 @@
 from flask import Flask, render_template, request
 
 # import dependencies for sqlalchemy
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, InvalidRequestError
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.evaluator import UnevaluatableError
 from sqlalchemy import create_engine, and_, or_, func
 
 # import general dependencies
@@ -679,6 +680,48 @@ def get_all_lot_numbers():
 
 #region data entry - inspection reports
 
+@app.route("/data_entry/get_all_item_drawing_combinations/")
+def data_entry_get_all_item_drawing_combinations():
+
+    try:
+
+        # start the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(parts.id, parts.item, parts.drawing)\
+            .order_by(parts.drawing.asc(), parts.item.asc())\
+            .distinct(parts.item, parts.drawing).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, item, drawing in results:
+                output_arr.append({
+                    "id": id,
+                    "item": item,
+                    "drawing": drawing
+                })
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no matching parts found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "not_ok",
+            "response": error_msg
+        }
+
 @app.route("/data_entry/get_filtered_parts/", methods = ["POST"])
 def data_entry_get_filtered_parts():
 
@@ -770,7 +813,8 @@ def data_entry_get_filtered_inspection_reports():
     form_data = json.loads(request.data)
 
     # get the required parameters
-    part_id = int(form_data["part_id"])
+    item = form_data["item"]
+    drawing = form_data["drawing"]
     job_order_id = int(form_data["job_order_id"])
     started_after = datetime.date(form_data["start_year"], form_data["start_month"], form_data["start_day"])
     finished_before = datetime.date(form_data["finish_year"], form_data["finish_month"], form_data["finish_day"])
@@ -778,13 +822,9 @@ def data_entry_get_filtered_inspection_reports():
     # define the required fields
     columns = [
         inspection_reports.id,
-        inspection_reports.full_inspect_interval,
-        inspection_reports.released_qty,
-        inspection_reports.completed_qty,
         parts.id,
         parts.item,
         parts.drawing,
-        parts.revision,
         job_orders.id,
         job_orders.name,
         inspection_reports.disposition_id,
@@ -799,38 +839,37 @@ def data_entry_get_filtered_inspection_reports():
         session = Session(engine)
 
         # query the database
-        results = session.query(*columns).distinct(parts.item, parts.drawing, parts.revision)\
+        results = session.query(*columns)\
             .join(checks, (checks.inspection_id == inspection_reports.id))\
             .join(parts, (checks.part_id == parts.id))\
             .join(job_orders, (inspection_reports.job_order_id == job_orders.id), isouter = True)\
             .filter(checks.datetime_measured >= started_after)\
-            .filter(or_(checks.datetime_measured <= finished_before, checks.datetime_measured == None))
+            .filter(or_(checks.datetime_measured <= finished_before, checks.datetime_measured == None))\
+            .filter(parts.item.ilike(f"%{item}%"))\
+            .filter(parts.drawing.ilike(f"%{drawing}%"))
 
         # additional filtering
-        if part_id > 0:
-            results = results.filter(parts.id == part_id)
         if job_order_id > 0:
             results = results.filter(job_orders.id == job_order_id)
 
         # convert to list of tuples
-        results = results.order_by(parts.drawing.asc()).all()
+        results = results\
+            .order_by(parts.drawing.asc(), parts.item.asc())\
+            .distinct(parts.drawing, parts.item).all()
 
         # close the database session
         session.close()
 
         # return the results
         if len(results) > 0:
+
             output_arr = []
-            for inspection_id, full_inspect_interval, released_qty, completed_qty, part_id, item, drawing, revision, job_order_id, job_order, disposition_type_id, material_type_id, employee_id, supplier_id in results:
+            for inspection_id, part_id, item, drawing, job_order_id, job_order, disposition_type_id, material_type_id, employee_id, supplier_id in results:
                 output_arr.append({
                     "inspection_id": inspection_id,
-                    "full_inspect_interval": full_inspect_interval,
-                    "released_qty": released_qty,
-                    "completed_qty": completed_qty,
                     "part_id": part_id,
                     "item": item,
                     "drawing": drawing,
-                    "revision": revision.upper(),
                     "job_order_id": job_order_id,
                     "job_order": job_order,
                     "disposition_type_id": disposition_type_id,
@@ -852,6 +891,92 @@ def data_entry_get_filtered_inspection_reports():
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/create_new_inspection_report/", methods = ["POST"])
+def data_entry_create_new_inspection_report():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    item = form_data["item"]
+    drawing = form_data["drawing"]
+    revision = form_data["revision"]
+
+    # handle null values
+    if revision == "":
+        return {
+            "status": "ok_alert",
+            "response": "revision must be defined"
+        }
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # make sure the inputs exist in the database
+        results = session.query(parts.id)\
+            .filter(func.lower(parts.item) == item)\
+            .filter(func.lower(parts.drawing) == drawing)\
+            .filter(func.lower(parts.revision) == revision).first()
+
+        if results is None:
+            return {
+                "status": "ok_alt",
+                "response": f"referenced part ({item}, {drawing}, {revision}) does not exist in the database"
+            }
+
+        # define the associated part id
+        part_id = results[0]
+
+        # check if this part is already associated with an inspection report
+        results = session.query(inspection_reports.id)\
+            .filter(inspection_reports.part_id == part_id).first()
+        if results is not None:
+            return {
+                "status": "ok_alt",
+                "response": f"referenced part ({item}, {drawing}, {revision}) is already associated with an inspection report"
+            }
+
+        # define the new inspection report id
+        new_id = len(session.query(inspection_reports.id).order_by(inspection_reports.id.asc()).all())
+
+        # get today's date
+        dt_now = datetime.datetime.now()
+        today = datetime.date(dt_now.year, dt_now.month, dt_now.day)
+
+        # add the record
+        session.add(inspection_reports(
+            id = new_id,
+            day_started = today,
+            full_inspect_qty = 0,
+            full_inspect_qty_type = "custom",
+            released_qty = 0,
+            released_qty_type = "custom",
+            completed_qty = 0,
+            completed_qty_type = "custom",
+            material_type_id = "aluminum",
+            disposition = "incomplete",
+            part_id = part_id))
+
+        # commit the changes
+        session.commit()
+
+        # close the database session
+        session.close()
+
+        return {
+            "status": "ok",
+            "response": f"new inspection report (ID: {new_id}) added"
+        }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
             "status": "not_ok",
             "response": error_msg
         }
@@ -868,7 +993,8 @@ def data_entry_get_filter_selector_lists():
 
     # get the required parameters
     inspection_id = int(form_data["inspection_id"])
-    part_id = int(form_data["part_id"])
+    item = form_data["item"]
+    drawing = form_data["drawing"]
 
     try:
 
@@ -879,36 +1005,51 @@ def data_entry_get_filter_selector_lists():
         frequency_types_query = session.query(frequency_types.id, frequency_types.name)\
             .join(characteristics, (characteristics.frequency_type_id == frequency_types.id))\
             .join(checks, (checks.id == characteristics.check_id))\
-            .filter(and_(checks.inspection_id == inspection_id, checks.part_id == part_id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
             .order_by(frequency_types.name.asc()).distinct(frequency_types.name).all()
 
         # check id list
         check_ids_query = session.query(checks.id)\
-            .filter(and_(checks.inspection_id == inspection_id, checks.part_id == part_id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
             .order_by(checks.id.asc()).distinct(checks.id).all()
+        check_min = session.query(func.min(checks.id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%"))).first()[0]
 
         # revisions list
         revisions_query = session.query(parts.id, parts.revision)\
-            .join(checks, (checks.part_id == part_id))\
-            .filter(and_(checks.inspection_id == inspection_id, checks.part_id == part_id))\
+            .join(checks, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
             .order_by(parts.revision.asc()).distinct(parts.revision).all()
 
         # part indices list
         part_indices_query = session.query(checks.part_index)\
-            .filter(and_(checks.inspection_id == inspection_id, checks.part_id == part_id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
             .order_by(checks.part_index.asc()).distinct(checks.part_index).all()
 
         # inspectors list
         inspectors_query = session.query(employees.id, employees.first_name, employees.last_name)\
             .join(checks, (checks.employee_id == employees.id))\
-            .filter(and_(checks.inspection_id == inspection_id, checks.part_id == part_id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
             .order_by(employees.last_name.asc()).distinct(employees.first_name, employees.last_name).all()
 
         # gauges list
         gauges_query = session.query(gauges.id, gauges.name)\
             .join(characteristics, (characteristics.gauge_id == gauges.id))\
             .join(checks, (checks.id == characteristics.check_id))\
-            .filter(and_(checks.inspection_id == inspection_id, checks.part_id == part_id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
             .order_by(gauges.name.asc()).distinct(gauges.name).all()
 
         # gauges types list
@@ -916,21 +1057,27 @@ def data_entry_get_filter_selector_lists():
             .join(gauges, (gauges.gauge_type_id == gauge_types.id))\
             .join(characteristics, (characteristics.gauge_id == gauges.id))\
             .join(checks, (checks.id == characteristics.check_id))\
-            .filter(and_(checks.inspection_id == inspection_id, checks.part_id == part_id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
             .order_by(gauge_types.name.asc()).distinct(gauge_types.name).all()
 
         # specification types list
         specification_types_query = session.query(specification_types.id, specification_types.name)\
             .join(characteristics, (characteristics.specification_type_id == specification_types.id))\
             .join(checks, (checks.id == characteristics.check_id))\
-            .filter(and_(checks.inspection_id == inspection_id, checks.part_id == part_id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
             .order_by(specification_types.name.asc()).distinct(specification_types.name).all()
 
         # characteristic types list
         characteristic_types_query = session.query(characteristic_types.id, characteristic_types.name)\
             .join(characteristics, (characteristics.characteristic_type_id == characteristic_types.id))\
             .join(checks, (checks.id == characteristics.check_id))\
-            .filter(and_(checks.inspection_id == inspection_id, checks.part_id == part_id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
             .order_by(characteristic_types.name.asc()).distinct(characteristic_types.name).all()
 
         # close the database session
@@ -950,7 +1097,7 @@ def data_entry_get_filter_selector_lists():
             for id in check_ids_query:
                 check_ids_list.append({
                     "id": id[0],
-                    "value": id[0]
+                    "value": id[0] - (check_min - 1)
                 })
 
             revisions_list = []
@@ -1038,7 +1185,8 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
 
     # get the required parameters
     inspection_id = int(form_data["identity"]["inspection_id"])
-    part_id = int(form_data["identity"]["part_id"])
+    item = form_data["identity"]["item"]
+    drawing = form_data["identity"]["drawing"]
     check_id = int(form_data["content"]["check_id"])
     frequency_type_id = int(form_data["content"]["frequency_type_id"])
     revision = form_data["content"]["revision"]
@@ -1085,7 +1233,8 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
             .join(specification_types, (characteristics.specification_type_id == specification_types.id))\
             .join(characteristic_types, (characteristics.characteristic_type_id == characteristic_types.id))\
             .join(frequency_types, (characteristics.frequency_type_id == frequency_types.id))\
-            .filter(and_(inspection_reports.id == inspection_id, parts.id == part_id))\
+            .filter(inspection_reports.id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"%{drawing}%")))\
             .filter(characteristics.name.ilike(f"%{name}%"))\
             .filter(parts.revision.ilike(f"%{revision}%"))
 
@@ -1129,6 +1278,7 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
 
             # assemble characteristics output
             output_characteristics_list = []
+            check_id_list = []
             for check_id, part_index, revision, name, nominal, usl, lsl, measured, precision, employee_id, gauge_id, gauge_type, specification_type, characteristic_type, frequency_type, characteristic_id in characteristic_list:
 
                 # parse to floats
@@ -1148,6 +1298,7 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
                     else:
                         state = "fail"
 
+                check_id_list.append(check_id)
                 output_characteristics_list.append({
                     "has_deviations": characteristic_id in deviations_list,
                     "check_id": check_id,
@@ -1190,7 +1341,8 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
                 "response": {
                     "characteristics": output_characteristics_list,
                     "inspectors": output_inspectors_list,
-                    "gauges": output_gauges_list
+                    "gauges": output_gauges_list,
+                    "check_min": min(check_id_list)
                 }
             }
         else:
@@ -1303,6 +1455,56 @@ def data_entry_commit_characteristic_data(report_id:int):
 
 #region data entry - metadata
 
+@app.route("/data_entry/get_matching_revisions/", methods = ["POST"])
+def data_entry_get_matching_revisions():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    item = form_data["item"]
+    drawing = form_data["drawing"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(parts.id, parts.revision, parts.full_inspect_interval, parts.released_qty, parts.completed_qty)\
+            .filter(and_(func.lower(parts.item) == item.lower(), func.lower(parts.drawing) == drawing.lower())).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, revision, full_inspect_interval, released_qty, completed_qty in results:
+                output_arr.append({
+                    "id": id,
+                    "revision": revision,
+                    "full_inspect_interval": full_inspect_interval,
+                    "released_qty": released_qty,
+                    "completed_qty": completed_qty
+                })
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no matching parts found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
 @app.route("/data_entry/save_metadata/", methods = ["POST"])
 def data_entry_save_metadata():
 
@@ -1310,7 +1512,8 @@ def data_entry_save_metadata():
     form_data = json.loads(request.data)
 
     # get the required parameters
-    part_id = form_data["identity"]["part_id"]
+    item = form_data["identity"]["item"]
+    drawing = form_data["identity"]["drawing"]
     inspection_id = form_data["identity"]["inspection_id"]
 
     try:
@@ -1321,38 +1524,55 @@ def data_entry_save_metadata():
         # make sure the report/part combination exists
         results = session.query(inspection_reports.id).distinct(inspection_reports.id)\
             .join(checks, (checks.inspection_id == inspection_reports.id))\
-            .filter(and_(checks.part_id == part_id, checks.inspection_id == inspection_id)).all()
+            .join(parts, (parts.id == checks.part_id))\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"%{drawing}%"), inspection_reports.id == inspection_id)).all()
         if len(results) == 0:
             return {
                 "status": "ok_log",
                 "response": "no matching inspection report and part found"
             }
 
-        # define the changes
+        # update the inspection report
         results = session.query(inspection_reports).filter(inspection_reports.id == inspection_id)
-        is_affected = 0
+        ir_is_affected = 0
         for k, v in form_data["content"].items():
-            is_affected = results.update({ k: v })
+            ir_is_affected = results.update({ k: v })
 
-        # commit the changes
+        # commit to then close the session
         session.commit()
+        session.close()
 
-        # close the database session
+        # open the database session
+        session = Session(engine)
+
+        # update the quantities
+        pa_is_affected = 0
+        for obj in form_data["sub_data"]:
+            results = session.query(parts)\
+                .filter(parts.item.ilike(f"%{item}%"))\
+                .filter(parts.drawing.ilike(f"%{drawing}%"))\
+                .filter(parts.revision.ilike(f"%{obj['revision']}%"))
+            pa_is_affected = results.update({ "full_inspect_interval": obj["full_inspect_interval"] }, synchronize_session = False)
+            pa_is_affected = results.update({ "completed_qty": obj["completed_qty"] }, synchronize_session = False)
+            pa_is_affected = results.update({ "released_qty": obj["released_qty"] }, synchronize_session = False)
+
+        # commit to then close the session
+        session.commit()
         session.close()
 
         # return the response
-        if is_affected > 0:
+        if ir_is_affected > 0 and pa_is_affected > 0:
             return {
                 "status": "ok_func",
-                "response": "table 'inspection_reports' successfully updated"
+                "response": "tables 'inspection_reports' and 'parts' successfully updated"
             }
         else:
             return {
                 "status": "ok_alert",
-                "response": "no records in 'inspection_reports' updated"
+                "response": "no records in 'inspection_reports' and 'parts' updated"
             }
 
-    except SQLAlchemyError as e:
+    except UnevaluatableError as e:
         error_msg = str(e.__dict__["orig"])
         return {
             "status": "err_log",
@@ -1944,243 +2164,6 @@ def data_entry_remove_lot_number_association():
 #endregion
 
 # --------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#region data entry - report controls
-
-@app.route("/data_entry/create_new_inspection_report/", methods = ["POST"])
-def data_entry_create_new_inspection_report():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    item = form_data["item"]
-    drawing = form_data["drawing"]
-    revision = form_data["revision"]
-
-    # handle null values
-    if revision == "":
-        return {
-            "status": "ok_alert",
-            "response": "revision must be defined"
-        }
-
-    try:
-
-        # open the database session
-        session = Session(engine)
-
-        # make sure the inputs exist in the database
-        results = session.query(parts.id)\
-            .filter(func.lower(parts.item) == item)\
-            .filter(func.lower(parts.drawing) == drawing)\
-            .filter(func.lower(parts.revision) == revision).first()
-
-        if results is None:
-            return {
-                "status": "ok_alt",
-                "response": f"referenced part ({item}, {drawing}, {revision}) does not exist in the database"
-            }
-
-        # define the associated part id
-        part_id = results[0]
-
-        # check if this part is already associated with an inspection report
-        results = session.query(inspection_reports.id)\
-            .filter(inspection_reports.part_id == part_id).first()
-        if results is not None:
-            return {
-                "status": "ok_alt",
-                "response": f"referenced part ({item}, {drawing}, {revision}) is already associated with an inspection report"
-            }
-
-        # define the new inspection report id
-        new_id = len(session.query(inspection_reports.id).order_by(inspection_reports.id.asc()).all())
-
-        # get today's date
-        dt_now = datetime.datetime.now()
-        today = datetime.date(dt_now.year, dt_now.month, dt_now.day)
-
-        # add the record
-        session.add(inspection_reports(
-            id = new_id,
-            day_started = today,
-            full_inspect_qty = 0,
-            full_inspect_qty_type = "custom",
-            released_qty = 0,
-            released_qty_type = "custom",
-            completed_qty = 0,
-            completed_qty_type = "custom",
-            material_type_id = "aluminum",
-            disposition = "incomplete",
-            part_id = part_id))
-
-        # commit the changes
-        session.commit()
-
-        # close the database session
-        session.close()
-
-        return {
-            "status": "ok",
-            "response": f"new inspection report (ID: {new_id}) added"
-        }
-
-    except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
-        return {
-            "status": "not_ok",
-            "response": error_msg
-        }
-
-@app.route("/data_entry/save_inspection_report_metadata/", methods = ["POST"])
-def data_entry_save_inspection_report_metadata():
-
-    # interpret the form data
-    form_data = json.loads(request.data)
-
-    # get the ids
-    part_id = form_data["ident"]["part_id"]
-    report_id = form_data["ident"]["report_id"]
-
-    try:
-
-        # open the database session
-        session = Session(engine)
-
-        # make sure the report/part combination exists
-        results = session.query(inspection_reports.id)\
-            .join(parts, (inspection_reports.part_id == parts.id))\
-            .filter(inspection_reports.id == report_id)\
-            .filter(parts.id == part_id).all()
-        if (len(results)) == 0:
-            return {
-                "status": "ok_alt",
-                "response": "no matching inspection report and part"
-            }
-
-        results = session.query(inspection_reports).filter(inspection_reports.id == report_id)
-
-        is_affected = 0
-        for k, v in form_data["info"].items():
-            is_affected = results.update({ k: v })
-
-        # commit the changes
-        session.commit()
-
-        # close the database session
-        session.close()
-
-        if is_affected > 0:
-            return {
-                "status": "ok",
-                "response": "table 'inspection_reports' successfully updated"
-            }
-        else:
-            return {
-                "status": "ok",
-                "response": "no records updated in 'inspection_reports'"
-            }
-
-    except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
-        return {
-            "status": "not_ok",
-            "response": error_msg
-        }
-
-#endregion
-
-#region data entry - existing reports
-
-@app.route("/data_entry/get_filtered_inspection_reports_old/", methods = ["POST"])
-def data_entry_get_filtered_inspection_reports_old():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    item_number = form_data["item"]
-    drawing = form_data["drawing"]
-    job_order = form_data["job_order"]
-    started_after = datetime.date(form_data["start_year"], form_data["start_month"], form_data["start_day"])
-    finished_before = datetime.date(form_data["finish_year"], form_data["finish_month"], form_data["finish_day"])
-
-    # define the required fields
-    columns = [
-        parts.id,
-        parts.item,
-        parts.drawing,
-        parts.revision,
-        inspection_reports.id,
-        inspection_reports.job_order_id,
-    ]
-
-    try:
-
-        # open the database session
-        session = Session(engine)
-
-        # query the database
-        results = session.query(*columns)\
-            .join(inspection_reports, (inspection_reports.part_id == parts.id))\
-            .join(characteristics, (characteristics.part_id == parts.id))\
-            .join(checks, (checks.id == characteristics.check_id))\
-            .filter(checks.date_measured >= started_after)\
-            .filter(or_(checks.date_measured <= finished_before, checks.date_measured == None))\
-            .filter(parts.item.ilike(f"%{item_number}%"))\
-            .filter(parts.drawing.ilike(f"%{drawing}%"))\
-            .filter(inspection_reports.job_order_id.ilike(f"%{job_order}%"))\
-            .order_by(parts.drawing.asc()).all()
-
-        # close the database session
-        session.close()
-
-    except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
-        return {
-            "status": "not_ok",
-            "response": error_msg
-        }
-
-    # return the results
-    if len(results) > 0:
-        output_arr = []
-        for part_id, item, drawing, revision, report_id, job_order_id in results:
-            output_arr.append({
-                "report_id": report_id,
-                "part_id": part_id,
-                "item": item,
-                "drawing": drawing,
-                "revision": revision.upper(),
-                "job_order_id": job_order_id
-            })
-
-        return {
-            "status": "ok",
-            "response": output_arr
-        }
-    else:
-        return {
-            "status": "ok_alt",
-            "response": "no matching inspection reports found"
-        }
-
-#endregion
 
 # run the flask server
 if __name__ == "__main__":

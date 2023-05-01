@@ -1,5 +1,5 @@
-full_inspect_interval,released_qty,completed_qty,material_type_id,supplier_id,job_order_id,employee_id,disposition_id
-500,1000,1000,0,,1,5397,0
-575,1150,1150,2,2,,6752,0
-400,800,800,2,3,6,,1
-88,176,85,1,4,3,4113,2
+material_type_id,supplier_id,job_order_id,employee_id,disposition_id
+0,,1,5397,0
+2,2,,6752,0
+2,3,6,,1
+1,4,3,4113,2

@@ -28,8 +28,19 @@ drop table gauge_types;
 drop table machine_types;
 drop table location_types;
 drop table disposition_types;
+drop table deviation_types;
 
 -- enumeration tables
+
+create table deviation_types
+(
+    id integer not null,
+    name varchar(32) not null,
+
+    -- primary key and unique constraints
+    constraint pk_deviation_types primary key (id),
+    constraint uc_deviation_types unique (id)
+);
 
 create table disposition_types
 (
@@ -264,9 +275,6 @@ create table machines
 create table inspection_reports
 (
     id serial not null,
-    full_inspect_interval integer not null,
-    released_qty integer not null,
-    completed_qty integer not null,
 
     -- primary key and unique constraints
     constraint pk_inspection_reports primary key (id),
@@ -299,6 +307,9 @@ create table parts
     drawing varchar(32) not null,
     revision varchar(2) not null,
     item varchar(32) not null,
+    full_inspect_interval integer not null,
+    released_qty integer not null,
+    completed_qty integer not null,
 
     -- primary key and unique constraints
     constraint pk_parts_id primary key (id),
@@ -399,7 +410,16 @@ create table deviations
     usl decimal not null,
     lsl decimal not null,
     precision integer not null,
+    date_implemented date not null,
     notes text,
+
+    -- many deviations relate to one deviation type
+    deviation_type_id integer not null,
+    constraint fk_deviation_type_id foreign key (deviation_type_id) references deviation_types(id),
+
+    -- many deviations relate to one employee
+    employee_id integer not null,
+    constraint fk_deviation_employee_id foreign key (employee_id) references employees(id),
 
     -- many deviations relate to one characteristic
     characteristic_id integer not null,
