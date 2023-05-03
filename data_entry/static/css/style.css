@@ -2,62 +2,95 @@
 /* #region custom properties */
 
 :root {
+
+    /* fonts */
     --fontfamily-default: sans-serif;
-
-    --main-color-bg: hsl(0, 0%, 90%);
-    --dark-bg: hsl(0, 0%, 20%);
-
-    --sidebar-toggler-bg-static: hsl(0, 0%, 20%);
-    --sidebar-toggler-fg-static: hsl(0, 0%, 75%);
-    --sidebar-toggler-bg-hover: hsl(0, 0%, 30%);
-    --sidebar-toggler-fg-hover: hsl(0, 0%, 95%);
-
-    --dark-label-bg-static: transparent;
-    --dark-label-fg-static: hsl(0, 0%, 85%);
-
-    --dark-control-bg-static: hsl(0, 0%, 35%);
-    --dark-control-fg-static: hsl(0, 0%, 85%);
-    --dark-control-bg-hover: hsl(0, 0%, 25%);
-    --dark-control-fg-hover: hsl(0, 0%, 85%);
-    --dark-control-bg-active: hsl(0, 0%, 30%);
-    --dark-control-fg-active: hsl(0, 0%, 85%);
-    --dark-control-bg-selection: hsl(0, 50%, 50%);
-    --dark-control-fg-selection: hsl(160, 50%, 50%);
-
-    --dark-button-bg-static: hsl(0, 50%, 30%);
-    --dark-button-fg-static: hsl(0, 0%, 95%);
-    --dark-button-bg-hover: hsl(0, 50%, 40%);
-    --dark-button-fg-hover: hsl(0, 0%, 95%);
-    --dark-button-bg-active: hsl(0, 50%, 45%);
-    --dark-button-fg-active: hsl(0, 0%, 95%);
-
-    --dark-list-bg-static: transparent;
-    --dark-list-fg-static: hsl(0, 0%, 85%);
-    --dark-list-bg-hover: hsl(0, 50%, 40%);
-    --dark-list-fg-hover: hsl(0, 0%, 85%);
-    --dark-list-bg-focus: hsl(0, 50%, 40%);
-    --dark-list-fg-focus: hsl(0, 0%, 85%);
-    --dark-list-bg-active: hsl(0, 50%, 40%);
-    --dark-list-fg-active: hsl(0, 0%, 85%);
-
-    --dark-table-bg-header: hsl(0, 0%, 40%);
-    --dark-table-fg-header: hsl(0, 0%, 90%);
-    --dark-table-bg-static: hsl(0, 0%, 25%);
-    --dark-table-fg-static: hsl(0, 0%, 85%);
-    --dark-table-bg-hover: hsl(0, 0%, 35%);
-    --dark-table-fg-hover: hsl(0, 0%, 85%);
-    --dark-table-bg-focus: hsl(0, 0%, 35%);
-    --dark-table-fg-focus: hsl(0, 0%, 85%);
-    --dark-table-bd-static: hsl(0, 0%, 0%);
-    --dark-table-sd-static: hsl(0, 0%, 50%);
-    --dark-table-bg-selection: hsl(0, 50%, 50%);
-    --dark-table-fg-selection: hsl(0, 0%, 10%);
-
     --fontsize-title: 25px;
     --fontsize-header: 21px;
     --fontsize-inline: 18px;
     --fontsize-control: 15px;
     --fontsize-label: 12px;
+
+    /* color components */
+    --page-bg-l: 90%;
+    --dark-bg-l: 20%;
+    --primary-hue: 0;
+    --secondary-hue: 120;
+    --is-color: 50%;
+    --is-grayscale: 0%;
+    --font-modifier: 5%;
+    --hover-l: 8%;
+    --active-l: 13%;
+    --focus-l: 18%;
+    --selection-bg-l: 25%;
+    --selection-fg-l: 90%;
+    --sidebar-toggler-bg-l: 20%;
+    --sidebar-toggler-fg-l: 85%;
+    --control-bg-l: 35%;
+    --control-fg-l: 85%;
+    --button-bg-l: 35%;
+    --button-fg-l: 85%;
+    --list-bg-l: 40%;
+    --list-fg-l: 85%;
+    --table-bg-l: 30%;
+    --table-fg-l: 85%;
+
+    /* colors */
+    --main-color-bg: hsl(0, 0%, var(--page-bg-l));
+    --dark-bg: hsl(0, 0%, var(--dark-bg-l));
+
+    --sidebar-toggler-bg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--sidebar-toggler-bg-l));
+    --sidebar-toggler-fg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--sidebar-toggler-fg-l));
+    --sidebar-toggler-bg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--sidebar-toggler-bg-l) + var(--hover-l)));
+    --sidebar-toggler-fg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--sidebar-toggler-fg-l) + 5%));
+
+    --dark-label-bg-static: transparent;
+    --dark-label-fg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--control-fg-l));
+    --dark-label-bg-selection: hsl(var(--primary-hue), var(--is-color), var(--selection-bg-l));
+    --dark-label-fg-selection: hsl(var(--primary-hue), var(--is-grayscale), var(--selection-fg-l));
+
+    --dark-control-bg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--control-bg-l));
+    --dark-control-fg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--control-fg-l));
+    --dark-control-bg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--control-bg-l) + var(--hover-l)));
+    --dark-control-fg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--control-fg-l) + var(--font-modifier)));
+    --dark-control-bg-active: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--control-bg-l) + var(--active-l)));
+    --dark-control-fg-active: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--control-fg-l) + var(--font-modifier)));
+    --dark-control-bg-selection: hsl(var(--primary-hue), var(--is-color), var(--selection-bg-l));
+    --dark-control-fg-selection: hsl(var(--primary-hue), var(--is-grayscale), var(--selection-fg-l));
+
+    --dark-button-bg-static: hsl(var(--primary-hue), var(--is-color), var(--button-bg-l));
+    --dark-button-fg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--button-fg-l));
+    --dark-button-bg-hover: hsl(var(--primary-hue), var(--is-color), calc(var(--button-bg-l) + var(--hover-l)));
+    --dark-button-fg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--button-fg-l) + var(--font-modifier)));
+    --dark-button-bg-active: hsl(var(--primary-hue), var(--is-color), calc(var(--button-bg-l) + var(--active-l)));
+    --dark-button-fg-active: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--button-fg-l) + var(--font-modifier)));
+
+    --dark-list-bg-static: transparent;
+    --dark-list-fg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--list-fg-l));
+    --dark-list-bg-hover: hsl(var(--primary-hue), var(--is-color), calc(var(--list-bg-l) + var(--hover-l)));
+    --dark-list-fg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--list-fg-l) + var(--font-modifier)));
+    --dark-list-bg-focus: hsl(var(--primary-hue), var(--is-color), calc(var(--list-bg-l) + var(--focus-l)));
+    --dark-list-fg-focus: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--list-fg-l) + var(--font-modifier)));
+    --dark-list-bg-active: hsl(var(--primary-hue), var(--is-color), calc(var(--list-bg-l) + var(--active-l)));
+    --dark-list-fg-active: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--list-fg-l) + var(--font-modifier)));
+    --dark-list-bg-selection: hsl(var(--primary-hue), var(--is-color), var(--selection-bg-l));
+    --dark-list-fg-selection: hsl(var(--primary-hue), var(--is-grayscale), var(--selection-fg-l));
+
+    --dark-table-bg-header: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--table-bg-l) + var(--hover-l)));
+    --dark-table-fg-header: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--table-fg-l) + var(--font-modifier)));
+    --dark-table-bg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--table-bg-l));
+    --dark-table-fg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--table-fg-l));
+    --dark-table-bg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--table-bg-l) + var(--hover-l)));
+    --dark-table-fg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--table-fg-l) + var(--font-modifier)));
+    --dark-table-bg-active: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--table-bg-l) + var(--active-l)));
+    --dark-table-fg-active: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--table-fg-l) + var(--font-modifier)));
+    --dark-table-bg-focus: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--table-bg-l) + var(--focus-l)));
+    --dark-table-fg-focus: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--table-fg-l) + var(--font-modifier)));
+
+    --dark-table-bd-static: hsl(var(--primary-hue), var(--is-grayscale), 15%);
+    --dark-table-sd-static: hsl(var(--primary-hue), var(--is-grayscale), 50%);
+    --dark-table-bg-selection: hsl(var(--primary-hue), var(--is-color), var(--selection-bg-l));
+    --dark-table-fg-selection: hsl(var(--primary-hue), var(--is-grayscale), var(--selection-fg-l));
 }
 
 /* #endregion custom properties */
@@ -251,6 +284,11 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     grid-row: var(--grid-row);
 }
 
+.label-dark::selection {
+    background-color: var(--dark-label-bg-selection);
+    color: var(--dark-label-fg-selection);
+}
+
 .textarea-dark {
     background-color: var(--dark-control-bg-static);
     color: var(--dark-control-fg-static);
@@ -264,6 +302,11 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     grid-column: var(--grid-column);
     grid-row: var(--grid-row);
     resize: none;
+}
+
+.textarea-dark::selection {
+    background-color: var(--dark-control-bg-selection);
+    color: var(--dark-control-fg-selection);
 }
 
 .label-inline-dark {
@@ -339,7 +382,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     color: var(--dark-control-fg-active);
 }
 
-.input-dark::selection {
+.input-dark::selection, .select-dark::selection {
     background-color: var(--dark-control-bg-selection);
     color: var(--dark-control-fg-selection);
 }
@@ -358,6 +401,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 .list-item-header {
     background-color: transparent;
     gap: 0px;
+    padding: 6px;
     margin: 0px;
     display: grid;
     border-radius: 0px;
@@ -388,6 +432,11 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 .list-item-dark:hover {
     background-color: var(--dark-list-bg-hover);
     color: var(--dark-list-fg-hover);
+}
+
+.list-item-dark:active {
+    background-color: var(--dark-list-bg-active);
+    color: var(--dark-list-fg-active);
 }
 
 .list-item-dark:focus-within {
@@ -440,9 +489,14 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     color: var(--dark-list-fg-active);
 }
 
+.list-item-input-dark::selection, .list-item-select-dark::selection {
+    background-color: var(--dark-list-bg-selection);
+    color: var(--dark-list-fg-selection);
+}
+
 .list-item-button-dark {
     background-color: transparent;
-    color: transparent;
+    color: var(--dark-button-fg-static);
     border-width: 0px;
     border-radius: 0px;
     font-size: var(--fontsize-control);
@@ -457,8 +511,8 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 }
 
 .list-item-button-dark:hover {
-    background-color: var(--dark-list-bg-hover);
-    color: var(--dark-list-fg-hover);
+    background-color: var(--dark-button-bg-hover);
+    color: var(--dark-button-fg-hover);
 }
 
 .list-item-button-dark:active {
@@ -551,9 +605,19 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     cursor: default;
 }
 
-.data-table-cell-dark:hover, .data-table-cell-dark:active, .data-table-cell-dark:focus-within {
+.data-table-cell-dark:hover {
     background-color: var(--dark-table-bg-hover);
     color: var(--dark-table-fg-hover);
+}
+
+.data-table-cell-dark:active {
+    background-color: var(--dark-table-bg-active);
+    color: var(--dark-table-fg-active);
+}
+
+.data-table-cell-dark:focus-within {
+    background-color: var(--dark-table-bg-focus);
+    color: var(--dark-table-fg-focus);
 }
 
 .data-table-cell-dark::selection {
