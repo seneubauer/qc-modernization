@@ -1,9 +1,72 @@
 
+/* #region custom properties */
+
+:root {
+    --fontfamily-default: sans-serif;
+
+    --main-color-bg: hsl(0, 0%, 90%);
+    --dark-bg: hsl(0, 0%, 20%);
+
+    --sidebar-toggler-bg-static: hsl(0, 0%, 20%);
+    --sidebar-toggler-fg-static: hsl(0, 0%, 75%);
+    --sidebar-toggler-bg-hover: hsl(0, 0%, 30%);
+    --sidebar-toggler-fg-hover: hsl(0, 0%, 95%);
+
+    --dark-label-bg-static: transparent;
+    --dark-label-fg-static: hsl(0, 0%, 85%);
+
+    --dark-control-bg-static: hsl(0, 0%, 35%);
+    --dark-control-fg-static: hsl(0, 0%, 85%);
+    --dark-control-bg-hover: hsl(0, 0%, 25%);
+    --dark-control-fg-hover: hsl(0, 0%, 85%);
+    --dark-control-bg-active: hsl(0, 0%, 30%);
+    --dark-control-fg-active: hsl(0, 0%, 85%);
+    --dark-control-bg-selection: hsl(0, 50%, 50%);
+    --dark-control-fg-selection: hsl(160, 50%, 50%);
+
+    --dark-button-bg-static: hsl(0, 50%, 30%);
+    --dark-button-fg-static: hsl(0, 0%, 95%);
+    --dark-button-bg-hover: hsl(0, 50%, 40%);
+    --dark-button-fg-hover: hsl(0, 0%, 95%);
+    --dark-button-bg-active: hsl(0, 50%, 45%);
+    --dark-button-fg-active: hsl(0, 0%, 95%);
+
+    --dark-list-bg-static: transparent;
+    --dark-list-fg-static: hsl(0, 0%, 85%);
+    --dark-list-bg-hover: hsl(0, 50%, 40%);
+    --dark-list-fg-hover: hsl(0, 0%, 85%);
+    --dark-list-bg-focus: hsl(0, 50%, 40%);
+    --dark-list-fg-focus: hsl(0, 0%, 85%);
+    --dark-list-bg-active: hsl(0, 50%, 40%);
+    --dark-list-fg-active: hsl(0, 0%, 85%);
+
+    --dark-table-bg-header: hsl(0, 0%, 40%);
+    --dark-table-fg-header: hsl(0, 0%, 90%);
+    --dark-table-bg-static: hsl(0, 0%, 25%);
+    --dark-table-fg-static: hsl(0, 0%, 85%);
+    --dark-table-bg-hover: hsl(0, 0%, 35%);
+    --dark-table-fg-hover: hsl(0, 0%, 85%);
+    --dark-table-bg-focus: hsl(0, 0%, 35%);
+    --dark-table-fg-focus: hsl(0, 0%, 85%);
+    --dark-table-bd-static: hsl(0, 0%, 0%);
+    --dark-table-sd-static: hsl(0, 0%, 50%);
+    --dark-table-bg-selection: hsl(0, 50%, 50%);
+    --dark-table-fg-selection: hsl(0, 0%, 10%);
+
+    --fontsize-title: 25px;
+    --fontsize-header: 21px;
+    --fontsize-inline: 18px;
+    --fontsize-control: 15px;
+    --fontsize-label: 12px;
+}
+
+/* #endregion custom properties */
+
 /* #region globals */
 
 body {
     font-family: sans-serif;
-    background-color: hsl(0, 0%, 95%);
+    background-color: var(--main-color-bg);
 }
 
 textarea {
@@ -28,10 +91,10 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 
 /* #endregion globals */
 
-/* #region navbar_basics */
+/* #region navbar basics */
 
 .nav_bar {
-    background-color: hsl(0, 0%, 20%);
+    background-color: var(--dark-bg);
     overflow: hidden;
     top: 0;
     width: 100%;
@@ -42,66 +105,71 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 
 .nav_bar label {
     float: left;
-    color: hsl(0, 0%, 95%);
+    color: var(--dark-control-fg-static);
     padding: 0px 0px 0px 30px;
-    font-size: 30px;
+    font-size: var(--fontsize-title);
     vertical-align: middle;
 }
 
 .nav_bar a {
     float: right;
-    color: hsl(0, 0%, 95%);
+    color: var(--dark-control-fg-static);
     text-align: center;
     padding: 0px 15px;
     text-decoration: none;
-    font-size: 18px;
+    font-size: var(--fontsize-inline);
     vertical-align: middle;
 }
 
 .nav_bar a:hover {
-    background-color: hsl(0, 0%, 85%);
-    color: hsl(0, 0%, 0%);
+    background-color: var(--dark-control-bg-hover);
+    color: var(--dark-control-fg-hover);
 }
 
-/* #endregion navbar_basics */
+/* #endregion navbar basics */
 
-/* #region sidebar_basics */
+/* #region sidebar operation */
 
 .sidebar {
     height: 100%;
     width: 0px;
     position: fixed;
-    z-index: 1;
+    z-index: 2;
     top: 54px;
     left: 0px;
-    background-color: hsl(0, 0%, 20%);
+    background-color: var(--dark-bg);
     overflow-x: hidden;
     padding-top: 12px;
     transition: 0.5s;
 }
 
-.sidebar_button {
-    font-size: 15px;
+.sidebar-button {
+    background-color: var(--sidebar-toggler-bg-static);
+    color: var(--sidebar-toggler-fg-static);
+    border-width: 0px;
+    border-radius: 12px;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: left;
+    margin: 0px;
+    padding: 0px 0px 0px 15px;
     cursor: pointer;
-    background-color: hsl(0, 0%, 20%);
     width: 204px;
     height: 42px;
-    text-align: left;
     vertical-align: middle;
-    color: hsl(0, 0%, 95%);
-    padding: 0px 0px 0px 15px;
-    border: none;
-    border-radius: 12px;
+    position: fixed;
 }
 
-.sidebar_button:hover {
-    background-color: hsl(0, 0%, 30%);
+.sidebar-button:hover {
+    background-color: var(--sidebar-toggler-bg-hover);
+    color: var(--sidebar-toggler-fg-hover);
 }
 
-.sidebar_toggle {
+.sidebar-toggle {
     transition: margin-left 0.5s;
     left: 12px;
     position: fixed;
+    z-index: 1;
 }
 
 @media screen and (max-height: 450px) {
@@ -109,564 +177,388 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     .sidebar a { font-size: 18px; }
 }
 
-/* #endregion sidebar_basics */
+/* #endregion sidebar operation */
 
-/* #region controls */
+/* #region context menu */
 
-.inline_display_label_dark {
-    background-color: transparent;
-    color: hsl(0, 0%, 95%);
-    padding: 6px;
-    text-align: left;
-    font-size: 18px;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.inline_display_value_dark {
-    background-color: transparent;
-    color: hsl(0, 0%, 95%);
-    padding: 6px;
-    text-align: left;
-    font-size: 15px;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.header_dark {
-    background-color: transparent;
-    color: hsl(0, 0%, 95%);
-    font-size: 18px;
-    margin: 12px 0px 6px 6px;
-    padding: 2px;
-    text-align: left;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.label_over_dark {
-    background-color: transparent;
-    color: hsl(0, 0%, 95%);
-    font-size: 12px;
-    margin: 6px 9px 0px 6px;
-    padding: 2px;
-    text-align: left;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.number_input_dark {
-    background-color: hsl(0, 0%, 95%);
-    border-width: 0px;
-    border-radius: 3px;
-    color: hsl(0, 0%, 20%);
-    font-size: 15px;
-    text-align: right;
-    margin: 6px;
-    padding: 6px;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.text_input_dark {
-    background-color: hsl(0, 0%, 95%);
-    border-width: 0px;
-    border-radius: 3px;
-    color: hsl(0, 0%, 20%);
-    font-size: 15px;
-    text-align: left;
-    margin: 6px;
-    padding: 6px;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.date_input_dark {
-    background-color: hsl(0, 0%, 95%);
-    border-width: 0px;
-    border-radius: 3px;
-    color: hsl(0, 0%, 20%);
-    font-size: 15px;
-    text-align: left;
-    margin: 6px;
-    padding: 6px;
-    font-family: sans-serif;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.textarea_dark {
-    background-color: hsl(0, 0%, 95%);
-    border-width: 0px;
-    border-radius: 3px;
-    color: hsl(0, 0%, 20%);
-    margin: 6px;
-    padding: 6px;
-    font-family: sans-serif;
-    resize: none;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.select_dark {
-    background-color: hsl(0, 0%, 95%);
-    border-width: 0px;
-    border-radius: 3px;
-    color: hsl(0, 0%, 20%);
-    font-size: 15px;
-    text-align: left;
-    margin: 6px;
-    padding: 6px;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.button_dark {
-    background-color: hsl(0, 50%, 50%);
-    border-width: 0px;
-    border-radius: 6px;
-    color: hsl(0, 0%, 95%);
-    font-size: 15px;
-    margin: 6px;
-    padding: 6px;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.button_dark:hover {
-    background-color: hsl(0, 50%, 40%);
-    cursor: pointer;
-}
-
-.button_dark:active {
-    background-color: hsl(0, 50%, 30%);
-}
-
-.header_light {
-    background-color: transparent;
-    color: hsl(0, 0%, 20%);
-    font-size: 21px;
-    margin: 6px 6px 0px 6px;
-    padding: 2px;
-    text-align: left;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.label_over_light {
-    background-color: transparent;
-    color: hsl(0, 0%, 20%);
-    font-size: 12px;
-    margin: 6px 6px 0px 6px;
-    padding: 2px;
-    text-align: left;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.number_input_light {
-    background-color: hsl(0, 0%, 85%);
-    border-width: 1px;
-    border-radius: 3px;
-    border-color: hsl(0, 0%, 35%);
-    color: hsl(0, 0%, 20%);
-    font-size: 15px;
-    text-align: right;
-    margin: 6px;
-    padding: 6px;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.text_input_light {
-    background-color: hsl(0, 0%, 85%);
-    border-width: 1px;
-    border-radius: 3px;
-    border-color: hsl(0, 0%, 35%);
-    color: hsl(0, 0%, 20%);
-    font-size: 15px;
-    text-align: left;
-    margin: 6px;
-    padding: 6px;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.select_light {
-    background-color: hsl(0, 0%, 85%);
-    border-width: 1px;
-    border-radius: 3px;
-    border-color: hsl(0, 0%, 35%);
-    color: hsl(0, 0%, 20%);
-    font-size: 15px;
-    text-align: left;
-    margin: 6px;
-    padding: 6px;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.button_light {
-    background-color: hsl(0, 50%, 50%);
-    border-width: 0px;
-    border-radius: 6px;
-    color: hsl(0, 0%, 95%);
-    font-size: 15px;
-    margin: 6px;
-    padding: 6px;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.button_light:hover {
-    background-color: hsl(0, 50%, 40%);
-    cursor: pointer;
-}
-
-.button_light:active {
-    background-color: hsl(0, 50%, 30%);
-}
-
-/* #endregion controls */
-
-/* #region tables */
-
-.list_dark {
-    padding: 6px 0px 0px 0px;
-    overflow: hidden;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.data_table_dark {
-    background-color: transparent;
-    color: hsl(0, 0%, 95%);
-    margin: 0px;
-    width: 100%;
-    box-sizing: border-box;
-    table-layout: fixed;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.data_table_dark thead th {
-    font-size: 15px;
-    padding: 6px;
-    vertical-align: middle;
-    text-align: center;
-}
-
-.data_table_dark tbody tr {
-    text-align: right;
-    border-radius: 6px;
-}
-
-.data_table_dark tbody tr:hover {
-    background-color: hsl(0, 50%, 50%);
-    color: hsl(0, 0%, 95%);
-    cursor: pointer;
-}
-
-.data_table_dark tbody tr:active {
-    background-color: hsl(0, 50%, 30%);
-}
-
-.data_table_dark tbody td {
-    vertical-align: middle;
-    padding: 0px;
-    font-size: 15px;
-}
-
-.data_table_start_cell {
-    border-radius: 6px 0px 0px 6px;
-    padding: 0px;
-}
-
-.data_table_end_cell {
-    border-radius: 0px 6px 6px 0px;
-    padding: 0px;
-}
-
-.data_table_light {
-    background-color: transparent;
-    color: hsl(0, 0%, 20%);
-    margin: 0px;
-    width: 100%;
-    overflow: auto;
-    box-sizing: border-box;
-    table-layout: fixed;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-}
-
-.data_table_light thead th {
-    font-size: 15px;
-    padding: 6px;
-    vertical-align: middle;
-    text-align: center;
-}
-
-.data_table_light tbody tr {
-    text-align: right;
-    border-radius: 6px;
-}
-
-.data_table_light tbody tr:hover {
-    background-color: hsl(0, 50%, 70%);
-    color: hsl(0, 0%, 20%);
-    cursor: pointer;
-}
-
-.data_table_light tbody tr:active {
-    background-color: hsl(0, 50%, 60%);
-}
-
-.data_table_light tbody td {
-    vertical-align: middle;
-    padding: 0px;
-    font-size: 15px;
-}
-
-/* #endregion tables */
-
-/* #region table controls */
-
-.table_label_light {
-    background-color: transparent;
-    border-width: 0px;
-    color: hsl(0, 0%, 20%);
-    font-size: 15px;
-    text-align: right;
-    margin: 0px;
-    padding: 6px;
-    box-sizing: border-box;
-    width: 100%;
-    outline: none;
-    cursor: pointer;
-}
-
-.table_label_light:hover {
-    background-color: hsl(0, 50%, 60%);
-}
-
-.table_input_light {
-    background-color: transparent;
-    border-width: 0px;
-    color: hsl(0, 0%, 20%);
-    font-size: 15px;
-    text-align: right;
-    box-sizing: border-box;
-    width: 100%;
-    padding: 6px;
-}
-
-.table_input_light:hover {
-    background-color: hsl(0, 50%, 60%);
-}
-
-.table_input_light:focus-within {
-    background-color: hsl(0, 50%, 60%);
-}
-
-.table_select_light {
-    appearance: none;
-    background-color: transparent;
-    border-width: 0px;
-    color: hsl(0, 0%, 20%);
-    font-size: 15px;
-    text-align: right;
-    box-sizing: border-box;
-    width: 100%;
-    padding: 6px;
-}
-
-.table_select_light:hover {
-    background-color: hsl(0, 50%, 60%);
-}
-
-.table_select_light:focus-within {
-    background-color: hsl(0, 50%, 60%);
-    outline: none;
-}
-
-.table_label_dark {
-    background-color: transparent;
-    border-width: 0px;
-    color: hsl(0, 0%, 95%);
-    font-size: 15px;
-    text-align: right;
-    margin: 0px;
-    padding: 6px;
-    box-sizing: border-box;
-    width: 100%;
-    outline: none;
-    cursor: pointer;
-}
-
-.table_label_dark:hover {
-    background-color: hsl(0, 50%, 60%);
-}
-
-.table_input_dark {
-    background-color: transparent;
-    border-width: 0px;
-    color: hsl(0, 0%, 95%);
-    font-size: 15px;
-    text-align: right;
-    box-sizing: border-box;
-    width: 100%;
-    padding: 6px;
-}
-
-.table_input_dark:hover {
-    background-color: hsl(0, 50%, 60%);
-}
-
-.table_input_dark:focus-within {
-    background-color: hsl(0, 50%, 60%);
-}
-
-.table_select_dark {
-    appearance: none;
-    background-color: transparent;
-    border-width: 0px;
-    color: hsl(0, 0%, 95%);
-    font-size: 15px;
-    text-align: right;
-    box-sizing: border-box;
-    width: 100%;
-    padding: 6px;
-}
-
-.table_select_dark:hover {
-    background-color: hsl(0, 50%, 60%);
-}
-
-.table_select_dark:focus-within {
-    background-color: hsl(0, 50%, 60%);
-    outline: none;
-}
-
-/* #endregion table controls */
-
-/* #region grid_layout */
-
-.grid_container {
-    display: grid;
-    grid-auto-rows: auto;
-    grid-template-columns: var(--grid-template-columns);
-    gap: 0px;
-    overflow: visible;
-    margin: 0px 18px;
-}
-
-.grid_sub_container {
-    display: grid;
-    grid-auto-rows: auto;
-    grid-template-columns: var(--grid-template-columns);
-    gap: 0px;
-    margin: 0px;
-    grid-column: var(--grid-column);
-    grid-row: var(--grid-row);
-    width: 100%;
-}
-
-.grid_container_item {
-    display: grid;
-    grid-auto-rows: auto;
-    grid-template-columns: var(--grid-template-columns);
-    gap: 0px;
-    margin: 0px 9px;
-    border-radius: 6px;
-}
-
-.grid_container_item label {
-    padding: 6px;
-    font-size: 15px;
-    color: hsl(0, 0%, 95%);
-}
-
-.grid_container_item button {
-    outline: none;
-    background-color: transparent;
-    border: 0px;
-    border-color: transparent;
-    border-radius: 0px;
-    font-size: 15px;
-    color: transparent;
-}
-
-.grid_container_item button:hover {
-    background-color: hsl(0, 50%, 40%);
-    border-radius: 0px 6px 6px 0px;
-    color: hsl(0, 0%, 95%);
-    cursor: pointer;
-}
-
-.grid_container_item button:active {
-    background-color: hsl(0, 50%, 30%);
-    border-radius: 0px 6px 6px 0px;
-}
-
-.grid_container_item:hover {
-    background-color: hsl(0, 50%, 50%);
-}
-
-.grid_container_item:active {
-    background-color: hsl(0, 50%, 40%);
-}
-
-.grid_container_item_header {
-    display: grid;
-    grid-auto-rows: auto;
-    grid-template-columns: var(--grid-template-columns);
-    gap: 0px;
-    margin: 0px 9px;
-    border-radius: 6px;
-}
-
-.grid_container_item_header label {
-    padding: 6px;
-    font-size: 15px;
-    text-align: center;
-    color: hsl(0, 0%, 95%);
-}
-
-/* #endregion grid_layout */
-
-/* #region context_menu */
-
-.context_menu {
+.context-menu {
     position: fixed;
     z-index: 10000;
     width: 200px;
-    background-color: hsl(0, 0%, 20%);
+    background-color: var(--dark-bg);
     border-radius: 6px;
     display: none;
 }
 
-.context_menu.visible {
+.context-menu.visible {
     display: block;
 }
 
-.context_menu button {
+.context-menu-button {
     background-color: transparent;
+    color: var(--dark-button-fg-static);
     border-width: 0px;
     border-radius: inherit;
-    color: hsl(0, 0%, 95%);
-    width: 100%;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
     text-align: left;
+    margin: 0px;
     padding: 6px 9px;
-    font-size: 15px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+    cursor: pointer;
+    width: 100%;
+}
+
+.context-menu-button:hover {
+    background-color: var(--dark-button-bg-hover);
+    color: var(--dark-button-fg-hover);
+}
+
+.context-menu-button:active {
+    background-color: var(--dark-button-bg-active);
+    color: var(--dark-button-fg-active);
+}
+
+/* #endregion context menu */
+
+/* #region containers */
+
+.container {
+    gap: 0px;
+    margin: 0px 18px;
+    display: grid;
+    overflow: visible;
+    grid-auto-rows: auto;
+    grid-template-columns: var(--grid-template-columns);
+}
+
+/* #endregion containers */
+
+/* #region controls */
+
+.label-dark {
+    background-color: var(--dark-label-bg-static);
+    color: var(--dark-label-fg-static);
+    border-width: 0px;
+    border-radius: 0px;
+    font-size: var(--fontsize-label);
+    font-family: var(--fontfamily-default);
+    text-align: left;
+    margin: 6px 0px 0px 0px;
+    padding: 3px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+}
+
+.textarea-dark {
+    background-color: var(--dark-control-bg-static);
+    color: var(--dark-control-fg-static);
+    border-width: 0px;
+    border-radius: 3px;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: left;
+    margin: 6px;
+    padding: 6px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+    resize: none;
+}
+
+.label-inline-dark {
+    background-color: transparent;
+    color: var(--dark-control-fg-static);
+    font-size: var(--fontsize-inline);
+    font-family: var(--fontfamily-default);
+    text-align: left;
+    margin: 6px;
+    padding: 6px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+}
+
+.label-header-dark {
+    background-color: transparent;
+    color: var(--dark-control-fg-static);
+    font-size: var(--fontsize-header);
+    font-family: var(--fontfamily-default);
+    text-align: left;
+    margin: 6px 6px 0px 6px;
+    padding: 3px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+}
+
+.button-dark {
+    background-color: var(--dark-button-bg-static);
+    color: var(--dark-button-fg-static);
+    border-width: 0px;
+    border-radius: 6px;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: center;
+    margin: 6px;
+    padding: 6px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
     cursor: pointer;
 }
 
-.context_menu button:hover {
-    background-color: hsl(0, 50%, 40%);
+.button-dark:hover {
+    background-color: var(--dark-button-bg-hover);
+    color: var(--dark-button-fg-hover);
 }
 
-.context_menu button:active {
-    background-color: hsl(0, 50%, 30%);
+.button-dark:active {
+    background-color: var(--dark-button-bg-active);
+    color: var(--dark-button-fg-active);
 }
 
-/* #endregion context_menu */
+.input-dark, .select-dark {
+    background-color: var(--dark-control-bg-static);
+    color: var(--dark-control-fg-static);
+    border-width: 0px;
+    border-radius: 3px;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: right;
+    margin: 6px;
+    padding: 6px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+}
+
+.input-dark:hover, .select-dark:hover {
+    background-color: var(--dark-control-bg-hover);
+    color: var(--dark-control-fg-hover);
+}
+
+.input-dark:active, .select-dark:active {
+    background-color: var(--dark-control-bg-active);
+    color: var(--dark-control-fg-active);
+}
+
+.input-dark::selection {
+    background-color: var(--dark-control-bg-selection);
+    color: var(--dark-control-fg-selection);
+}
+
+/* #endregion controls */
+
+/* #region lists */
+
+.item-list {
+    padding: 6px 0px 0px 0px;
+    overflow: hidden;
+    grid-row: var(--grid-row);
+    grid-column: var(--grid-column);
+}
+
+.list-item-header {
+    background-color: transparent;
+    gap: 0px;
+    margin: 0px;
+    display: grid;
+    border-radius: 0px;
+    grid-auto-rows: auto;
+    grid-template-columns: var(--grid-template-columns);
+}
+
+.list-item-header-label-dark {
+    color: var(--dark-label-fg-static);
+    font-size: var(--fontsize-control);
+    text-align: center;
+    margin: 0px;
+    padding: 0px;
+    grid-row: var(--grid-row);
+    grid-column: var(--grid-column);
+}
+
+.list-item-dark {
+    background-color: var(--dark-list-bg-static);
+    gap: 0px;
+    margin: 0px;
+    display: grid;
+    border-radius: 6px;
+    grid-auto-rows: auto;
+    grid-template-columns: var(--grid-template-columns);
+}
+
+.list-item-dark:hover {
+    background-color: var(--dark-list-bg-hover);
+    color: var(--dark-list-fg-hover);
+}
+
+.list-item-dark:focus-within {
+    background-color: var(--dark-list-bg-focus);
+    color: var(--dark-list-fg-focus);
+}
+
+.list-item-label-dark {
+    background-color: var(--dark-list-bg-static);
+    color: var(--dark-list-fg-static);
+    border-width: 0px;
+    border-radius: 0px;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: right;
+    margin: 0px;
+    padding: 6px;
+    grid-row: var(--grid-row);
+    grid-column: var(--grid-column);
+}
+
+.list-item-input-dark, .list-item-select-dark {
+    background-color: var(--dark-list-bg-static);
+    color: var(--dark-list-fg-static);
+    border-width: 0px;
+    border-radius: 0px;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: right;
+    margin: 0px;
+    padding: 6px;
+    grid-row: var(--grid-row);
+    grid-column: var(--grid-column);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.list-item-input-dark:hover, .list-item-select-dark:hover {
+    background-color: var(--dark-list-bg-hover);
+    color: var(--dark-list-fg-hover);
+}
+
+.list-item-input-dark:focus, .list-item-select-dark:focus {
+    background-color: var(--dark-list-bg-focus);
+    color: var(--dark-list-fg-focus);
+}
+
+.list-item-input-dark:active, .list-item-select-dark:active {
+    background-color: var(--dark-list-bg-active);
+    color: var(--dark-list-fg-active);
+}
+
+.list-item-button-dark {
+    background-color: transparent;
+    color: transparent;
+    border-width: 0px;
+    border-radius: 0px;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: center;
+    margin: 0px;
+    padding: 6px;
+    grid-row: var(--grid-row);
+    grid-column: var(--grid-column);
+    outline: none;
+    cursor: pointer;
+}
+
+.list-item-button-dark:hover {
+    background-color: var(--dark-list-bg-hover);
+    color: var(--dark-list-fg-hover);
+}
+
+.list-item-button-dark:active {
+    background-color: var(--dark-list-bg-active);
+    color: var(--dark-list-fg-active);
+}
+
+/* #endregion lists */
+
+/* #region tables */
+
+.data-table {
+    background-color: var(--dark-table-bg-static);
+    color: var(--dark-table-fg-static);
+    margin: 0px;
+    padding: 0px;
+    width: 100%;
+    table-layout: fixed;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    border-style: solid;
+    border-width: 1px;
+    border-color: var(--dark-table-bd-static);
+    border-radius: 3px;
+    grid-row: var(--grid-row);
+    grid-column: var(--grid-column);
+}
+
+.data-table thead th {
+    background-color: var(--dark-table-bg-header);
+    border-width: 1px;
+    border-style: solid;
+    border-color: var(--dark-table-bd-static);
+    color: var(--dark-table-fg-header);
+    padding: 6px;
+    text-align: center;
+    text-shadow: 1px 1px 1px var(--dark-table-sd-static);
+}
+
+.data-table tbody td {
+    border: solid 1px var(--dark-table-bd-static);
+    color: var(--dark-table-fg-static);
+    padding: 0px;
+    text-shadow: 1px 1px 1px var(--dark-table-sd-static);
+}
+
+.data-table-highlight-all {
+    overflow: hidden;
+    z-index: 1;
+}
+
+.data-table-highlight-all tbody td, .data-table-highlight-all thead th {
+    position: relative;
+}
+
+.data-table-highlight-all tbody td:hover::before {
+    background-color: var(--dark-table-bg-hover);
+    content:'\00a0';
+    height: 100%;
+    left: -5000px;
+    position: absolute;
+    top: 0;
+    width: 10000px;
+    z-index: -1;
+}
+
+.data-table-highlight-all tbody td:hover::after {
+    background-color: var(--dark-table-bg-hover);
+    content:'\00a0';
+    height: 10000px;
+    left: 0;
+    position: absolute;
+    top: -5000px;
+    width: 100%;
+    z-index: -1;
+}
+
+.data-table-cell-dark {
+    background-color: transparent;
+    color: inherit;
+    border-width: 0px;
+    border-radius: 0px;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: right;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0px;
+    padding: 6px;
+    cursor: default;
+}
+
+.data-table-cell-dark:hover, .data-table-cell-dark:active, .data-table-cell-dark:focus-within {
+    background-color: var(--dark-table-bg-hover);
+    color: var(--dark-table-fg-hover);
+}
+
+.data-table-cell-dark::selection {
+    background-color: var(--dark-table-bg-selection);
+    color: var(--dark-table-fg-selection);
+}
+
+/* #endregion tables */

@@ -4,8 +4,8 @@ const navbar_info = d3.select("#navbar_info");
 
 // characteristics
 const main_characteristic_table = d3.select("#main_char_table");
-const context_menu = document.getElementById("char_context_menu");
-const scope = document.querySelector("body");
+const char_table_context_menu = document.getElementById("char_context_menu");
+const char_table_scope = document.querySelector("#main_char_table");
 
 // inspection_reports
 const ir_button_save = d3.select("#inspection_report_save_btn");
@@ -75,7 +75,6 @@ const dv_ul_list = d3.select("#deviations_list");
 // main characteristic table columns
 const char_table_columns = [
     { display: "Part Index",            key: "part_index",          value_type: "number", type: "input",  show: [true, true, true] },
-    { display: "Check",                 key: "check_id",            value_type: "static", type: "label",  show: [true, true, true] },
     { display: "Frequency",             key: "frequency_type",      value_type: "static", type: "label",  show: [false, true, true] },
     { display: "Revision",              key: "revision",            value_type: "static", type: "label",  show: [true, true, true] },
     { display: "Name",                  key: "name",                value_type: "static", type: "label",  show: [true, true, true] },
@@ -101,35 +100,35 @@ function init()
     populate_generic_selectors();
 
     // characteristic table
-    scope.addEventListener("contextmenu", (e) => {
+    char_table_scope.addEventListener("contextmenu", (e) => {
         if (e.target.tagName != "TH") {
             e.preventDefault();
             const { clientX: mouseX, clientY: mouseY } = e;
-            context_menu.style.top = `${mouseY}px`;
-            context_menu.style.left = `${mouseX}px`;
-            context_menu.classList.add("visible");
+            char_table_context_menu.style.top = `${mouseY}px`;
+            char_table_context_menu.style.left = `${mouseX}px`;
+            char_table_context_menu.classList.add("visible");
 
             d3.select("#tunnel").on("click", () => {
                 cd_select_part_index.property("value", e.target.__data__.row.part_index);
                 get_filtered_characteristics();
-                context_menu.classList.remove("visible");
+                char_table_context_menu.classList.remove("visible");
             });
             d3.select("#requery").on("click", () => {
                 get_filtered_characteristics();
-                context_menu.classList.remove("visible");
+                char_table_context_menu.classList.remove("visible");
             });
             d3.select("#view_deviations").on("click", () => {
                 if (e.target.__data__.row.has_deviations) {
                     populate_deviations(e.target.__data__.row.characteristic_id);
                     toggle_options("deviations", "1000px");
                 }
-                context_menu.classList.remove("visible");
+                char_table_context_menu.classList.remove("visible");
             });
         }
     });
-    scope.addEventListener("click", (e) => {
-        if (e.target.offsetParent != context_menu) {
-            context_menu.classList.remove("visible");
+    char_table_scope.addEventListener("click", (e) => {
+        if (e.target.offsetParent != char_table_context_menu) {
+            char_table_context_menu.classList.remove("visible");
         }
     });
 
@@ -739,25 +738,25 @@ function update_filtered_inspection_reports()
                 .enter()
                 .append("li")
                 .append("div")
-                .attr("class", "grid_container_item")
-                .style("--grid-template-columns", "2fr 2fr 2fr")
+                .attr("class", "list-item-dark")
+                .style("--grid-template-columns", "1fr 1fr 1fr")
                 .on("click", (_, d) => inspection_report_selected(d));
             items.append("label")
                 .style("--grid-column", "1")
                 .style("--grid-row", "1")
-                .style("text-align", "center")
                 .style("border-radius", "6px 0px 0px 6px")
+                .attr("class", "list-item-label-dark")
                 .text((x) => x.item);
             items.append("label")
                 .style("--grid-column", "2")
                 .style("--grid-row", "1")
-                .style("text-align", "center")
+                .attr("class", "list-item-label-dark")
                 .text((x) => x.drawing);
             items.append("label")
-                .style("--grid-column", "4")
+                .style("--grid-column", "3")
                 .style("--grid-row", "1")
-                .style("text-align", "center")
                 .style("border-radius", "0px 6px 6px 0px")
+                .attr("class", "list-item-label-dark")
                 .text((x) => {
                     if (x.job_order == null) {
                         return "n/a";
@@ -914,16 +913,6 @@ function update_filter_selectors(inspection_id, item, drawing)
                 .attr("value", (x) => x.id)
                 .text((x) => x.name);
 
-            // update the check ids
-            cd_select_check.selectAll("option").remove();
-            json.response.check_ids.unshift({ id: -1, value: "n/a" });
-            cd_select_check.selectAll("option")
-                .data(json.response.check_ids)
-                .enter()
-                .append("option")
-                .attr("value", (x) => x.id)
-                .text((x) => x.value);
-
             // update the revisions
             cd_select_revision.selectAll("option").remove();
             json.response.revisions.unshift({ revision: "" });
@@ -1035,7 +1024,6 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
     display_type = cd_select_display_type.property("value");
 
     // ensure content format
-    let val_check_id = cd_select_check.property("value");
     let val_part_index = cd_select_part_index.property("value");
     let val_frequency_type_id = cd_select_frequency_type.property("value");
     let val_revision = cd_select_revision.property("value");
@@ -1046,7 +1034,6 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
     let val_gauge_type_id = cd_select_gauge_type.property("value");
     let val_specification_type_id = cd_select_specification_type.property("value");
     let val_characteristic_type_id = cd_select_characteristic_type.property("value");
-    if (val_check_id == "") { val_check_id = -1; }
     if (val_part_index == "") { val_part_index = -1; }
     if (val_frequency_type_id == "") { val_frequency_type_id = -1; }
     if (val_inspector_id == "") { val_inspector_id = -1; }
@@ -1065,7 +1052,6 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
                 drawing: drawing
             },
             content: {
-                check_id: val_check_id,
                 part_index: val_part_index,
                 frequency_type_id: val_frequency_type_id,
                 revision: val_revision,
@@ -1143,7 +1129,7 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
                     }
                 })
                 .insert("input")
-                .attr("class", "table_label_light")
+                .attr("class", "data-table-cell-dark")
                 .attr("readonly", true)
                 .property("value", (x) => {
                     if (x.column.value_type == "number") {
@@ -1172,7 +1158,7 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
                     }
                 })
                 .insert("input")
-                .attr("class", "table_input_light")
+                .attr("class", "data-table-cell-dark")
                 .property("value", (x) => {
                     if (x.column.key == "measured") {
                         if (x.row.value != null) {
@@ -1196,7 +1182,7 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
                     }
                 })
                 .insert("select")
-                .attr("class", "table_select_light")
+                .attr("class", "data-table-cell-dark")
                 .selectAll("option")
                 .data(json.response.gauges)
                 .enter()
@@ -1217,11 +1203,11 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
             // inspectors
             cells.filter((x) => {
                     if (x.column.type == "select" && x.column.key == "employee_id") {
-                        
+                        return true;
                     }
                 })
                 .insert("select")
-                .attr("class", "table_select_light")
+                .attr("class", "data-table-cell-dark")
                 .selectAll("option")
                 .data(json.response.inspectors)
                 .enter()
@@ -1230,7 +1216,7 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
                 .text((x) => x.name);
             cells.filter((x) => {
                     if (x.column.type == "select" && x.column.key == "employee_id") {
-                        
+                        return true;
                     }
                 })
                 .selectAll("select")
@@ -1238,30 +1224,6 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
                 .on("change", (e, x) => {
                     x.row.value = parseInt(e.srcElement.value);
                 });
-
-            // set the start cell class
-            rows.selectAll("td")
-                .filter((x) => {
-                    let index = char_table_columns.slice().filter((c) => {
-                        return c.show[display_type];
-                    })[0].key;
-                    return x.column.key == index;
-                })
-                .attr("class", "data_table_start_cell")
-                .selectAll("*")
-                .style("border-radius", "6px 0px 0px 6px");
-
-            // set the end cell class
-            rows.selectAll("td")
-                .filter((x) => {
-                    let index = char_table_columns.slice().filter((c) => {
-                        return c.show[display_type];
-                    }).reverse()[0].key;
-                    return x.column.key == index;
-                })
-                .attr("class", "data_table_end_cell")
-                .selectAll("*")
-                .style("border-radius", "0px 6px 6px 0px");
         }
         else if (json.status == "ok_log") {
             console.log(json.response);
@@ -1323,19 +1285,19 @@ function populate_metadata(data)
                 .enter()
                 .append("li")
                 .append("div")
-                .attr("class", "grid_container_item")
+                .attr("class", "list-item-dark")
                 .style("--grid-template-columns", "1fr 2fr 2fr 2fr");
             items.append("label")
                 .style("--grid-column", "1")
                 .style("--grid-row", "1")
-                .style("text-align", "center")
                 .style("border-radius", "6px 0px 0px 6px")
+                .attr("class", "list-item-label-dark")
                 .text((x) => x.revision)
             items.append("input")
                 .style("--grid-column", "2")
                 .style("--grid-row", "1")
-                .attr("class", "table_input_dark")
                 .attr("type", "number")
+                .attr("class", "list-item-input-dark")
                 .property("value", (x) => x.full_inspect_interval)
                 .on("change", (e, x) => {
                     x.full_inspect_interval = parseInt(e.srcElement.value);
@@ -1343,8 +1305,8 @@ function populate_metadata(data)
             items.append("input")
                 .style("--grid-column", "3")
                 .style("--grid-row", "1")
-                .attr("class", "table_input_dark")
                 .attr("type", "number")
+                .attr("class", "list-item-input-dark")
                 .property("value", (x) => x.released_qty)
                 .on("change", (e, x) => {
                     x.released_qty = parseInt(e.srcElement.value);
@@ -1352,9 +1314,9 @@ function populate_metadata(data)
             items.append("input")
                 .style("--grid-column", "4")
                 .style("--grid-row", "1")
-                .attr("class", "table_input_dark")
-                .attr("type", "number")
                 .style("border-radius", "0px 6px 6px 0px")
+                .attr("type", "number")
+                .attr("class", "list-item-input-dark")
                 .property("value", (x) => x.completed_qty)
                 .on("change", (e, x) => {
                     x.completed_qty = parseInt(e.srcElement.value);
@@ -1489,18 +1451,20 @@ function update_filtered_receiver_numbers(inspection_id = -1)
                 .enter()
                 .append("li")
                 .append("div")
-                .attr("class", "grid_container_item")
+                .attr("class", "list-item-dark")
                 .style("--grid-template-columns", "3fr 1fr");
             items.append("label")
                 .style("--grid-column", "1")
                 .style("--grid-row", "1")
                 .style("text-align", "left")
                 .style("border-radius", "6px 0px 0px 6px")
+                .attr("class", "list-item-label-dark")
                 .text((x) => x.name);
             items.append("button")
                 .style("--grid-column", "2")
                 .style("--grid-row", "1")
                 .style("border-radius", "0px 6px 6px 0px")
+                .attr("class", "list-item-button-dark")
                 .text("Delete")
                 .on("click", (_, d) => remove_receiver_number_association(d));
         }
@@ -1691,18 +1655,20 @@ function update_filtered_purchase_orders(inspection_id = -1)
                 .enter()
                 .append("li")
                 .append("div")
-                .attr("class", "grid_container_item")
+                .attr("class", "list-item-dark")
                 .style("--grid-template-columns", "3fr 1fr");
             items.append("label")
                 .style("--grid-column", "1")
                 .style("--grid-row", "1")
                 .style("text-align", "left")
                 .style("border-radius", "6px 0px 0px 6px")
+                .attr("class", "list-item-label-dark")
                 .text((x) => x.name);
             items.append("button")
                 .style("--grid-column", "2")
                 .style("--grid-row", "1")
                 .style("border-radius", "0px 6px 6px 0px")
+                .attr("class", "list-item-button-dark")
                 .text("Delete")
                 .on("click", (_, d) => remove_purchase_order_association(d));
         }
@@ -1893,18 +1859,20 @@ function update_filtered_lot_numbers(inspection_id = -1)
                 .enter()
                 .append("li")
                 .append("div")
-                .attr("class", "grid_container_item")
+                .attr("class", "list-item-dark")
                 .style("--grid-template-columns", "3fr 1fr");
             items.append("label")
                 .style("--grid-column", "1")
                 .style("--grid-row", "1")
                 .style("text-align", "left")
                 .style("border-radius", "6px 0px 0px 6px")
+                .attr("class", "list-item-label-dark")
                 .text((x) => x.name);
             items.append("button")
                 .style("--grid-column", "2")
                 .style("--grid-row", "1")
                 .style("border-radius", "0px 6px 6px 0px")
+                .attr("class", "list-item-button-dark")
                 .text("Delete")
                 .on("click", (_, d) => remove_lot_number_association(d));
         }
@@ -2157,15 +2125,16 @@ function populate_deviations(characteristic_id)
                 .enter()
                 .append("li")
                 .append("div")
-                .attr("class", "grid_container_item")
+                .attr("class", "list-item-dark")
                 .style("--grid-template-columns", "2fr 2fr 2fr 1fr 2fr 2fr 2fr")
                 .on("click", (_, d) => deviation_selected(d));
             let nominal = items.append("input")
                 .style("--grid-column", "1")
                 .style("--grid-row", "1")
                 .style("border-radius", "6px 0px 0px 6px")
-                .attr("class", "table_input_dark")
                 .attr("type", "number")
+                .attr("step", "any")
+                .attr("class", "list-item-input-dark")
                 .property("value", (x) => x.nominal.toFixed(x.precision))
                 .on("change", (e, x) => {
                     x.nominal = parseFloat(e.srcElement.value);
@@ -2173,8 +2142,9 @@ function populate_deviations(characteristic_id)
             let usl = items.append("input")
                 .style("--grid-column", "2")
                 .style("--grid-row", "1")
-                .attr("class", "table_input_dark")
                 .attr("type", "number")
+                .attr("step", "any")
+                .attr("class", "list-item-input-dark")
                 .property("value", (x) => x.usl.toFixed(x.precision))
                 .on("change", (e, x) => {
                     x.usl = parseFloat(e.srcElement.value);
@@ -2182,8 +2152,9 @@ function populate_deviations(characteristic_id)
             let lsl = items.append("input")
                 .style("--grid-column", "3")
                 .style("--grid-row", "1")
-                .attr("class", "table_input_dark")
                 .attr("type", "number")
+                .attr("step", "any")
+                .attr("class", "list-item-input-dark")
                 .property("value", (x) => x.lsl.toFixed(x.precision))
                 .on("change", (e, x) => {
                     x.lsl = parseFloat(e.srcElement.value);
@@ -2191,8 +2162,11 @@ function populate_deviations(characteristic_id)
             items.append("input")
                 .style("--grid-column", "4")
                 .style("--grid-row", "1")
-                .attr("class", "table_input_dark")
                 .attr("type", "number")
+                .attr("step", "1")
+                .attr("max", "6")
+                .attr("min", "0")
+                .attr("class", "list-item-input-dark")
                 .property("value", (x) => x.precision)
                 .on("change", (e, x) => {
                     x.precision = parseInt(e.srcElement.value);
@@ -2203,8 +2177,8 @@ function populate_deviations(characteristic_id)
             items.append("input")
                 .style("--grid-column", "5")
                 .style("--grid-row", "1")
-                .attr("class", "table_input_dark")
                 .attr("type", "date")
+                .attr("class", "list-item-input-dark")
                 .property("value", (x) => x.date_implemented)
                 .on("change", (e, x) => {
                     x.date_implemented = e.srcElement.value;
@@ -2212,12 +2186,12 @@ function populate_deviations(characteristic_id)
             let deviations = items.append("select")
                 .style("--grid-column", "6")
                 .style("--grid-row", "1")
-                .attr("class", "table_select_dark");
+                .attr("class", "list-item-select-dark");
             let employees = items.append("select")
                 .style("--grid-column", "7")
                 .style("--grid-row", "1")
                 .style("border-radius", "0px 6px 6px 0px")
-                .attr("class", "table_select_dark");
+                .attr("class", "list-item-select-dark");
 
             // populate the deviations select
             deviations.selectAll("option")

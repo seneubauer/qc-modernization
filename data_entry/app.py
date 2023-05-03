@@ -1008,17 +1008,6 @@ def data_entry_get_filter_selector_lists():
             .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
             .order_by(frequency_types.name.asc()).distinct(frequency_types.name).all()
 
-        # check id list
-        check_ids_query = session.query(checks.id)\
-            .join(parts, (checks.part_id == parts.id))\
-            .filter(checks.inspection_id == inspection_id)\
-            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
-            .order_by(checks.id.asc()).distinct(checks.id).all()
-        check_min = session.query(func.min(checks.id))\
-            .join(parts, (checks.part_id == parts.id))\
-            .filter(checks.inspection_id == inspection_id)\
-            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%"))).first()[0]
-
         # revisions list
         revisions_query = session.query(parts.id, parts.revision)\
             .join(checks, (checks.part_id == parts.id))\
@@ -1082,20 +1071,13 @@ def data_entry_get_filter_selector_lists():
         session.close()
 
         # return the results
-        if len(frequency_types_query) > 0 and len(check_ids_query) > 0 and len(revisions_query) > 0 and len(inspectors_query) > 0 and len(gauges_query) > 0 and len(gauge_types_query) > 0 and len(specification_types_query) > 0 and len(characteristic_types_query) > 0:
+        if len(frequency_types_query) > 0 and len(revisions_query) > 0 and len(inspectors_query) > 0 and len(gauges_query) > 0 and len(gauge_types_query) > 0 and len(specification_types_query) > 0 and len(characteristic_types_query) > 0:
 
             frequency_types_list = []
             for id, name in frequency_types_query:
                 frequency_types_list.append({
                     "id": id,
                     "name": name
-                })
-
-            check_ids_list = []
-            for id in check_ids_query:
-                check_ids_list.append({
-                    "id": id[0],
-                    "value": id[0] - (check_min - 1)
                 })
 
             revisions_list = []
@@ -1152,7 +1134,6 @@ def data_entry_get_filter_selector_lists():
                 "status": "ok_func",
                 "response": {
                     "frequency_types": frequency_types_list,
-                    "check_ids": check_ids_list,
                     "revisions": revisions_list,
                     "part_indices": part_indices_list,
                     "inspectors": inspectors_list,
@@ -1186,7 +1167,6 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
     item = form_data["identity"]["item"]
     drawing = form_data["identity"]["drawing"]
     part_index = int(form_data["content"]["part_index"])
-    check_id = int(form_data["content"]["check_id"])
     frequency_type_id = int(form_data["content"]["frequency_type_id"])
     revision = form_data["content"]["revision"]
     name = form_data["content"]["name"]
@@ -1237,8 +1217,6 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
             .filter(characteristics.name.ilike(f"%{name}%"))\
             .filter(parts.revision.ilike(f"%{revision}%"))
 
-        if check_id > 0:
-            results = results.filter(checks.id == check_id)
         if part_index > 0:
             results = results.filter(checks.part_index == part_index)
         if frequency_type_id > 0:
