@@ -916,6 +916,10 @@ def data_entry_create_new_inspection_report():
         # open the database session
         session = Session(engine)
 
+        # make sure the part exists
+
+        # make sure the characteristic schema exists
+
         # make sure the inputs exist in the database
         results = session.query(parts.id)\
             .filter(func.lower(parts.item) == item)\
@@ -1338,79 +1342,58 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
             "response": error_msg
         }
 
-@app.route("/data_entry/commit_characteristic_data/<int:report_id>/", methods = ["POST"])
-def data_entry_commit_characteristic_data(report_id:int):
+@app.route("/data_entry/commit_characteristic_values/", methods = ["POST"])
+def data_entry_save_inspection_report():
 
-    # handle a null report id
-    if report_id == -1:
-        return {
-            "status": "ok_alert",
-            "response": "report id is null"
-        }
-
-    # store raw incoming data into new list
-    char_data = {}
-    for k, v in request.form.items():
-
-        key_split = k.split("-")
-        char_id = int(key_split[0])
-        field = str(key_split[1])
-
-        if char_id in char_data:
-            char_data[char_id].append({
-                field: v
-            })
-        else:
-            char_data[char_id] = [{
-                field: v
-            }]
+    # interpret the posted data
+    form_data = json.loads(request.data)
 
     # proceed if the dictionary has contents
-    if len(char_data) > 0:
+    if len(form_data["checks"]) > 0 and len(form_data["characteristics"]) > 0:
         try:
 
-            # open the session
+            # open the database session
             session = Session(engine)
 
-            affected_count = 0
-            for k, v in char_data.items():
+            # assign new check table values
+            check_rows_affected = 0
+            for obj in form_data["checks"]:
 
-                # get the part id
-                part_id = session.query(inspection_reports.part_id)\
-                    .join(parts, (parts.id == inspection_reports.part_id))\
-                    .filter(inspection_reports.id == report_id).first()[0]
+                # narrow the database scope
+                results = session.query(checks)\
+                    .filter(checks.id == obj["check_id"])
 
-                if part_id is not None:
-                    results = session.query(characteristics)\
-                        .filter(characteristics.id == k)\
-                        .filter(characteristics.part_id == part_id)
+                is_affected = 0
+                for x in obj["contents"]:
+                    is_affected += results.update({ x["key"]: x["value"] })
+                if is_affected > 0:
+                    check_rows_affected += len(results.all())
 
-                    row_affected = 0
-                    for d in v:
-                        key = list(d.keys())[0]
-                        value = d[key]
-                        row_affected = results.update({ key: value })
-                    if row_affected > 0:
-                        affected_count += 1
-                else:
-                    return {
-                        "status": "ok_alert",
-                        "response": "no part id found"
-                    }
+            # assign new characteristic table values
+            characteristic_rows_affected = 0
+            for obj in form_data["characteristics"]:
+
+                # narrow the database scope
+                results = session.query(characteristics)\
+                    .filter(characteristics.id == obj["characteristic_id"])
+
+                is_affected = 0
+                for x in obj["contents"]:
+                    is_affected += results.update({ x["key"]: x["value"] })
+                if is_affected > 0:
+                    characteristic_rows_affected += len(results.all())
 
             # commit the changes
             session.commit()
 
-            # close the session
+            # close the database session
             session.close()
 
             # return the result
-            if affected_count > 0:
+            if check_rows_affected > 0 and characteristic_rows_affected > 0:
                 return {
-                    "status": "ok",
-                    "response": {
-                        "rows_affected": affected_count
-                    }
+                    "status": "ok_func",
+                    "response": f"{check_rows_affected} 'check' table rows and {characteristic_rows_affected} 'characteristic' table rows were updated"
                 }
             else:
                 return {

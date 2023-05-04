@@ -8,7 +8,6 @@ const char_table_context_menu = document.getElementById("char_context_menu");
 const char_table_scope = document.querySelector("#main_char_table");
 
 // inspection_reports
-const ir_button_save = d3.select("#inspection_report_save_btn");
 const ir_button_create = d3.select("#inspection_report_create_new_btn");
 const ir_input_new_item_filter = d3.select("#inspection_report_item_filter");
 const ir_select_new_item = d3.select("#inspection_report_item");
@@ -108,20 +107,31 @@ function init()
             char_table_context_menu.style.left = `${mouseX}px`;
             char_table_context_menu.classList.add("visible");
 
-            d3.select("#tunnel").on("click", () => {
+            // tunnel to physical part
+            d3.select("#context_menu_0").on("click", () => {
                 cd_select_part_index.property("value", e.target.__data__.row.part_index);
                 get_filtered_characteristics();
                 char_table_context_menu.classList.remove("visible");
             });
-            d3.select("#requery").on("click", () => {
+
+            // requery the database
+            d3.select("#context_menu_1").on("click", () => {
                 get_filtered_characteristics();
                 char_table_context_menu.classList.remove("visible");
             });
-            d3.select("#view_deviations").on("click", () => {
+
+            // view the associated deviations
+            d3.select("#context_menu_2").on("click", () => {
                 if (e.target.__data__.row.has_deviations) {
                     populate_deviations(e.target.__data__.row.characteristic_id);
                     toggle_options("deviations", "1000px");
                 }
+                char_table_context_menu.classList.remove("visible");
+            });
+
+            // save the characteristics
+            d3.select("#context_menu_3").on("click", () => {
+                submit_current_characteristics();
                 char_table_context_menu.classList.remove("visible");
             });
         }
@@ -158,6 +168,7 @@ function init()
             update_filtered_inspection_reports();
         }
     });
+    ir_button_create.on("click", inspection_report_create_new);
     ir_select_filter_part.on("change", update_filtered_inspection_reports);
     ir_select_filter_job_order.on("change", update_filtered_inspection_reports);
     ir_select_new_item.on("change", inspection_reports_item_number_changed);
@@ -618,25 +629,23 @@ function populate_generic_selectors()
 
 function inspection_report_create_new()
 {
+    // confirm the identity parameter
+    let part_id = ir_select_new_item.property("value");
+    let schema_id = ir_select_char_schema.property("value");
+
     // query the flask server
     d3.json("/data_entry/create_new_inspection_report/", {
         method: "POST",
         body: JSON.stringify({
             part_id: part_id,
-            job_order_id: job_order_id,
-            start_day: start_day,
-            start_month: start_month,
-            start_year: start_year,
-            finish_day: finish_day,
-            finish_month: finish_month,
-            finish_year: finish_year
+            schema_id: schema_id
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
         if (json.status == "ok_func") {
-            alert(json.response);
+            update_filtered_inspection_reports();
         }
         else if (json.status == "ok_log") {
             console.log(json.response);
@@ -1109,7 +1118,8 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
                                 has_deviations: r.has_deviations,
                                 precision: r.precision,
                                 characteristic_id: r.characteristic_id,
-                                part_index: r.part_index
+                                part_index: r.part_index,
+                                check_id: r.check_id
                             }
                         };
                     });
@@ -1242,7 +1252,86 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
 
 function submit_current_characteristics()
 {
-    
+    // request confirmation
+    if (!confirm("This action will write to the database and cannot be reversed. Continue?")) {
+        return;
+    }
+
+    // extract the modified data
+    let checks_data = [];
+    let characteristics_data = [];
+    main_characteristic_table.selectAll("tbody").selectAll("td").data().forEach(element => {
+        switch (element.column.key) {
+            case "part_index" || "employee_id":
+                if (element.column.type == "input" || element.column.type == "select") {
+                    if (checks_data.some((e) => e.check_id == element.row.check_id)) {
+                        checks_data.filter((e) => e.check_id == element.row.check_id)[0]
+                            .contents.push({
+                                key: element.column.key,
+                                value: element.row.value
+                            });
+                    }
+                    else {
+                        checks_data.push({
+                            check_id: element.row.check_id,
+                            contents: [{
+                                key: element.column.key,
+                                value: element.row.value
+                            }]
+                        });
+                    }
+                }
+                break;
+            case "measured" || "gauge_id":
+                if (element.column.type == "input" || element.column.type == "select") {
+                    if (characteristics_data.some((e) => e.characteristic_id == element.row.characteristic_id)) {
+                        characteristics_data.filter((e) => e.characteristic_id == element.row.characteristic_id)[0]
+                            .contents.push({
+                                key: element.column.key,
+                                value: element.row.value
+                            });
+                    }
+                    else {
+                        characteristics_data.push({
+                            characteristic_id: element.row.characteristic_id,
+                            contents: [{
+                                key: element.column.key,
+                                value: element.row.value
+                            }]
+                        });
+                    }
+                }
+                break;
+        }
+    });
+
+    // query the flask server
+    d3.json("/data_entry/commit_characteristic_values/", {
+        method: "POST",
+        body: JSON.stringify({
+            checks: checks_data,
+            characteristics: characteristics_data
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok_func") {
+            alert(json.response);
+        }
+        else if (json.status == "ok_alert") {
+            alert(json.response);
+        }
+        else if (json.status == "ok_log") {
+            console.log(json.response);
+        }
+        else if (json.status == "err_alert") {
+            alert(json.response);
+        }
+        else if (json.status == "err_log") {
+            console.log(json.response);
+        }
+    });
 }
 
 // #endregion characteristics
