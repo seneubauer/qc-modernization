@@ -1,5 +1,5 @@
-id
-upper_tailed
-lower_tailed
-two_tailed
-no_tailed
+id,name
+0,Upper Tailed
+1,Lower Tailed
+2,Two Tailed
+3,No Tailed

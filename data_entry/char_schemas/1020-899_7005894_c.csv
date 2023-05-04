@@ -1,0 +1,6 @@
+﻿name,nominal,usl,lsl,precision,spec_type,char_type,gauge_type
+DIM 1,11,12,10,0,two_tailed,angle,hexagon_cmm
+DIM 2,45,46,44,0,two_tailed,angle,hexagon_cmm
+DIM 3,60,61,59,0,two_tailed,angle,hexagon_cmm
+DIM 4,1,1.001,0.999,3,two_tailed,radius,vision_system
+DIM 5,0,0.005,0,3,upper_tailed,concentricity,vision_system

@@ -1,3 +1,5 @@
-id,day_started,day_finished,job_order_id,employee_id,disposition,part_id
-0,1/1/2023,1/5/2023,SEN0002345,5137,pass,1
-1,1/6/2023,1/8/2023,SEN0004567,6752,deviated,2
+material_type_id,supplier_id,job_order_id,employee_id,disposition_id
+0,,1,5397,0
+2,2,,6752,0
+2,3,6,,1
+1,4,3,4113,2

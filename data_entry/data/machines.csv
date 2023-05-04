@@ -1,2 +1,3 @@
-id,machine_type_id,machine_location_id
-npd,cnc,pad_25
+name,machine_type_id,machine_location_id
+NPD,0,3
+NTX,2,6

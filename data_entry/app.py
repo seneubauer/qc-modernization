@@ -1,19 +1,22 @@
 # import dependencies for flask
-from flask import Flask, render_template, send_from_directory
+from flask import Flask, render_template, request
 
 # import dependencies for sqlalchemy
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, and_, or_
+from sqlalchemy import create_engine, and_, or_, func
 
 # import general dependencies
+import json
 import datetime
-from math import isnan
+from os.path import join, isfile, splitext
+from os import listdir
 
 # import confidential information
 from sys import path
 path.insert(0, "..")
-from config import pg_key, pg_db, pg_host, pg_port, pg_user
+from config import pg_key, pg_db, pg_host, pg_port, pg_user, char_schema_destination
 
 # create the sqlalchemy engine
 engine = create_engine(f"postgresql://{pg_user}:{pg_key}@{pg_host}:{pg_port}/{pg_db}", pool_pre_ping = True, echo = False)
@@ -23,698 +26,2337 @@ base = automap_base()
 base.prepare(engine, reflect = True)
 
 # instantiate the database tables
-characteristic_types = base.classes.characteristic_types
-departments = base.classes.departments
+deviation_types = base.classes.deviation_types
 disposition_types = base.classes.disposition_types
-employee_projects = base.classes.employee_projects
-employees = base.classes.employees
-gauge_types = base.classes.gauge_types
-gauges = base.classes.gauges
-inspection_purchase_orders = base.classes.inspection_purchase_orders
-inspection_receiver_numbers = base.classes.inspection_receiver_numbers
-inspection_reports = base.classes.inspection_reports
-job_orders = base.classes.job_orders
 location_types = base.classes.location_types
-locations = base.classes.locations
 machine_types = base.classes.machine_types
-machines = base.classes.machines
-parts = base.classes.parts
+gauge_types = base.classes.gauge_types
+characteristic_types = base.classes.characteristic_types
+specification_types = base.classes.specification_types
 project_types = base.classes.project_types
-projects = base.classes.projects
+material_types = base.classes.material_types
+frequency_types = base.classes.frequency_types
+lot_numbers = base.classes.lot_numbers
+suppliers = base.classes.suppliers
+job_orders = base.classes.job_orders
 purchase_orders = base.classes.purchase_orders
 receiver_numbers = base.classes.receiver_numbers
-specification_types = base.classes.specification_types
+projects = base.classes.projects
+departments = base.classes.departments
+locations = base.classes.locations
+employees = base.classes.employees
+machines = base.classes.machines
+inspection_reports = base.classes.inspection_reports
+parts = base.classes.parts
+gauges = base.classes.gauges
+checks = base.classes.checks
 characteristics = base.classes.characteristics
+deviations = base.classes.deviations
+characteristic_schemas = base.classes.characteristic_schemas
+employee_projects = base.classes.employee_projects
+inspection_purchase_orders = base.classes.inspection_purchase_orders
+inspection_receiver_numbers = base.classes.inspection_receiver_numbers
+inspection_lot_numbers = base.classes.inspection_lot_numbers
 
 # instantiate the flask app
 app = Flask(__name__)
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
-# data entry
-@app.route("/data_entry")
-def data_entry_route():
-    return render_template("data_entry.html")
+# --------------------------------------------------
 
+#region page navigation
 
+@app.route("/characteristic_schemas")
+def open_characteristic_schemas():
+    return render_template("characteristic_schemas.html")
 
-@app.route("/get_all_employee_ids/")
+@app.route("/inspection_reports/")
+def open_inspection_reports():
+    return render_template("inspection_reports.html")
+
+#endregion
+
+# --------------------------------------------------
+
+#region get enumerations
+
+@app.route("/get_all_gauges/")
+def get_all_gauges():
+
+    # define the requested columns
+    columns = [
+        gauges.id,
+        gauges.name,
+        gauges.last_calibrated,
+        gauges.gauge_type_id,
+        gauges.employee_id,
+        gauges.location_id
+    ]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(*columns).order_by(gauges.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name, last_calibrated, gauge_type_id, employee_id, location_id in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name,
+                    "last_calibrated": last_calibrated,
+                    "gauge_type_id": gauge_type_id,
+                    "employee_id": employee_id,
+                    "location_id": location_id
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records found in 'gauges'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/get_all_gauge_types/")
+def get_all_gauge_types():
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(gauge_types.id, gauge_types.name).order_by(gauge_types.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records found in 'gauge_types'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/get_all_specification_types/")
+def get_all_specification_types():
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(specification_types.id, specification_types.name).order_by(specification_types.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records found in 'specification_types'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/get_all_frequency_types/")
+def get_all_frequency_types():
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(frequency_types.id, frequency_types.name).order_by(frequency_types.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records found in 'frequency_types'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/get_all_characteristic_types/")
+def get_all_characteristic_types():
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(characteristic_types.id, characteristic_types.name).order_by(characteristic_types.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records found in 'characteristic_types'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/get_all_employees/")
 def get_all_employees():
 
-    # open the database session
-    session = Session(engine)
+    # define the requested columns
+    columns = [
+        employees.id,
+        employees.first_name,
+        employees.last_name,
+        employees.department_id,
+        employees.location_id
+    ]
 
-    # query the database
-    results = session.query(employees.id).order_by(employees.id.asc()).all()
+    try:
 
-    # close the session
-    session.close()
+        # open the database session
+        session = Session(engine)
 
-    # return the results
-    if len(results) > 0:
-        output_arr = []
-        for id in results:
-            output_arr.append({
-                "id": id[0]
-            })
+        # query the database
+        results = session.query(*columns).order_by(employees.last_name.asc(), employees.first_name.asc()).all()
 
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, first_name, last_name, department_id, location_id in results:
+                output_arr.append({
+                    "id": id,
+                    "name": f"{last_name}, {first_name}",
+                    "department_id": department_id,
+                    "location_id": location_id
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records found in 'employees'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
         return {
-            "status": "ok",
-            "response": output_arr
-        }
-    else:
-        return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query"
+            "status": "err_log",
+            "response": error_msg
         }
 
 @app.route("/get_all_disposition_types/")
 def get_all_disposition_types():
 
-    # open the database session
-    session = Session(engine)
+    try:
 
-    # query the database
-    results = session.query(disposition_types.id).order_by(disposition_types.id.asc()).all()
+        # open the database session
+        session = Session(engine)
 
-    # close the session
-    session.close()
+        # query the database
+        results = session.query(disposition_types.id, disposition_types.name).order_by(disposition_types.name.asc()).all()
 
-    # return the results
-    if len(results) > 0:
-        output_arr = []
-        for id in results:
-            output_arr.append({
-                "id": id[0]
-            })
+        # close the session
+        session.close()
 
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records found in 'disposition_types'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
         return {
-            "status": "ok",
-            "response": output_arr
-        }
-    else:
-        return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query"
-        }
-
-@app.route("/get_all_item_numbers/")
-def get_all_item_numbers():
-
-    # open the database session
-    session = Session(engine)
-
-    # query the database
-    results = session.query(parts.item).order_by(parts.drawing.asc()).all()
-
-    # close the session
-    session.close()
-
-    # return the results
-    if len(results) > 0:
-        output_arr = []
-        for id in results:
-            output_arr.append({
-                "id": id[0]
-            })
-
-        return {
-            "status": "ok",
-            "response": output_arr
-        }
-    else:
-        return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query"
+            "status": "err_log",
+            "response": error_msg
         }
 
-@app.route("/get_all_drawings/")
-def get_all_drawings():
+@app.route("/get_all_parts/")
+def get_all_parts():
 
-    # open the database session
-    session = Session(engine)
+    # define the requested columns
+    columns = [
+        parts.id,
+        parts.drawing,
+        parts.revision,
+        parts.item
+    ]
 
-    # query the database
-    results = session.query(parts.drawing).order_by(parts.drawing.asc()).all()
+    try:
 
-    # close the session
-    session.close()
+        # open the database session
+        session = Session(engine)
 
-    # return the results
-    if len(results) > 0:
-        output_arr = []
-        for id in results:
-            output_arr.append({
-                "id": id[0]
-            })
+        # query the database
+        results = session.query(*columns).order_by(parts.drawing.asc()).all()
 
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, drawing, revision, item in results:
+                output_arr.append({
+                    "id": id,
+                    "drawing": drawing,
+                    "revision": revision.upper(),
+                    "item": item
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records found in 'parts'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
         return {
-            "status": "ok",
-            "response": output_arr
-        }
-    else:
-        return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query"
+            "status": "err_log",
+            "response": error_msg
         }
 
 @app.route("/get_all_job_orders/")
 def get_all_job_orders():
 
-    # open the database session
-    session = Session(engine)
+    try:
 
-    # query the database
-    results = session.query(job_orders.id).order_by(job_orders.id.asc()).all()
+        # open the database session
+        session = Session(engine)
 
-    # close the session
-    session.close()
+        # query the database
+        results = session.query(job_orders.id, job_orders.name).order_by(job_orders.name.asc()).all()
 
-    # return the results
-    if len(results) > 0:
-        output_arr = []
-        for id in results:
-            output_arr.append({
-                "id": id[0]
-            })
+        # close the session
+        session.close()
 
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records found in 'job_orders'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
         return {
-            "status": "ok",
-            "response": output_arr
+            "status": "err_log",
+            "response": error_msg
         }
-    else:
+
+@app.route("/get_all_material_types/")
+def get_all_material_types():
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(material_types.id, material_types.name).order_by(material_types.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records found in 'material_types'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
         return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query"
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/get_all_suppliers/")
+def get_all_suppliers():
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(suppliers.id, suppliers.name).order_by(suppliers.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records found in 'suppliers'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
         }
 
 @app.route("/get_all_receiver_numbers/")
 def get_all_receiver_numbers():
 
-    # open the database session
-    session = Session(engine)
+    try:
 
-    # query the database
-    results = session.query(receiver_numbers.id).order_by(receiver_numbers.id.asc()).all()
+        # open the database session
+        session = Session(engine)
 
-    # close the session
-    session.close()
+        # query the database
+        results = session.query(receiver_numbers.id, receiver_numbers.name).order_by(receiver_numbers.name.asc()).all()
 
-    # return the results
-    if len(results) > 0:
-        output_arr = []
-        for id in results:
-            output_arr.append({
-                "id": id[0]
-            })
-        
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no record found in 'receiver_numbers'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
         return {
-            "status": "ok",
-            "response": output_arr
-        }
-    else:
-        return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query"
+            "status": "err_log",
+            "response": error_msg
         }
 
 @app.route("/get_all_purchase_orders/")
 def get_all_purchase_orders():
 
-    # open the database session
-    session = Session(engine)
+    try:
 
-    # query the database
-    results = session.query(purchase_orders.id).order_by(purchase_orders.id.asc()).all()
+        # open the database session
+        session = Session(engine)
 
-    # close the session
-    session.close()
+        # query the database
+        results = session.query(purchase_orders.id, purchase_orders.name, purchase_orders.supplier_id).order_by(purchase_orders.name.asc()).all()
 
-    # return the results
-    if len(results) > 0:
-        output_arr = []
-        for id in results:
-            output_arr.append({
-                "id": id[0]
-            })
-        
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name, supplier_id in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name,
+                    "supplier_id": supplier_id
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records found in 'purchase_orders'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
         return {
-            "status": "ok",
-            "response": output_arr
-        }
-    else:
-        return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query"
-        }
-
-@app.route("/inspection_report_drawing_changed/<string:drawing>/")
-def inspection_report_drawing_changed(drawing:str):
-
-    # open the database connection
-    session = Session(engine)
-
-    # query the database
-    results = session.query(parts.item).filter(parts.drawing == drawing).order_by(parts.drawing.asc()).first()
-
-    # close the session
-    session.close()
-
-    # return the results
-    if results is not None:
-        return {
-            "status": "ok",
-            "response": results[0]
-        }
-    else:
-        return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query"
+            "status": "err_log",
+            "response": error_msg
         }
 
-@app.route("/inspection_report_item_number_changed/<string:item_number>/")
-def inspection_report_item_number_changed(item_number:str):
+@app.route("/get_all_lot_numbers/")
+def get_all_lot_numbers():
 
-    # open the database connection
-    session = Session(engine)
+    try:
 
-    # query the database
-    results = session.query(parts.drawing).filter(parts.item == item_number).order_by(parts.drawing.asc()).first()
+        # open the database session
+        session = Session(engine)
 
-    # close the session
-    session.close()
+        # query the database
+        results = session.query(lot_numbers.id, lot_numbers.name).order_by(lot_numbers.name.asc()).all()
 
-    # return the results
-    if results is not None:
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records found in 'purchase_orders'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
         return {
-            "status": "ok",
-            "response": results[0]
-        }
-    else:
-        return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query"
-        }
-
-@app.route("/add_receiver_number_association/<int:report_id>/<string:receiver_number>/")
-def add_receiver_number_association(report_id:int, receiver_number:str):
-
-    # open the database session
-    session = Session(engine)
-
-    # make sure the new receiver number isn't already associated with the report id
-    results = session.query(inspection_receiver_numbers.id)\
-        .filter(and_(inspection_receiver_numbers.inspection_id == report_id, inspection_receiver_numbers.receiver_number_id == receiver_number))\
-        .order_by(inspection_receiver_numbers.id.asc()).all()
-
-    # logic gate
-    if len(results) > 0:
-        return {
-            "status": "not_ok",
-            "response": "association already exists"
+            "status": "err_log",
+            "response": error_msg
         }
 
-    # add the new association
-    session.add(inspection_receiver_numbers(inspection_id = report_id, receiver_number_id = receiver_number))
-    session.commit()
-    
-    # get the new list of associated receiver numbers
-    new_response = get_receiver_numbers_from_report_id(report_id)
+#endregion
 
-    # logic gate
-    if new_response["status"] == "not_ok":
-        return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query while retrieving the list of associations"
-        }
+# --------------------------------------------------
 
-    # close the session
-    session.close()
+#region characteristic schemas - schemas
 
-    # return the results
-    return {
-        "status": "ok",
-        "response": new_response["response"]
-    }
+@app.route("/characteristic_schemas/get_filtered_characteristic_schemas", methods = ["POST"])
+def characteristic_schemas_get_filtered_characteristic_schemas():
 
-@app.route("/remove_receiver_number_association/<int:report_id>/<string:receiver_number>/")
-def remove_receiver_number_association(report_id:int, receiver_number:str):
+    # interpret the posted data
+    form_data = json.loads(request.data)
 
-    # open the database session
-    session = Session(engine)
+    # get the required parameters
+    search_term = str(form_data["search_term"]).lower()
 
-    # delete the record that matches the provided criteria
-    results = session.query(inspection_receiver_numbers).filter(and_(inspection_receiver_numbers.inspection_id == report_id, inspection_receiver_numbers.receiver_number_id == receiver_number)).delete()
-
-    # logic gate
-    if results == 0:
-        return {
-            "status": "not_ok",
-            "response": "no records deleted; none matched the provided criteria"
-        }
-    else:
-        session.commit()
-
-    # get the new list of associated receiver numbers
-    new_response = get_receiver_numbers_from_report_id(report_id)
-
-    # logic gate
-    if new_response["status"] == "not_ok":
-        return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query while retrieving the list of associations"
-        }
-
-    # close the session
-    session.close()
-
-    # return the results
-    return {
-        "status": "ok",
-        "response": new_response["response"]
-    }
-
-@app.route("/get_receiver_numbers_from_report_id/<int:report_id>/")
-def get_receiver_numbers_from_report_id(report_id:int):
-
-    # open the database session
-    session = Session(engine)
-
-    # query the database
-    results = session.query(receiver_numbers.id)\
-        .join(inspection_receiver_numbers, (receiver_numbers.id == inspection_receiver_numbers.receiver_number_id))\
-        .join(inspection_reports, (inspection_reports.id == inspection_receiver_numbers.inspection_id))\
-        .filter(inspection_reports.id == report_id)\
-        .order_by(receiver_numbers.id.asc()).all()
-
-    # close the session
-    session.close()
-
-    # return the results
-    if len(results) > 0:
-        output_arr = []
-        for id in results:
-            output_arr.append({
-                "id": id[0]
-            })
-
-        return {
-            "status": "ok",
-            "response": output_arr
-        }
-    else:
-        return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query"
-        }
-
-@app.route("/add_purchase_order_association/<int:report_id>/<string:purchase_order>/")
-def add_purchase_order_association(report_id:int, purchase_order:str):
-
-    # open the database session
-    session = Session(engine)
-
-    # make sure the new receiver number isn't already associated with the report id
-    results = session.query(inspection_purchase_orders.id)\
-        .filter(and_(inspection_purchase_orders.inspection_id == report_id, inspection_purchase_orders.purchase_order_id == purchase_order)).all()
-
-    # logic gate
-    if len(results) > 0:
-        return {
-            "status": "not_ok",
-            "response": "association already exists"
-        }
-
-    # add the new association
-    session.add(inspection_purchase_orders(inspection_id = report_id, purchase_order_id = purchase_order))
-    session.commit()
-    
-    # get the new list of associated receiver numbers
-    new_response = get_purchase_orders_from_report_id(report_id)
-
-    # logic gate
-    if new_response["status"] == "not_ok":
-        return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query while retrieving the list of associations"
-        }
-
-    # close the session
-    session.close()
-
-    # return the results
-    return {
-        "status": "ok",
-        "response": new_response["response"]
-    }
-
-@app.route("/remove_purchase_order_association/<int:report_id>/<string:purchase_order>/")
-def remove_purchase_order_association(report_id:int, purchase_order:str):
-
-    # open the database session
-    session = Session(engine)
-
-    # delete the record that matches the provided criteria
-    results = session.query(inspection_purchase_orders).filter(and_(inspection_purchase_orders.inspection_id == report_id, inspection_purchase_orders.purchase_order_id == purchase_order)).delete()
-
-    # logic gate
-    if results == 0:
-        return {
-            "status": "not_ok",
-            "response": "no records deleted; none matched the provided criteria"
-        }
-    else:
-        session.commit()
-
-    # get the new list of associated receiver numbers
-    new_response = get_purchase_orders_from_report_id(report_id)
-
-    # logic gate
-    if new_response["status"] == "not_ok":
-        return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query while retrieving the list of associations"
-        }
-
-    # close the session
-    session.close()
-
-    # return the results
-    return {
-        "status": "ok",
-        "response": new_response["response"]
-    }
-
-@app.route("/get_purchase_orders_from_report_id/<int:report_id>/")
-def get_purchase_orders_from_report_id(report_id:int):
-
-    # open the database session
-    session = Session(engine)
-
-    # query the database
-    results = session.query(purchase_orders.id)\
-        .join(inspection_purchase_orders, (purchase_orders.id == inspection_purchase_orders.purchase_order_id))\
-        .join(inspection_reports, (inspection_reports.id == inspection_purchase_orders.inspection_id))\
-        .filter(inspection_reports.id == report_id)\
-        .order_by(purchase_orders.id.asc()).all()
-
-    # close the session
-    session.close()
-
-    # return the results
-    if len(results) > 0:
-        output_arr = []
-        for id in results:
-            output_arr.append({
-                "id": id[0]
-            })
-
-        return {
-            "status": "ok",
-            "response": output_arr
-        }
-    else:
-        return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query"
-        }
-
-@app.route("/get_inspection_reports/<int:filter_type>/<string:filter_term>/<string:use_date_span>/<int:start_day>/<int:start_month>/<int:start_year>/<int:stop_day>/<int:stop_month>/<int:stop_year>/")
-def get_inspection_reports(filter_type:int, filter_term:str, use_date_span:str, start_day:int, start_month:int, start_year:int, stop_day:int, stop_month:int, stop_year:int):
-
-    # build the filtering dates
-    start_date = datetime.date(start_year, start_month, start_day)
-    stop_date = datetime.date(stop_year, stop_month, stop_day)
-
-    # define the output fields
-    output_arr = [
-        inspection_reports.id,
-        parts.drawing,
-        parts.revision,
+    # define the output columns
+    columns = [
+        characteristic_schemas.id,
+        parts.id,
         parts.item,
-        inspection_reports.day_started,
-        inspection_reports.day_finished,
-        inspection_reports.employee_id,
-        inspection_reports.disposition,
-        inspection_reports.job_order_id
+        parts.drawing,
+        parts.revision
     ]
 
-    # open the database session
-    session = Session(engine)
+    try:
 
-    # start the database query
-    results = session.query(*output_arr).join(parts, (parts.id == inspection_reports.part_id))
+        # open the database session
+        session = Session(engine)
 
-    # add the date filtering
-    if use_date_span == "true":
-        results = results.filter(and_(inspection_reports.day_started >= start_date, inspection_reports.day_finished <= stop_date))
+        # query the database
+        results = session.query(*columns)\
+            .join(parts, (parts.id == characteristic_schemas.part_id))\
+            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
+            .distinct(parts.item, parts.drawing, parts.revision)\
+            .order_by(parts.item, parts.drawing, parts.revision).all()
 
-    # add the drawing or item filtering
-    if filter_type == 1:
-        results = results.filter(parts.drawing.like(f"%{filter_term}%"))
-    elif filter_type == 2:
-        results = results.filter(parts.item.like(f"%{filter_term}%"))
+        # close the database session
+        session.close()
 
-    # close the session
-    session.close()
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for schema_id, part_id, item, drawing, revision in results:
+                output_arr.append({
+                    "schema_id": schema_id,
+                    "part_id": part_id,
+                    "item": item,
+                    "drawing": drawing,
+                    "revision": revision.upper()
+                })
 
-    # assemble the results
-    results_list = results.all()
-    output_data = []
-    if len(results_list) > 0:
-        for id, drawing, revision, item, started, finished, employee_id, disposition, job_order_id in results_list:
-            output_data.append({
-                "report_id": id,
-                "drawing": drawing,
-                "item_number": item,
-                "revision": revision.upper(),
-                "start_year": started.year,
-                "start_month": started.month,
-                "start_day": started.day,
-                "finish_year": finished.year,
-                "finish_month": finished.month,
-                "finish_day": finished.day,
-                "started": f"{started.month:02}/{started.day:02}/{started.year:04}",
-                "finished": f"{finished.month:02}/{finished.day:02}/{finished.year:04}",
-                "employee": employee_id,
-                "disposition": disposition,
-                "job_order": job_order_id
-            })
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no matching records found"
+            }
 
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
         return {
-            "status": "ok",
-            "response": output_data
+            "status": "err_log",
+            "response": error_msg
+        }
+
+#endregion
+
+# --------------------------------------------------
+
+#region inspection reports - inspection reports
+
+@app.route("/data_entry/get_all_item_drawing_combinations/")
+def data_entry_get_all_item_drawing_combinations():
+
+    try:
+
+        # start the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(parts.id, parts.item, parts.drawing)\
+            .order_by(parts.drawing.asc(), parts.item.asc())\
+            .distinct(parts.item, parts.drawing).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, item, drawing in results:
+                output_arr.append({
+                    "id": id,
+                    "item": item,
+                    "drawing": drawing
+                })
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no matching parts found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "not_ok",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/get_filtered_parts/", methods = ["POST"])
+def data_entry_get_filtered_parts():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    item_search_term = form_data["item"]
+    drawing_search_term = form_data["drawing"]
+
+    try:
+
+        # start the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(parts.id, parts.item, parts.drawing)\
+            .filter(parts.item.ilike(f"%{item_search_term}%"))\
+            .filter(parts.drawing.ilike(f"%{drawing_search_term}%"))\
+            .order_by(parts.drawing.asc()).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, item, drawing in results:
+                output_arr.append({
+                    "id": id,
+                    "item": item,
+                    "drawing": drawing
+                })
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no matching parts found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "not_ok",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/get_filtered_characteristic_schemas/", methods = ["POST"])
+def data_entry_get_filtered_characteristic_schemas():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = str(form_data["search_term"]).lower()
+
+    try:
+        filtered_list = list(filter(lambda item:
+                                isfile(join(char_schema_destination, item))
+                                and item[-len(".csv"):].lower() == ".csv"
+                                and search_term in item.lower(), listdir(char_schema_destination)))
+        schema_list = [splitext(x)[0] for x in filtered_list]
+        schema_list.sort()
+    except OSError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+    if len(schema_list) > 0:
+        return {
+            "status": "ok_func",
+            "response": schema_list
         }
     else:
         return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query"
+            "status": "ok_log",
+            "response": "no matching schema files found"
         }
 
-@app.route("/get_inspection_report_characteristics/<int:report_id>/<string:part_item>/<string:part_drawing>/<string:part_revision>/<string:name_filter>/")
-def get_inspection_report_characteristics(report_id:int, part_item:str, part_drawing:str, part_revision:str, name_filter:str):
+@app.route("/data_entry/get_filtered_inspection_reports/", methods = ["POST"])
+def data_entry_get_filtered_inspection_reports():
 
-    # specify the output columns
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    item = form_data["item"]
+    drawing = form_data["drawing"]
+    job_order_id = int(form_data["job_order_id"])
+    started_after = datetime.date(form_data["start_year"], form_data["start_month"], form_data["start_day"])
+    finished_before = datetime.date(form_data["finish_year"], form_data["finish_month"], form_data["finish_day"])
+
+    # define the required fields
     columns = [
+        inspection_reports.id,
+        parts.id,
+        parts.item,
+        parts.drawing,
+        job_orders.id,
+        job_orders.name,
+        inspection_reports.disposition_id,
+        inspection_reports.material_type_id,
+        inspection_reports.employee_id,
+        inspection_reports.supplier_id
+    ]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(*columns)\
+            .join(checks, (checks.inspection_id == inspection_reports.id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .join(job_orders, (inspection_reports.job_order_id == job_orders.id), isouter = True)\
+            .filter(checks.datetime_measured >= started_after)\
+            .filter(or_(checks.datetime_measured <= finished_before, checks.datetime_measured == None))\
+            .filter(parts.item.ilike(f"%{item}%"))\
+            .filter(parts.drawing.ilike(f"%{drawing}%"))
+
+        # additional filtering
+        if job_order_id > 0:
+            results = results.filter(job_orders.id == job_order_id)
+
+        # convert to list of tuples
+        results = results\
+            .order_by(parts.drawing.asc(), parts.item.asc())\
+            .distinct(parts.drawing, parts.item).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+
+            output_arr = []
+            for inspection_id, part_id, item, drawing, job_order_id, job_order, disposition_type_id, material_type_id, employee_id, supplier_id in results:
+                output_arr.append({
+                    "inspection_id": inspection_id,
+                    "part_id": part_id,
+                    "item": item,
+                    "drawing": drawing,
+                    "job_order_id": job_order_id,
+                    "job_order": job_order,
+                    "disposition_type_id": disposition_type_id,
+                    "material_type_id": material_type_id,
+                    "employee_id": employee_id,
+                    "supplier_id": supplier_id
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no matching records found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/create_new_inspection_report/", methods = ["POST"])
+def data_entry_create_new_inspection_report():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    item = form_data["item"]
+    drawing = form_data["drawing"]
+    revision = form_data["revision"]
+
+    # handle null values
+    if revision == "":
+        return {
+            "status": "ok_alert",
+            "response": "revision must be defined"
+        }
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # make sure the part exists
+
+        # make sure the characteristic schema exists
+
+        # make sure the inputs exist in the database
+        results = session.query(parts.id)\
+            .filter(func.lower(parts.item) == item)\
+            .filter(func.lower(parts.drawing) == drawing)\
+            .filter(func.lower(parts.revision) == revision).first()
+
+        if results is None:
+            return {
+                "status": "ok_alt",
+                "response": f"referenced part ({item}, {drawing}, {revision}) does not exist in the database"
+            }
+
+        # define the associated part id
+        part_id = results[0]
+
+        # check if this part is already associated with an inspection report
+        results = session.query(inspection_reports.id)\
+            .filter(inspection_reports.part_id == part_id).first()
+        if results is not None:
+            return {
+                "status": "ok_alt",
+                "response": f"referenced part ({item}, {drawing}, {revision}) is already associated with an inspection report"
+            }
+
+        # define the new inspection report id
+        new_id = len(session.query(inspection_reports.id).order_by(inspection_reports.id.asc()).all())
+
+        # get today's date
+        dt_now = datetime.datetime.now()
+        today = datetime.date(dt_now.year, dt_now.month, dt_now.day)
+
+        # add the record
+        session.add(inspection_reports(
+            id = new_id,
+            day_started = today,
+            full_inspect_qty = 0,
+            full_inspect_qty_type = "custom",
+            released_qty = 0,
+            released_qty_type = "custom",
+            completed_qty = 0,
+            completed_qty_type = "custom",
+            material_type_id = "aluminum",
+            disposition = "incomplete",
+            part_id = part_id))
+
+        # commit the changes
+        session.commit()
+
+        # close the database session
+        session.close()
+
+        return {
+            "status": "ok",
+            "response": f"new inspection report (ID: {new_id}) added"
+        }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "not_ok",
+            "response": error_msg
+        }
+
+#endregion
+
+#region inspection reports - characteristic display
+
+@app.route("/data_entry/get_filter_selector_lists/", methods = ["POST"])
+def data_entry_get_filter_selector_lists():
+    
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_id = int(form_data["inspection_id"])
+    item = form_data["item"]
+    drawing = form_data["drawing"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # frequency type list
+        frequency_types_query = session.query(frequency_types.id, frequency_types.name)\
+            .join(characteristics, (characteristics.frequency_type_id == frequency_types.id))\
+            .join(checks, (checks.id == characteristics.check_id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
+            .order_by(frequency_types.name.asc()).distinct(frequency_types.name).all()
+
+        # revisions list
+        revisions_query = session.query(parts.id, parts.revision)\
+            .join(checks, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
+            .order_by(parts.revision.asc()).distinct(parts.revision).all()
+
+        # part indices list
+        part_indices_query = session.query(checks.part_index)\
+            .join(parts, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
+            .order_by(checks.part_index.asc()).distinct(checks.part_index).all()
+
+        # inspectors list
+        inspectors_query = session.query(employees.id, employees.first_name, employees.last_name)\
+            .join(checks, (checks.employee_id == employees.id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
+            .order_by(employees.last_name.asc(), employees.first_name.asc()).distinct(employees.first_name, employees.last_name).all()
+
+        # gauges list
+        gauges_query = session.query(gauges.id, gauges.name)\
+            .join(characteristics, (characteristics.gauge_id == gauges.id))\
+            .join(checks, (checks.id == characteristics.check_id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
+            .order_by(gauges.name.asc()).distinct(gauges.name).all()
+
+        # gauges types list
+        gauge_types_query = session.query(gauge_types.id, gauge_types.name)\
+            .join(gauges, (gauges.gauge_type_id == gauge_types.id))\
+            .join(characteristics, (characteristics.gauge_id == gauges.id))\
+            .join(checks, (checks.id == characteristics.check_id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
+            .order_by(gauge_types.name.asc()).distinct(gauge_types.name).all()
+
+        # specification types list
+        specification_types_query = session.query(specification_types.id, specification_types.name)\
+            .join(characteristics, (characteristics.specification_type_id == specification_types.id))\
+            .join(checks, (checks.id == characteristics.check_id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
+            .order_by(specification_types.name.asc()).distinct(specification_types.name).all()
+
+        # characteristic types list
+        characteristic_types_query = session.query(characteristic_types.id, characteristic_types.name)\
+            .join(characteristics, (characteristics.characteristic_type_id == characteristic_types.id))\
+            .join(checks, (checks.id == characteristics.check_id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .filter(checks.inspection_id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
+            .order_by(characteristic_types.name.asc()).distinct(characteristic_types.name).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(frequency_types_query) > 0 and len(revisions_query) > 0 and len(inspectors_query) > 0 and len(gauges_query) > 0 and len(gauge_types_query) > 0 and len(specification_types_query) > 0 and len(characteristic_types_query) > 0:
+
+            frequency_types_list = []
+            for id, name in frequency_types_query:
+                frequency_types_list.append({
+                    "id": id,
+                    "name": name
+                })
+
+            revisions_list = []
+            for id, revision in revisions_query:
+                revisions_list.append({
+                    "id": id,
+                    "revision": revision.upper()
+                })
+
+            part_indices_list = []
+            for id in part_indices_query:
+                part_indices_list.append({
+                    "id": id[0],
+                    "value": id[0]
+                })
+
+            inspectors_list = []
+            for id, first_name, last_name in inspectors_query:
+                inspectors_list.append({
+                    "id": id,
+                    "name": f"{last_name}, {first_name}"
+                })
+
+            gauges_list = []
+            for id, name in gauges_query:
+                gauges_list.append({
+                    "id": id,
+                    "name": name
+                })
+
+            gauge_types_list = []
+            for id, name in gauge_types_query:
+                gauge_types_list.append({
+                    "id": id,
+                    "name": name
+                })
+
+            specification_types_list = []
+            for id, name in specification_types_query:
+                specification_types_list.append({
+                    "id": id,
+                    "name": name
+                })
+
+            characteristic_types_list = []
+            for id, name in characteristic_types_query:
+                characteristic_types_list.append({
+                    "id": id,
+                    "name": name
+                })
+
+            # return the data object
+            return {
+                "status": "ok_func",
+                "response": {
+                    "frequency_types": frequency_types_list,
+                    "revisions": revisions_list,
+                    "part_indices": part_indices_list,
+                    "inspectors": inspectors_list,
+                    "gauges": gauges_list,
+                    "gauge_types": gauge_types_list,
+                    "specification_types": specification_types_list,
+                    "characteristic_types": characteristic_types_list
+                }
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "queries returned null values"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/get_filtered_inspection_report_part_characteristics/", methods = ["POST"])
+def data_entry_get_filtered_inspection_report_part_characteristics():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_id = int(form_data["identity"]["inspection_id"])
+    item = form_data["identity"]["item"]
+    drawing = form_data["identity"]["drawing"]
+    part_index = int(form_data["content"]["part_index"])
+    frequency_type_id = int(form_data["content"]["frequency_type_id"])
+    revision = form_data["content"]["revision"]
+    name = form_data["content"]["name"]
+    has_deviations = int(form_data["content"]["has_deviations"])
+    inspector_id = int(form_data["content"]["inspector_id"])
+    gauge_id = int(form_data["content"]["gauge_id"])
+    gauge_type_id = int(form_data["content"]["gauge_type_id"])
+    specification_type_id = int(form_data["content"]["specification_type_id"])
+    characteristic_type_id = int(form_data["content"]["characteristic_type_id"])
+
+    # define the columns
+    columns = [
+        checks.id,
+        checks.part_index,
+        parts.revision,
         characteristics.name,
         characteristics.nominal,
         characteristics.usl,
         characteristics.lsl,
         characteristics.measured,
         characteristics.precision,
-        specification_types.id,
-        characteristic_types.id,
-        characteristic_types.is_gdt,
-        employees.id,
+        checks.employee_id,
         gauges.id,
-        gauge_types.id
+        gauge_types.name,
+        specification_types.name,
+        characteristic_types.name,
+        frequency_types.name,
+        characteristics.id
     ]
 
-    # open the database session
-    session = Session(engine)
+    try:
 
-    # get all the employee ids
-    results = session.query(employees.id).all()
-    employee_ids = []
-    if len(results) > 0:
-        for id in results:
-            employee_ids.append(id[0])
+        # open the database session
+        session = Session(engine)
 
-    # close the session
-    session.close()
+        # query the database
+        results = session.query(*columns)\
+            .join(gauges, (characteristics.gauge_id == gauges.id))\
+            .join(gauge_types, (gauges.gauge_type_id == gauge_types.id))\
+            .join(checks, (checks.id == characteristics.check_id))\
+            .join(parts, (checks.part_id == parts.id))\
+            .join(inspection_reports, (checks.inspection_id == inspection_reports.id))\
+            .join(specification_types, (characteristics.specification_type_id == specification_types.id))\
+            .join(characteristic_types, (characteristics.characteristic_type_id == characteristic_types.id))\
+            .join(frequency_types, (characteristics.frequency_type_id == frequency_types.id))\
+            .filter(inspection_reports.id == inspection_id)\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"%{drawing}%")))\
+            .filter(characteristics.name.ilike(f"%{name}%"))\
+            .filter(parts.revision.ilike(f"%{revision}%"))
 
-    # reopen the database session
-    session = Session(engine)
+        if part_index > 0:
+            results = results.filter(checks.part_index == part_index)
+        if frequency_type_id > 0:
+            results = results.filter(characteristics.frequency_type_id == frequency_type_id)
+        if has_deviations > 0:
+            results = results.filter(characteristics.id.in_(session.query(deviations.characteristic_id)))
+        if inspector_id > 0:
+            results = results.filter(checks.employee_id == inspector_id)
+        if gauge_id > 0:
+            results = results.filter(characteristics.gauge_id == gauge_id)
+        if gauge_type_id > 0:
+            results = results.filter(gauges.gauge_type_id == gauge_type_id)
+        if specification_type_id > 0:
+            results = results.filter(characteristics.specification_type_id == specification_type_id)
+        if characteristic_type_id > 0:
+            results = results.filter(characteristics.characteristic_type_id == characteristic_type_id)
 
-    # query the database
-    results = session.query(*columns)\
-        .join(specification_types, (characteristics.specification_type_id == specification_types.id))\
-        .join(characteristic_types, (characteristics.characteristic_type_id == characteristic_types.id))\
-        .join(employees, (characteristics.employee_id == employees.id))\
-        .join(gauges, (characteristics.gauge_id == gauges.id))\
-        .join(gauge_types, (gauges.gauge_type_id == gauge_types.id))\
-        .join(inspection_reports, (characteristics.part_id == inspection_reports.part_id))\
-        .join(parts, (characteristics.part_id == parts.id))\
-        .filter(inspection_reports.id == report_id)\
-        .filter(and_(parts.item == part_item.lower(), parts.drawing == part_drawing.lower(), parts.revision == part_revision.lower()))
+        # convert to a list
+        characteristic_list = results\
+            .order_by(checks.id.asc(), checks.part_id.asc(), parts.revision.asc(), characteristics.id.asc(), characteristics.name.asc()).all()
 
-    # close the session
-    session.close()
+        # get the list of characteristics that have deviations
+        deviations_list = []
+        for id in session.query(deviations.characteristic_id).all():
+            deviations_list.append(id[0])
 
-    # apply the name filter if it was specified
-    if name_filter != "__none":
-        results = results.filter(characteristics.name.like(f"%{name_filter}%"))
+        # get the list of inspectors
+        inspectors_list = session.query(employees.id, employees.first_name, employees.last_name).order_by(employees.last_name.asc(), employees.first_name.asc()).all()
 
-    # convert results to a list of tuples
-    results_list = results.all()
+        # get the list of gauges
+        gauges_list = session.query(gauges.id, gauges.name).order_by(gauges.name.asc()).all()
 
-    # return the results
-    if len(results_list) > 0:
-        output_arr = []
-        for name, nominal, usl, lsl, measured, precision, specification_type, characteristic_type, is_gdt, employee_id, gauge_id, gauge_type in results_list:
-            nominal_float = round(float(nominal), precision)
-            usl_float = round(float(usl), precision)
-            lsl_float = round(float(lsl), precision)
-            measured_float = float(measured)
+        # close the database session
+        session.close()
 
-            state = "null"
-            if isnan(measured_float):
-                measured_float = None
-                state = "null"
-            else:
-                measured_float = round(float(measured), precision)
-                if usl_float >= measured_float and lsl_float <= measured_float:
-                    state = "pass"
+        # return the results
+        if len(characteristic_list) > 0 and len(inspectors_list) > 0 and len(gauges_list) > 0:
+
+            # assemble characteristics output
+            output_characteristics_list = []
+            check_id_list = []
+            for check_id, part_index, revision, name, nominal, usl, lsl, measured, precision, employee_id, gauge_id, gauge_type, specification_type, characteristic_type, frequency_type, characteristic_id in characteristic_list:
+
+                # parse to floats
+                nominal_flt = round(float(nominal), precision)
+                usl_flt = round(float(usl), precision)
+                lsl_flt = round(float(lsl), precision)
+
+                # evaluate measurements
+                state = "n/a"
+                measured_flt = 0
+                if measured is None:
+                    measured_flt = None
                 else:
-                    state = "fail"
+                    measured_flt = round(float(measured), precision)
+                    if usl_flt >= measured_flt and lsl_flt <= measured_flt:
+                        state = "pass"
+                    else:
+                        state = "fail"
 
-            output_arr.append({
-                "name": name,
-                "nominal": nominal_float,
-                "usl": usl_float,
-                "lsl": lsl_float,
-                "measured": measured_float,
-                "precision": precision,
-                "specification_type": specification_type,
-                "characteristic_type": characteristic_type,
-                "is_gdt": is_gdt,
-                "employee_id": employee_id,
-                "gauge_id": gauge_id,
-                "gauge_type": gauge_type,
-                "state": state
-            })
+                check_id_list.append(check_id)
+                output_characteristics_list.append({
+                    "has_deviations": characteristic_id in deviations_list,
+                    "characteristic_id": characteristic_id,
+                    "check_id": check_id,
+                    "part_index": part_index,
+                    "revision": revision.upper(),
+                    "name": name,
+                    "nominal": nominal_flt,
+                    "usl": usl_flt,
+                    "lsl": lsl_flt,
+                    "measured": measured_flt,
+                    "precision": precision,
+                    "employee_id": employee_id,
+                    "gauge_id": gauge_id,
+                    "gauge_type": gauge_type,
+                    "specification_type": specification_type,
+                    "characteristic_type": characteristic_type,
+                    "frequency_type": frequency_type,
+                    "state": state
+                })
 
-        return {
-            "status": "ok",
-            "response": {
-                "cell_data": output_arr,
-                "employee_ids": employee_ids
+            # assemble inspectors output
+            output_inspectors_list = []
+            for id, first_name, last_name in inspectors_list:
+                output_inspectors_list.append({
+                    "id": id,
+                    "name": f"{last_name}, {first_name}"
+                })
+
+            # assemble gauges output
+            output_gauges_list = []
+            for id, name in gauges_list:
+                output_gauges_list.append({
+                    "id": id,
+                    "name": name
+                })
+
+            # return the data object
+            return {
+                "status": "ok_func",
+                "response": {
+                    "characteristics": output_characteristics_list,
+                    "inspectors": output_inspectors_list,
+                    "gauges": output_gauges_list,
+                    "check_min": min(check_id_list)
+                }
             }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no matching characteristics found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
         }
+
+@app.route("/data_entry/commit_characteristic_values/", methods = ["POST"])
+def data_entry_save_inspection_report():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # proceed if the dictionary has contents
+    if len(form_data["checks"]) > 0 and len(form_data["characteristics"]) > 0:
+        try:
+
+            # open the database session
+            session = Session(engine)
+
+            # assign new check table values
+            check_rows_affected = 0
+            for obj in form_data["checks"]:
+
+                # narrow the database scope
+                results = session.query(checks)\
+                    .filter(checks.id == obj["check_id"])
+
+                is_affected = 0
+                for x in obj["contents"]:
+                    is_affected += results.update({ x["key"]: x["value"] })
+                if is_affected > 0:
+                    check_rows_affected += len(results.all())
+
+            # assign new characteristic table values
+            characteristic_rows_affected = 0
+            for obj in form_data["characteristics"]:
+
+                # narrow the database scope
+                results = session.query(characteristics)\
+                    .filter(characteristics.id == obj["characteristic_id"])
+
+                is_affected = 0
+                for x in obj["contents"]:
+                    is_affected += results.update({ x["key"]: x["value"] })
+                if is_affected > 0:
+                    characteristic_rows_affected += len(results.all())
+
+            # commit the changes
+            session.commit()
+
+            # close the database session
+            session.close()
+
+            # return the result
+            if check_rows_affected > 0 and characteristic_rows_affected > 0:
+                return {
+                    "status": "ok_func",
+                    "response": f"{check_rows_affected} 'check' table rows and {characteristic_rows_affected} 'characteristic' table rows were updated"
+                }
+            else:
+                return {
+                    "status": "ok_alert",
+                    "response": "no rows affected"
+                }
+
+        except SQLAlchemyError as e:
+            error_msg = str(e.__dict__["orig"])
+            return {
+                "status": "err_log",
+                "response": error_msg
+            }
+
     else:
         return {
-            "status": "not_ok",
-            "response": "error within the flask server or database query"
+            "status": "ok_alert",
+            "response": "no data passed to flask server"
         }
+
+#endregion
+
+#region inspection reports - metadata
+
+@app.route("/data_entry/get_matching_revisions/", methods = ["POST"])
+def data_entry_get_matching_revisions():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    item = form_data["item"]
+    drawing = form_data["drawing"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(parts.id, parts.revision, parts.full_inspect_interval, parts.released_qty, parts.completed_qty)\
+            .filter(and_(func.lower(parts.item) == item.lower(), func.lower(parts.drawing) == drawing.lower())).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, revision, full_inspect_interval, released_qty, completed_qty in results:
+                output_arr.append({
+                    "id": id,
+                    "revision": revision.upper(),
+                    "full_inspect_interval": full_inspect_interval,
+                    "released_qty": released_qty,
+                    "completed_qty": completed_qty
+                })
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no matching parts found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/save_metadata/", methods = ["POST"])
+def data_entry_save_metadata():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    item = form_data["identity"]["item"]
+    drawing = form_data["identity"]["drawing"]
+    inspection_id = form_data["identity"]["inspection_id"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # make sure the report/part combination exists
+        results = session.query(inspection_reports.id).distinct(inspection_reports.id)\
+            .join(checks, (checks.inspection_id == inspection_reports.id))\
+            .join(parts, (parts.id == checks.part_id))\
+            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"%{drawing}%"), inspection_reports.id == inspection_id)).all()
+        if len(results) == 0:
+            return {
+                "status": "ok_log",
+                "response": "no matching inspection report and part found"
+            }
+
+        # update the inspection report
+        results = session.query(inspection_reports).filter(inspection_reports.id == inspection_id)
+        ir_is_affected = 0
+        for k, v in form_data["content"].items():
+            ir_is_affected = results.update({ k: v })
+
+        # commit to then close the session
+        session.commit()
+        session.close()
+
+        # open the database session
+        session = Session(engine)
+
+        # update the quantities
+        pa_is_affected = 0
+        for obj in form_data["sub_data"]:
+            results = session.query(parts)\
+                .filter(parts.item.ilike(f"%{item}%"))\
+                .filter(parts.drawing.ilike(f"%{drawing}%"))\
+                .filter(parts.revision.ilike(f"%{obj['revision']}%"))
+            pa_is_affected = results.update({ "full_inspect_interval": obj["full_inspect_interval"] }, synchronize_session = False)
+            pa_is_affected = results.update({ "completed_qty": obj["completed_qty"] }, synchronize_session = False)
+            pa_is_affected = results.update({ "released_qty": obj["released_qty"] }, synchronize_session = False)
+
+        # commit to then close the session
+        session.commit()
+        session.close()
+
+        # return the response
+        if ir_is_affected > 0 and pa_is_affected > 0:
+            return {
+                "status": "ok_func",
+                "response": "tables 'inspection_reports' and 'parts' successfully updated"
+            }
+        else:
+            return {
+                "status": "ok_alert",
+                "response": "no records in 'inspection_reports' and 'parts' updated"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+#endregion
+
+#region inspection reports - receiver numbers
+
+@app.route("/data_entry/get_filtered_receiver_numbers/", methods = ["POST"])
+def data_entry_get_filtered_receiver_numbers():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_id = form_data["inspection_id"]
+    search_term = form_data["search_term"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(receiver_numbers.id, receiver_numbers.name)\
+            .join(inspection_receiver_numbers, (receiver_numbers.id == inspection_receiver_numbers.receiver_number_id))\
+            .join(inspection_reports, (inspection_reports.id == inspection_receiver_numbers.inspection_id))\
+            .filter(inspection_reports.id == inspection_id)\
+            .filter(receiver_numbers.name.ilike(f"%{search_term}%"))\
+            .order_by(receiver_numbers.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "inspection_id": inspection_id,
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no connection found between 'inspection_reports', 'receiver_numbers', and 'inspection_receiver_numbers'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/assign_receiver_number_association/", methods = ["POST"])
+def data_entry_assign_receiver_number_association():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = form_data["search_term"]
+    inspection_id = form_data["inspection_id"]
+    receiver_number_id = form_data["receiver_number_id"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # check if the association already exists
+        results = session.query(inspection_receiver_numbers.inspection_id)\
+            .filter(and_(inspection_receiver_numbers.inspection_id == inspection_id, inspection_receiver_numbers.receiver_number_id == receiver_number_id)).all()
+
+        # logic gate
+        if len(results) > 0:
+            return {
+                "status": "ok_alert",
+                "response": "this receiver number association already exists"
+            }
+
+        # add the new association
+        session.add(inspection_receiver_numbers(inspection_id = inspection_id, receiver_number_id = receiver_number_id))
+        session.commit()
+
+        # get the new list
+        results = session.query(receiver_numbers.id, receiver_numbers.name)\
+            .join(inspection_receiver_numbers, (receiver_numbers.id == inspection_receiver_numbers.receiver_number_id))\
+            .join(inspection_reports, (inspection_reports.id == inspection_receiver_numbers.inspection_id))\
+            .filter(inspection_reports.id == inspection_id)\
+            .filter(receiver_numbers.name.ilike(f"%{search_term}%"))\
+            .order_by(receiver_numbers.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "inspection_id": inspection_id,
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no connection found between 'inspection_reports', 'receiver_numbers', and 'inspection_receiver_numbers'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/remove_receiver_number_association/", methods = ["POST"])
+def data_entry_remove_receiver_number_association():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_id = form_data["inspection_id"]
+    receiver_number_id = form_data["receiver_number_id"]
+    search_term = form_data["search_term"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # delete the record that matches the provided criteria
+        results = session.query(inspection_receiver_numbers)\
+            .filter(and_(inspection_receiver_numbers.inspection_id == inspection_id, inspection_receiver_numbers.receiver_number_id == receiver_number_id))\
+            .delete()
+
+        # logic gate
+        if results == 0:
+            return {
+                "status": "ok_alert",
+                "response": "no records deleted; none matched the provided criteria"
+            }
+        else:
+            session.commit()
+
+        # get the new list
+        results = session.query(receiver_numbers.id, receiver_numbers.name)\
+            .join(inspection_receiver_numbers, (receiver_numbers.id == inspection_receiver_numbers.receiver_number_id))\
+            .join(inspection_reports, (inspection_reports.id == inspection_receiver_numbers.inspection_id))\
+            .filter(inspection_reports.id == inspection_id)\
+            .filter(receiver_numbers.name.ilike(f"%{search_term}%"))\
+            .order_by(receiver_numbers.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "inspection_id": inspection_id,
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no connection found between 'inspection_reports', 'receiver_numbers', and 'inspection_receiver_numbers'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+#endregion
+
+#region inspection reports - purchase orders
+
+@app.route("/data_entry/get_filtered_purchase_orders/", methods = ["POST"])
+def data_entry_get_filtered_purchase_orders():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_id = form_data["inspection_id"]
+    search_term = form_data["search_term"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(purchase_orders.id, purchase_orders.name)\
+            .join(inspection_purchase_orders, (purchase_orders.id == inspection_purchase_orders.purchase_order_id))\
+            .join(inspection_reports, (inspection_reports.id == inspection_purchase_orders.inspection_id))\
+            .filter(inspection_reports.id == inspection_id)\
+            .filter(purchase_orders.name.ilike(f"%{search_term}%"))\
+            .order_by(purchase_orders.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "inspection_id": inspection_id,
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no connection found between 'inspection_reports', 'purchase_orders', and 'inspection_purchase_orders'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/assign_purchase_order_association/", methods = ["POST"])
+def data_entry_assign_assign_purchase_order_association():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = form_data["search_term"]
+    inspection_id = form_data["inspection_id"]
+    purchase_order_id = form_data["purchase_order_id"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # check if the association already exists
+        results = session.query(inspection_purchase_orders.inspection_id)\
+            .filter(and_(inspection_purchase_orders.inspection_id == inspection_id, inspection_purchase_orders.purchase_order_id == purchase_order_id)).all()
+
+        # logic gate
+        if len(results) > 0:
+            return {
+                "status": "ok_alert",
+                "response": "this purchase order association already exists"
+            }
+
+        # add the new association
+        session.add(inspection_purchase_orders(inspection_id = inspection_id, purchase_order_id = purchase_order_id))
+        session.commit()
+
+        # get the new list
+        results = session.query(purchase_orders.id, purchase_orders.name)\
+            .join(inspection_purchase_orders, (purchase_orders.id == inspection_purchase_orders.purchase_order_id))\
+            .join(inspection_reports, (inspection_reports.id == inspection_purchase_orders.inspection_id))\
+            .filter(inspection_reports.id == inspection_id)\
+            .filter(purchase_orders.name.ilike(f"%{search_term}%"))\
+            .order_by(purchase_orders.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "inspection_id": inspection_id,
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no connection found between 'inspection_reports', 'purchase_orders', and 'inspection_purchase_orders'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/remove_purchase_order_association/", methods = ["POST"])
+def data_entry_remove_remove_purchase_order_association():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_id = form_data["inspection_id"]
+    purchase_order_id = form_data["purchase_order_id"]
+    search_term = form_data["search_term"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # delete the record that matches the provided criteria
+        results = session.query(inspection_purchase_orders)\
+            .filter(and_(inspection_purchase_orders.inspection_id == inspection_id, inspection_purchase_orders.purchase_order_id == purchase_order_id))\
+            .delete()
+
+        # logic gate
+        if results == 0:
+            return {
+                "status": "ok_alert",
+                "response": "no records deleted; none matched the provided criteria"
+            }
+        else:
+            session.commit()
+
+        # get the new list
+        results = session.query(purchase_orders.id, purchase_orders.name)\
+            .join(inspection_purchase_orders, (purchase_orders.id == inspection_purchase_orders.purchase_order_id))\
+            .join(inspection_reports, (inspection_reports.id == inspection_purchase_orders.inspection_id))\
+            .filter(inspection_reports.id == inspection_id)\
+            .filter(purchase_orders.name.ilike(f"%{search_term}%"))\
+            .order_by(purchase_orders.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "inspection_id": inspection_id,
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no connection found between 'inspection_reports', 'purchase_orders', and 'inspection_purchase_orders'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+#endregion
+
+#region inspection reports - lot numbers
+
+@app.route("/data_entry/get_filtered_lot_numbers/", methods = ["POST"])
+def data_entry_get_filtered_lot_numbers():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_id = form_data["inspection_id"]
+    search_term = form_data["search_term"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(lot_numbers.id, lot_numbers.name)\
+            .join(inspection_lot_numbers, (lot_numbers.id == inspection_lot_numbers.lot_number_id))\
+            .join(inspection_reports, (inspection_reports.id == inspection_lot_numbers.inspection_id))\
+            .filter(inspection_reports.id == inspection_id)\
+            .filter(lot_numbers.name.ilike(f"%{search_term}%"))\
+            .order_by(lot_numbers.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "inspection_id": inspection_id,
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no connection found between 'inspection_reports', 'lot_numbers', and 'inspection_lot_numbers'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/assign_lot_number_association/", methods = ["POST"])
+def data_entry_assign_lot_number_association():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = form_data["search_term"]
+    inspection_id = form_data["inspection_id"]
+    lot_number_id = form_data["lot_number_id"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # check if the association already exists
+        results = session.query(inspection_lot_numbers.inspection_id)\
+            .filter(and_(inspection_lot_numbers.inspection_id == inspection_id, inspection_lot_numbers.lot_number_id == lot_number_id)).all()
+
+        # logic gate
+        if len(results) > 0:
+            return {
+                "status": "ok_alert",
+                "response": "this lot number association already exists"
+            }
+
+        # add the new association
+        session.add(inspection_lot_numbers(inspection_id = inspection_id, lot_number_id = lot_number_id))
+        session.commit()
+
+        # get the new list
+        results = session.query(lot_numbers.id, lot_numbers.name)\
+            .join(inspection_lot_numbers, (lot_numbers.id == inspection_lot_numbers.lot_number_id))\
+            .join(inspection_reports, (inspection_reports.id == inspection_lot_numbers.inspection_id))\
+            .filter(inspection_reports.id == inspection_id)\
+            .filter(lot_numbers.name.ilike(f"%{search_term}%"))\
+            .order_by(lot_numbers.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "inspection_id": inspection_id,
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no connection found between 'inspection_reports', 'lot_numbers', and 'inspection_lot_numbers'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/remove_lot_number_association/", methods = ["POST"])
+def data_entry_remove_lot_number_association():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_id = form_data["inspection_id"]
+    lot_number_id = form_data["lot_number_id"]
+    search_term = form_data["search_term"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # delete the record that matches the provided criteria
+        results = session.query(inspection_lot_numbers)\
+            .filter(and_(inspection_lot_numbers.inspection_id == inspection_id, inspection_lot_numbers.lot_number_id == lot_number_id))\
+            .delete()
+
+        # logic gate
+        if results == 0:
+            return {
+                "status": "ok_alert",
+                "response": "no records deleted; none matched the provided criteria"
+            }
+        else:
+            session.commit()
+
+        # get the new list
+        results = session.query(lot_numbers.id, lot_numbers.name)\
+            .join(inspection_lot_numbers, (lot_numbers.id == inspection_lot_numbers.lot_number_id))\
+            .join(inspection_reports, (inspection_reports.id == inspection_lot_numbers.inspection_id))\
+            .filter(inspection_reports.id == inspection_id)\
+            .filter(lot_numbers.name.ilike(f"%{search_term}%"))\
+            .order_by(lot_numbers.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "inspection_id": inspection_id,
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no connection found between 'inspection_reports', 'lot_numbers', and 'inspection_lot_numbers'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+#endregion
+
+#region inspection reports - deviations
+
+@app.route("/data_entry/save_deviations/", methods = ["POST"])
+def data_entry_save_deviations():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+    print(form_data)
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        is_affected = 0
+        for row in form_data["data"]:
+            deviation_id = row["deviation_id"]
+            results = session.query(deviations).filter(deviations.id == deviation_id)
+
+            for k, v in row["content"].items():
+                is_affected += results.update({ k: v })
+
+        # commit the changes
+        session.commit()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if is_affected > 0:
+            return {
+                "status": "ok_alert",
+                "response": f"{is_affected} records in 'deviations' has been successfully updated"
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records in 'deviations' have been updated"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/get_matching_deviations/", methods = ["POST"])
+def data_entry_get_matching_deviations():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    characteristic_id = form_data["characteristic_id"]
+
+    # define the columns
+    columns = [
+        deviations.id,
+        deviations.nominal,
+        deviations.usl,
+        deviations.lsl,
+        deviations.precision,
+        deviations.date_implemented,
+        deviations.notes,
+        deviation_types.id,
+        deviation_types.name,
+        employees.id,
+        employees.first_name,
+        employees.last_name
+    ]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(*columns)\
+            .join(employees, (employees.id == deviations.employee_id))\
+            .join(deviation_types, (deviation_types.id == deviations.deviation_type_id))\
+            .filter(deviations.characteristic_id == characteristic_id)\
+            .order_by(deviations.id.asc())\
+            .distinct(deviations.id).all()
+        deviation_type_list = session.query(deviation_types.id, deviation_types.name)\
+            .order_by(deviation_types.name.asc()).all()
+        employee_list = session.query(employees.id, employees.first_name, employees.last_name)\
+            .order_by(employees.last_name.asc(), employees.first_name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0 and len(deviation_type_list) > 0 and len(employee_list) > 0:
+
+            output_arr = []
+            for id, nominal, usl, lsl, precision, date_implemented, notes, deviation_type_id, deviation_type, employee_id, first_name, last_name in results:
+
+                # parse decimal to float
+                nominal_flt = round(float(nominal), precision)
+                usl_flt = round(float(usl), precision)
+                lsl_flt = round(float(lsl), precision)
+
+                # parse date to string
+                date_implemented_str = date_implemented.strftime("%Y-%m-%d")
+
+                output_arr.append({
+                    "id": id,
+                    "nominal": nominal_flt,
+                    "usl": usl_flt,
+                    "lsl": lsl_flt,
+                    "precision": precision,
+                    "date_implemented": date_implemented_str,
+                    "notes": notes,
+                    "deviation_type_id": deviation_type_id,
+                    "deviation_type": deviation_type,
+                    "employee_id": employee_id,
+                    "employee": f"{last_name}, {first_name}"
+                })
+
+            deviation_types_lst = []
+            for id, name in deviation_type_list:
+                deviation_types_lst.append({
+                    "id": id,
+                    "name": name
+                })
+
+            employees_lst = []
+            for id, first_name, last_name in employee_list:
+                employees_lst.append({
+                    "id": id,
+                    "name": f"{last_name}, {first_name}"
+                })
+
+            return {
+                "status": "ok_func",
+                "response": {
+                    "main": output_arr,
+                    "deviations": deviation_types_lst,
+                    "employees": employees_lst
+                }
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no matching deviations found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+#endregion
+
+# --------------------------------------------------
 
 # run the flask server
 if __name__ == "__main__":

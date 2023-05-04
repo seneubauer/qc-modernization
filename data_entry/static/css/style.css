@@ -1,12 +1,628 @@
-#label_type_major {
-    width: 125px;
+
+/* #region custom properties */
+
+:root {
+
+    /* fonts */
+    --fontfamily-default: sans-serif;
+    --fontsize-title: 25px;
+    --fontsize-header: 21px;
+    --fontsize-inline: 18px;
+    --fontsize-control: 15px;
+    --fontsize-label: 12px;
+
+    /* color components */
+    --page-bg-l: 90%;
+    --dark-bg-l: 20%;
+    --primary-hue: 0;
+    --secondary-hue: 120;
+    --is-color: 50%;
+    --is-grayscale: 0%;
+    --font-modifier: 5%;
+    --hover-l: 8%;
+    --active-l: 13%;
+    --focus-l: 18%;
+    --selection-bg-l: 25%;
+    --selection-fg-l: 90%;
+    --sidebar-toggler-bg-l: 20%;
+    --sidebar-toggler-fg-l: 85%;
+    --control-bg-l: 35%;
+    --control-fg-l: 85%;
+    --button-bg-l: 35%;
+    --button-fg-l: 85%;
+    --list-bg-l: 40%;
+    --list-fg-l: 85%;
+    --table-bg-l: 30%;
+    --table-fg-l: 85%;
+
+    /* colors */
+    --main-color-bg: hsl(0, 0%, var(--page-bg-l));
+    --dark-bg: hsl(0, 0%, var(--dark-bg-l));
+
+    --sidebar-toggler-bg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--sidebar-toggler-bg-l));
+    --sidebar-toggler-fg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--sidebar-toggler-fg-l));
+    --sidebar-toggler-bg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--sidebar-toggler-bg-l) + var(--hover-l)));
+    --sidebar-toggler-fg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--sidebar-toggler-fg-l) + 5%));
+
+    --dark-label-bg-static: transparent;
+    --dark-label-fg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--control-fg-l));
+    --dark-label-bg-selection: hsl(var(--primary-hue), var(--is-color), var(--selection-bg-l));
+    --dark-label-fg-selection: hsl(var(--primary-hue), var(--is-grayscale), var(--selection-fg-l));
+
+    --dark-control-bg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--control-bg-l));
+    --dark-control-fg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--control-fg-l));
+    --dark-control-bg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--control-bg-l) + var(--hover-l)));
+    --dark-control-fg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--control-fg-l) + var(--font-modifier)));
+    --dark-control-bg-active: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--control-bg-l) + var(--active-l)));
+    --dark-control-fg-active: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--control-fg-l) + var(--font-modifier)));
+    --dark-control-bg-selection: hsl(var(--primary-hue), var(--is-color), var(--selection-bg-l));
+    --dark-control-fg-selection: hsl(var(--primary-hue), var(--is-grayscale), var(--selection-fg-l));
+
+    --dark-button-bg-static: hsl(var(--primary-hue), var(--is-color), var(--button-bg-l));
+    --dark-button-fg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--button-fg-l));
+    --dark-button-bg-hover: hsl(var(--primary-hue), var(--is-color), calc(var(--button-bg-l) + var(--hover-l)));
+    --dark-button-fg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--button-fg-l) + var(--font-modifier)));
+    --dark-button-bg-active: hsl(var(--primary-hue), var(--is-color), calc(var(--button-bg-l) + var(--active-l)));
+    --dark-button-fg-active: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--button-fg-l) + var(--font-modifier)));
+
+    --dark-list-bg-static: transparent;
+    --dark-list-fg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--list-fg-l));
+    --dark-list-bg-hover: hsl(var(--primary-hue), var(--is-color), calc(var(--list-bg-l) + var(--hover-l)));
+    --dark-list-fg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--list-fg-l) + var(--font-modifier)));
+    --dark-list-bg-focus: hsl(var(--primary-hue), var(--is-color), calc(var(--list-bg-l) + var(--focus-l)));
+    --dark-list-fg-focus: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--list-fg-l) + var(--font-modifier)));
+    --dark-list-bg-active: hsl(var(--primary-hue), var(--is-color), calc(var(--list-bg-l) + var(--active-l)));
+    --dark-list-fg-active: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--list-fg-l) + var(--font-modifier)));
+    --dark-list-bg-selection: hsl(var(--primary-hue), var(--is-color), var(--selection-bg-l));
+    --dark-list-fg-selection: hsl(var(--primary-hue), var(--is-grayscale), var(--selection-fg-l));
+
+    --dark-table-bg-header: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--table-bg-l) + var(--hover-l)));
+    --dark-table-fg-header: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--table-fg-l) + var(--font-modifier)));
+    --dark-table-bg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--table-bg-l));
+    --dark-table-fg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--table-fg-l));
+    --dark-table-bg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--table-bg-l) + var(--hover-l)));
+    --dark-table-fg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--table-fg-l) + var(--font-modifier)));
+    --dark-table-bg-active: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--table-bg-l) + var(--active-l)));
+    --dark-table-fg-active: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--table-fg-l) + var(--font-modifier)));
+    --dark-table-bg-focus: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--table-bg-l) + var(--focus-l)));
+    --dark-table-fg-focus: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--table-fg-l) + var(--font-modifier)));
+
+    --dark-table-bd-static: hsl(var(--primary-hue), var(--is-grayscale), 15%);
+    --dark-table-sd-static: hsl(var(--primary-hue), var(--is-grayscale), 50%);
+    --dark-table-bg-selection: hsl(var(--primary-hue), var(--is-color), var(--selection-bg-l));
+    --dark-table-fg-selection: hsl(var(--primary-hue), var(--is-grayscale), var(--selection-fg-l));
 }
 
-#existing_reports {
-    width: 600px;
+/* #endregion custom properties */
+
+/* #region globals */
+
+body {
+    font-family: sans-serif;
+    background-color: var(--main-color-bg);
 }
 
-#report_characteristics {
-    text-align: center;
+textarea {
+    outline: none;
+}
+
+input {
+    outline: none;
+}
+
+select {
+    outline: none;
+}
+
+body::-webkit-scrollbar {
+    display: none;
+}
+
+input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
+    appearance: none;
+}
+
+/* #endregion globals */
+
+/* #region navbar basics */
+
+.nav_bar {
+    background-color: var(--dark-bg);
+    overflow: hidden;
+    top: 0;
+    width: 100%;
+    height: 54px;
+    position: fixed;
+    line-height: 54px;
+}
+
+.nav_bar label {
+    float: left;
+    color: var(--dark-control-fg-static);
+    padding: 0px 0px 0px 30px;
+    font-size: var(--fontsize-title);
     vertical-align: middle;
 }
+
+.nav_bar a {
+    float: right;
+    color: var(--dark-control-fg-static);
+    text-align: center;
+    padding: 0px 15px;
+    text-decoration: none;
+    font-size: var(--fontsize-inline);
+    vertical-align: middle;
+}
+
+.nav_bar a:hover {
+    background-color: var(--dark-control-bg-hover);
+    color: var(--dark-control-fg-hover);
+}
+
+/* #endregion navbar basics */
+
+/* #region sidebar operation */
+
+.sidebar {
+    height: 100%;
+    width: 0px;
+    position: fixed;
+    z-index: 2;
+    top: 54px;
+    left: 0px;
+    background-color: var(--dark-bg);
+    overflow-x: hidden;
+    padding-top: 12px;
+    transition: 0.5s;
+}
+
+.sidebar-button {
+    background-color: var(--sidebar-toggler-bg-static);
+    color: var(--sidebar-toggler-fg-static);
+    border-width: 0px;
+    border-radius: 12px;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: left;
+    margin: 0px;
+    padding: 0px 0px 0px 15px;
+    cursor: pointer;
+    width: 204px;
+    height: 42px;
+    vertical-align: middle;
+    position: fixed;
+}
+
+.sidebar-button:hover {
+    background-color: var(--sidebar-toggler-bg-hover);
+    color: var(--sidebar-toggler-fg-hover);
+}
+
+.sidebar-toggle {
+    transition: margin-left 0.5s;
+    left: 12px;
+    position: fixed;
+    z-index: 1;
+}
+
+@media screen and (max-height: 450px) {
+    .sidebar { padding-top: 15px; }
+    .sidebar a { font-size: 18px; }
+}
+
+/* #endregion sidebar operation */
+
+/* #region context menu */
+
+.context-menu {
+    position: fixed;
+    z-index: 10000;
+    width: 200px;
+    background-color: var(--dark-bg);
+    border-radius: 6px;
+    display: none;
+}
+
+.context-menu.visible {
+    display: block;
+}
+
+.context-menu-button {
+    background-color: transparent;
+    color: var(--dark-button-fg-static);
+    border-width: 0px;
+    border-radius: inherit;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: left;
+    margin: 0px;
+    padding: 6px 9px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+    cursor: pointer;
+    width: 100%;
+}
+
+.context-menu-button:hover {
+    background-color: var(--dark-button-bg-hover);
+    color: var(--dark-button-fg-hover);
+}
+
+.context-menu-button:active {
+    background-color: var(--dark-button-bg-active);
+    color: var(--dark-button-fg-active);
+}
+
+/* #endregion context menu */
+
+/* #region containers */
+
+.container {
+    gap: 0px;
+    margin: 0px 18px;
+    display: grid;
+    overflow: visible;
+    grid-auto-rows: auto;
+    grid-template-columns: var(--grid-template-columns);
+}
+
+/* #endregion containers */
+
+/* #region controls */
+
+.label-dark {
+    background-color: var(--dark-label-bg-static);
+    color: var(--dark-label-fg-static);
+    border-width: 0px;
+    border-radius: 0px;
+    font-size: var(--fontsize-label);
+    font-family: var(--fontfamily-default);
+    text-align: left;
+    margin: 6px 0px 0px 6px;
+    padding: 3px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+}
+
+.label-dark::selection {
+    background-color: var(--dark-label-bg-selection);
+    color: var(--dark-label-fg-selection);
+}
+
+.textarea-dark {
+    background-color: var(--dark-control-bg-static);
+    color: var(--dark-control-fg-static);
+    border-width: 0px;
+    border-radius: 3px;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: left;
+    margin: 6px;
+    padding: 6px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+    resize: none;
+}
+
+.textarea-dark::selection {
+    background-color: var(--dark-control-bg-selection);
+    color: var(--dark-control-fg-selection);
+}
+
+.label-inline-dark {
+    background-color: transparent;
+    color: var(--dark-control-fg-static);
+    font-size: var(--fontsize-inline);
+    font-family: var(--fontfamily-default);
+    text-align: left;
+    margin: 6px;
+    padding: 6px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+}
+
+.label-header-dark {
+    background-color: transparent;
+    color: var(--dark-control-fg-static);
+    font-size: var(--fontsize-header);
+    font-family: var(--fontfamily-default);
+    text-align: left;
+    margin: 6px 6px 0px 6px;
+    padding: 3px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+}
+
+.button-dark {
+    background-color: var(--dark-button-bg-static);
+    color: var(--dark-button-fg-static);
+    border-width: 0px;
+    border-radius: 6px;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: center;
+    margin: 6px;
+    padding: 6px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+    cursor: pointer;
+}
+
+.button-dark:hover {
+    background-color: var(--dark-button-bg-hover);
+    color: var(--dark-button-fg-hover);
+}
+
+.button-dark:active {
+    background-color: var(--dark-button-bg-active);
+    color: var(--dark-button-fg-active);
+}
+
+.input-dark, .select-dark {
+    background-color: var(--dark-control-bg-static);
+    color: var(--dark-control-fg-static);
+    border-width: 0px;
+    border-radius: 3px;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: right;
+    margin: 6px;
+    padding: 6px;
+    grid-column: var(--grid-column);
+    grid-row: var(--grid-row);
+}
+
+.input-dark:hover, .select-dark:hover {
+    background-color: var(--dark-control-bg-hover);
+    color: var(--dark-control-fg-hover);
+}
+
+.input-dark:active, .select-dark:active {
+    background-color: var(--dark-control-bg-active);
+    color: var(--dark-control-fg-active);
+}
+
+.input-dark::selection, .select-dark::selection {
+    background-color: var(--dark-control-bg-selection);
+    color: var(--dark-control-fg-selection);
+}
+
+/* #endregion controls */
+
+/* #region lists */
+
+.item-list {
+    padding: 6px 0px 0px 0px;
+    overflow: hidden;
+    grid-row: var(--grid-row);
+    grid-column: var(--grid-column);
+}
+
+.list-item-header {
+    background-color: transparent;
+    gap: 0px;
+    padding: 6px;
+    margin: 0px;
+    display: grid;
+    border-radius: 0px;
+    grid-auto-rows: auto;
+    grid-template-columns: var(--grid-template-columns);
+}
+
+.list-item-header-label-dark {
+    color: var(--dark-label-fg-static);
+    font-size: var(--fontsize-control);
+    text-align: center;
+    margin: 0px;
+    padding: 0px;
+    grid-row: var(--grid-row);
+    grid-column: var(--grid-column);
+}
+
+.list-item-dark {
+    background-color: var(--dark-list-bg-static);
+    gap: 0px;
+    margin: 0px;
+    display: grid;
+    border-radius: 6px;
+    grid-auto-rows: auto;
+    grid-template-columns: var(--grid-template-columns);
+}
+
+.list-item-dark:hover {
+    background-color: var(--dark-list-bg-hover);
+    color: var(--dark-list-fg-hover);
+}
+
+.list-item-dark:active {
+    background-color: var(--dark-list-bg-active);
+    color: var(--dark-list-fg-active);
+}
+
+.list-item-dark:focus-within {
+    background-color: var(--dark-list-bg-focus);
+    color: var(--dark-list-fg-focus);
+}
+
+.list-item-label-dark {
+    background-color: var(--dark-list-bg-static);
+    color: var(--dark-list-fg-static);
+    border-width: 0px;
+    border-radius: 0px;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: right;
+    margin: 0px;
+    padding: 6px;
+    grid-row: var(--grid-row);
+    grid-column: var(--grid-column);
+}
+
+.list-item-input-dark, .list-item-select-dark {
+    background-color: var(--dark-list-bg-static);
+    color: var(--dark-list-fg-static);
+    border-width: 0px;
+    border-radius: 0px;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: right;
+    margin: 0px;
+    padding: 6px;
+    grid-row: var(--grid-row);
+    grid-column: var(--grid-column);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.list-item-input-dark:hover, .list-item-select-dark:hover {
+    background-color: var(--dark-list-bg-hover);
+    color: var(--dark-list-fg-hover);
+}
+
+.list-item-input-dark:focus, .list-item-select-dark:focus {
+    background-color: var(--dark-list-bg-focus);
+    color: var(--dark-list-fg-focus);
+}
+
+.list-item-input-dark:active, .list-item-select-dark:active {
+    background-color: var(--dark-list-bg-active);
+    color: var(--dark-list-fg-active);
+}
+
+.list-item-input-dark::selection, .list-item-select-dark::selection {
+    background-color: var(--dark-list-bg-selection);
+    color: var(--dark-list-fg-selection);
+}
+
+.list-item-button-dark {
+    background-color: transparent;
+    color: var(--dark-button-fg-static);
+    border-width: 0px;
+    border-radius: 0px;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: center;
+    margin: 0px;
+    padding: 6px;
+    grid-row: var(--grid-row);
+    grid-column: var(--grid-column);
+    outline: none;
+    cursor: pointer;
+}
+
+.list-item-button-dark:hover {
+    background-color: var(--dark-button-bg-hover);
+    color: var(--dark-button-fg-hover);
+}
+
+.list-item-button-dark:active {
+    background-color: var(--dark-list-bg-active);
+    color: var(--dark-list-fg-active);
+}
+
+/* #endregion lists */
+
+/* #region tables */
+
+.data-table {
+    background-color: var(--dark-table-bg-static);
+    color: var(--dark-table-fg-static);
+    margin: 0px;
+    padding: 0px;
+    width: 100%;
+    table-layout: fixed;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    border-style: solid;
+    border-width: 1px;
+    border-color: var(--dark-table-bd-static);
+    border-radius: 3px;
+    grid-row: var(--grid-row);
+    grid-column: var(--grid-column);
+}
+
+.data-table thead th {
+    background-color: var(--dark-table-bg-header);
+    border-width: 1px;
+    border-style: solid;
+    border-color: var(--dark-table-bd-static);
+    color: var(--dark-table-fg-header);
+    padding: 6px;
+    text-align: center;
+    text-shadow: 1px 1px 1px var(--dark-table-sd-static);
+}
+
+.data-table tbody td {
+    border: solid 1px var(--dark-table-bd-static);
+    color: var(--dark-table-fg-static);
+    padding: 0px;
+    text-shadow: 1px 1px 1px var(--dark-table-sd-static);
+}
+
+.data-table-highlight-all {
+    overflow: hidden;
+    z-index: 1;
+}
+
+.data-table-highlight-all tbody td, .data-table-highlight-all thead th {
+    position: relative;
+}
+
+.data-table-highlight-all tbody td:hover::before {
+    background-color: var(--dark-table-bg-hover);
+    content:'\00a0';
+    height: 100%;
+    left: -5000px;
+    position: absolute;
+    top: 0;
+    width: 10000px;
+    z-index: -1;
+}
+
+.data-table-highlight-all tbody td:hover::after {
+    background-color: var(--dark-table-bg-hover);
+    content:'\00a0';
+    height: 10000px;
+    left: 0;
+    position: absolute;
+    top: -5000px;
+    width: 100%;
+    z-index: -1;
+}
+
+.data-table-cell-dark {
+    background-color: transparent;
+    color: inherit;
+    border-width: 0px;
+    border-radius: 0px;
+    font-size: var(--fontsize-control);
+    font-family: var(--fontfamily-default);
+    text-align: right;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0px;
+    padding: 6px;
+    cursor: default;
+}
+
+.data-table-cell-dark:hover {
+    background-color: var(--dark-table-bg-hover);
+    color: var(--dark-table-fg-hover);
+}
+
+.data-table-cell-dark:active {
+    background-color: var(--dark-table-bg-active);
+    color: var(--dark-table-fg-active);
+}
+
+.data-table-cell-dark:focus-within {
+    background-color: var(--dark-table-bg-focus);
+    color: var(--dark-table-fg-focus);
+}
+
+.data-table-cell-dark::selection {
+    background-color: var(--dark-table-bg-selection);
+    color: var(--dark-table-fg-selection);
+}
+
+/* #endregion tables */

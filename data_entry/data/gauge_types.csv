@@ -1,7 +1,7 @@
-id
-caliper
-bore_micrometer
-depth_gauge
-indicator
-hexagon_cmm
-vision_system
+id,name
+0,Caliper
+1,Bore Micrometer
+2,Depth Gauge
+3,Indicator
+4,Hexagon CMM
+5,Vision System
