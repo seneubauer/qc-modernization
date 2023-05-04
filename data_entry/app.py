@@ -683,14 +683,30 @@ def get_all_lot_numbers():
 
 #region characteristic schemas - schemas
 
-@app.route("/characteristic_schemas/get_filtered_characteristic_schemas", methods = ["POST"])
+@app.route("/characteristic_schemas/save_current_characteristic_schema/", methods = ["POST"])
+def characteristic_schemas_save_current_characteristic_schema():
+
+    return {
+        "status": "ok_func",
+        "response": "none"
+    }
+
+@app.route("/characteristic_schemas/create_new_characteristic_schema/", methods = ["POST"])
+def characteristic_schemas_create_new_characteristic_schema():
+
+    return {
+        "status": "ok_func",
+        "response": "none"
+    }
+
+@app.route("/characteristic_schemas/get_filtered_characteristic_schemas/", methods = ["POST"])
 def characteristic_schemas_get_filtered_characteristic_schemas():
 
     # interpret the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
-    search_term = str(form_data["search_term"]).lower()
+    search_term = str(form_data["search_term"])
 
     # define the output columns
     columns = [
@@ -731,6 +747,134 @@ def characteristic_schemas_get_filtered_characteristic_schemas():
             return {
                 "status": "ok_func",
                 "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no matching records found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+#endregion
+
+#region characteristic schemas - schema view
+
+@app.route("/characteristic_schemas/get_current_characteristic_schema/", methods = ["POST"])
+def characteristic_schemas_get_current_characteristic_schema():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    part_id = form_data["part_id"]
+
+    # define the output columns
+    columns = [
+        characteristic_schemas.id,
+        parts.id,
+        characteristic_schemas.name,
+        characteristic_schemas.nominal,
+        characteristic_schemas.usl,
+        characteristic_schemas.lsl,
+        characteristic_schemas.precision,
+        characteristic_schemas.specification_type_id,
+        characteristic_schemas.characteristic_type_id,
+        characteristic_schemas.frequency_type_id,
+        characteristic_schemas.gauge_type_id
+    ]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # get the requested schema
+        results = session.query(*columns)\
+            .join(parts, (parts.id == characteristic_schemas.part_id))\
+            .filter(parts.id == part_id)\
+            .order_by(characteristic_schemas.id.asc(), characteristic_schemas.name.asc()).all()
+
+        # get the required enumerations
+        specification_types_results = session.query(specification_types.id, specification_types.name)\
+            .order_by(specification_types.name).all()
+        characteristic_types_results = session.query(characteristic_types.id, characteristic_types.name)\
+            .order_by(characteristic_types.name).all()
+        frequency_types_results = session.query(frequency_types.id, frequency_types.name)\
+            .order_by(frequency_types.name).all()
+        gauge_types_results = session.query(gauge_types.id, gauge_types.name)\
+            .order_by(gauge_types.name).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+
+            specification_types_list = []
+            for id, name in specification_types_results:
+                specification_types_list.append({
+                    "id": id,
+                    "name": name
+                })
+
+            characteristic_types_list = []
+            for id, name in characteristic_types_results:
+                characteristic_types_list.append({
+                    "id": id,
+                    "name": name
+                })
+
+            frequency_types_list = []
+            for id, name in frequency_types_results:
+                frequency_types_list.append({
+                    "id": id,
+                    "name": name
+                })
+
+            gauge_types_list = []
+            for id, name in gauge_types_results:
+                gauge_types_list.append({
+                    "id": id,
+                    "name": name
+                })
+
+            output_arr = []
+            for schema_id, part_id, name, nominal, usl, lsl, precision, specification_type_id, characteristic_type_id, frequency_type_id, gauge_type_id in results:
+
+                # parse decimal to float
+                nominal_flt = round(float(nominal), precision)
+                usl_flt = round(float(usl), precision)
+                lsl_flt = round(float(lsl), precision)
+
+                output_arr.append({
+                    "schema_id": schema_id,
+                    "part_id": part_id,
+                    "name": name,
+                    "nominal": nominal_flt,
+                    "usl": usl_flt,
+                    "lsl": lsl_flt,
+                    "precision": precision,
+                    "specification_type_id": specification_type_id,
+                    "characteristic_type": characteristic_type_id,
+                    "frequency_type_id": frequency_type_id,
+                    "gauge_type_id": gauge_type_id
+                })
+
+            return {
+                "status": "ok_func",
+                "response": {
+                    "data": output_arr,
+                    "specification_types": specification_types_list,
+                    "characteristic_types": characteristic_types_list,
+                    "frequency_types": frequency_types_list,
+                    "gauge_types": gauge_types_list
+                }
             }
         else:
             return {

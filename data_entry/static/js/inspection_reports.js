@@ -73,20 +73,20 @@ const dv_ul_list = d3.select("#deviations_list");
 
 // main characteristic table columns
 const char_table_columns = [
-    { display: "Part Index",            key: "part_index",          value_type: "number", type: "input",  show: [true, true, true] },
-    { display: "Frequency",             key: "frequency_type",      value_type: "static", type: "label",  show: [false, true, true] },
-    { display: "Revision",              key: "revision",            value_type: "static", type: "label",  show: [true, true, true] },
-    { display: "Name",                  key: "name",                value_type: "static", type: "label",  show: [true, true, true] },
-    { display: "Nominal",               key: "nominal",             value_type: "number", type: "label",  show: [true, false, true] },
-    { display: "USL",                   key: "usl",                 value_type: "number", type: "label",  show: [true, false, true] },
-    { display: "LSL",                   key: "lsl",                 value_type: "number", type: "label",  show: [true, false, true] },
-    { display: "Measured",              key: "measured",            value_type: "number", type: "input",  show: [true, false, true] },
-    { display: "Precision",             key: "precision",           value_type: "static", type: "label",  show: [false, true, true] },
-    { display: "Inspector",             key: "employee_id",         value_type: "static", type: "select", show: [false, true, true] },
-    { display: "Gauge",                 key: "gauge_id",            value_type: "static", type: "select", show: [true, false, true] },
-    { display: "Gauge Type",            key: "gauge_type",          value_type: "static", type: "label",  show: [false, true, true] },
-    { display: "Specification Type",    key: "specification_type",  value_type: "static", type: "label",  show: [false, true, true] },
-    { display: "Characteristic Type",   key: "characteristic_type", value_type: "static", type: "label",  show: [false, true, true] }
+    { display: "Part Index",            key: "part_index",          value_type: "number", type: "input",    datatype: "integer", show: [true, true, true] },
+    { display: "Frequency",             key: "frequency_type",      value_type: "static", type: "label",    datatype: "integer", show: [false, true, true] },
+    { display: "Revision",              key: "revision",            value_type: "static", type: "label",    datatype: "integer", show: [true, true, true] },
+    { display: "Name",                  key: "name",                value_type: "static", type: "label",    datatype: "integer", show: [true, true, true] },
+    { display: "Nominal",               key: "nominal",             value_type: "number", type: "label",    datatype: "decimal", show: [true, false, true] },
+    { display: "USL",                   key: "usl",                 value_type: "number", type: "label",    datatype: "decimal", show: [true, false, true] },
+    { display: "LSL",                   key: "lsl",                 value_type: "number", type: "label",    datatype: "decimal", show: [true, false, true] },
+    { display: "Measured",              key: "measured",            value_type: "number", type: "input",    datatype: "decimal", show: [true, false, true] },
+    { display: "Precision",             key: "precision",           value_type: "static", type: "label",    datatype: "integer", show: [false, true, true] },
+    { display: "Inspector",             key: "employee_id",         value_type: "static", type: "select",   datatype: "integer", show: [false, true, true] },
+    { display: "Gauge",                 key: "gauge_id",            value_type: "static", type: "select",   datatype: "integer", show: [true, false, true] },
+    { display: "Gauge Type",            key: "gauge_type",          value_type: "static", type: "label",    datatype: "integer", show: [false, true, true] },
+    { display: "Specification Type",    key: "specification_type",  value_type: "static", type: "label",    datatype: "integer", show: [false, true, true] },
+    { display: "Characteristic Type",   key: "characteristic_type", value_type: "static", type: "label",    datatype: "integer", show: [false, true, true] }
 ];
 
 init();
@@ -145,12 +145,12 @@ function init()
     // inspection reports
     ir_input_new_item_filter.on("keydown", (x) => {
         if (x.keyCode == 13) {
-            update_new_schema_selectors();
+            update_new_inspection_report_selectors();
         }
     });
     ir_input_new_drawing_filter.on("keydown", (x) => {
         if (x.keyCode == 13) {
-            update_new_schema_selectors();
+            update_new_inspection_report_selectors();
         }
     });
     ir_input_char_schema_filter.on("keydown", (x) => {
@@ -160,20 +160,19 @@ function init()
     });
     ir_input_started_after.on("keydown", (x) => {
         if (x.keyCode == 13) {
-            update_filtered_schemas();
+            update_filtered_inspection_reports();
         }
     });
     ir_input_finished_before.on("keydown", (x) => {
         if (x.keyCode == 13) {
-            update_filtered_schemas();
+            update_filtered_inspection_reports();
         }
     });
     ir_button_create.on("click", inspection_report_create_new);
-    ir_select_filter_part.on("change", update_filtered_schemas);
-    ir_select_filter_job_order.on("change", update_filtered_schemas);
-    ir_select_new_item.on("change", schemas_item_number_changed);
-    ir_select_new_drawing.on("change", schemas_drawing_changed);
-    ir_select_char_schema.on("change", update_characteristic_schema_selector);
+    ir_select_filter_part.on("change", update_filtered_inspection_reports);
+    ir_select_filter_job_order.on("change", update_filtered_inspection_reports);
+    ir_select_new_item.on("change", inspection_reports_item_number_changed);
+    ir_select_new_drawing.on("change", inspection_reports_drawing_changed);
     ir_input_started_after.property("value", "1970-01-01");
     ir_input_finished_before.property("value", "2100-01-01");
 
@@ -314,7 +313,7 @@ function populate_generic_selectors()
             alert(json.response);
         }
     });
-    update_new_schema_selectors();
+    update_new_inspection_report_selectors();
     update_characteristic_schema_selector();
 
     // characteristic display
@@ -645,7 +644,7 @@ function inspection_report_create_new()
         }
     }).then((json) => {
         if (json.status == "ok_func") {
-            update_filtered_schemas();
+            update_filtered_inspection_reports();
         }
         else if (json.status == "ok_log") {
             console.log(json.response);
@@ -684,7 +683,7 @@ function inspection_report_selected(data)
     update_filtered_lot_numbers(data.inspection_id);
 }
 
-function update_filtered_schemas()
+function update_filtered_inspection_reports()
 {
     // get the raw values
     let started_after = new Date(ir_input_started_after.property("value") + "T00:00:00");
@@ -790,17 +789,17 @@ function update_filtered_schemas()
     });
 }
 
-function schemas_item_number_changed()
+function inspection_reports_item_number_changed()
 {
     ir_select_new_drawing.property("value", ir_select_new_item.property("value"));
 }
 
-function schemas_drawing_changed()
+function inspection_reports_drawing_changed()
 {
     ir_select_new_item.property("value", ir_select_new_drawing.property("value"));
 }
 
-function update_new_schema_selectors()
+function update_new_inspection_report_selectors()
 {
     // query the flask server
     d3.json("/data_entry/get_filtered_parts/", {
@@ -1183,6 +1182,7 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
                     }
                 }).on("change", (e, x) => {
                     x.row.value = parseFloat(e.srcElement.value);
+                    e.srcElement.value = x.row.value.toFixed(x.row.precision);
                 });
 
             // gauges
@@ -2340,7 +2340,7 @@ function toggle_options(destination_arg, open_width)
         else {
             document.getElementById("inspection_reports_sidebar").style.width = open_width;
             document.getElementById("inspection_reports_btn").style.marginLeft = open_width;
-            update_filtered_schemas();
+            update_filtered_inspection_reports();
         }
     }
     else if (destination_arg == "characteristic_display") {
