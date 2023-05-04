@@ -145,12 +145,12 @@ function init()
     // inspection reports
     ir_input_new_item_filter.on("keydown", (x) => {
         if (x.keyCode == 13) {
-            update_new_part_selectors();
+            update_new_schema_selectors();
         }
     });
     ir_input_new_drawing_filter.on("keydown", (x) => {
         if (x.keyCode == 13) {
-            update_new_part_selectors();
+            update_new_schema_selectors();
         }
     });
     ir_input_char_schema_filter.on("keydown", (x) => {
@@ -160,19 +160,19 @@ function init()
     });
     ir_input_started_after.on("keydown", (x) => {
         if (x.keyCode == 13) {
-            update_filtered_inspection_reports();
+            update_filtered_schemas();
         }
     });
     ir_input_finished_before.on("keydown", (x) => {
         if (x.keyCode == 13) {
-            update_filtered_inspection_reports();
+            update_filtered_schemas();
         }
     });
     ir_button_create.on("click", inspection_report_create_new);
-    ir_select_filter_part.on("change", update_filtered_inspection_reports);
-    ir_select_filter_job_order.on("change", update_filtered_inspection_reports);
-    ir_select_new_item.on("change", inspection_reports_item_number_changed);
-    ir_select_new_drawing.on("change", inspection_reports_drawing_changed);
+    ir_select_filter_part.on("change", update_filtered_schemas);
+    ir_select_filter_job_order.on("change", update_filtered_schemas);
+    ir_select_new_item.on("change", schemas_item_number_changed);
+    ir_select_new_drawing.on("change", schemas_drawing_changed);
     ir_select_char_schema.on("change", update_characteristic_schema_selector);
     ir_input_started_after.property("value", "1970-01-01");
     ir_input_finished_before.property("value", "2100-01-01");
@@ -314,7 +314,7 @@ function populate_generic_selectors()
             alert(json.response);
         }
     });
-    update_new_part_selectors();
+    update_new_schema_selectors();
     update_characteristic_schema_selector();
 
     // characteristic display
@@ -645,7 +645,7 @@ function inspection_report_create_new()
         }
     }).then((json) => {
         if (json.status == "ok_func") {
-            update_filtered_inspection_reports();
+            update_filtered_schemas();
         }
         else if (json.status == "ok_log") {
             console.log(json.response);
@@ -684,7 +684,7 @@ function inspection_report_selected(data)
     update_filtered_lot_numbers(data.inspection_id);
 }
 
-function update_filtered_inspection_reports()
+function update_filtered_schemas()
 {
     // get the raw values
     let started_after = new Date(ir_input_started_after.property("value") + "T00:00:00");
@@ -790,17 +790,17 @@ function update_filtered_inspection_reports()
     });
 }
 
-function inspection_reports_item_number_changed()
+function schemas_item_number_changed()
 {
     ir_select_new_drawing.property("value", ir_select_new_item.property("value"));
 }
 
-function inspection_reports_drawing_changed()
+function schemas_drawing_changed()
 {
     ir_select_new_item.property("value", ir_select_new_drawing.property("value"));
 }
 
-function update_new_part_selectors()
+function update_new_schema_selectors()
 {
     // query the flask server
     d3.json("/data_entry/get_filtered_parts/", {
@@ -2340,7 +2340,7 @@ function toggle_options(destination_arg, open_width)
         else {
             document.getElementById("inspection_reports_sidebar").style.width = open_width;
             document.getElementById("inspection_reports_btn").style.marginLeft = open_width;
-            update_filtered_inspection_reports();
+            update_filtered_schemas();
         }
     }
     else if (destination_arg == "characteristic_display") {

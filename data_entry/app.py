@@ -52,6 +52,7 @@ gauges = base.classes.gauges
 checks = base.classes.checks
 characteristics = base.classes.characteristics
 deviations = base.classes.deviations
+characteristic_schemas = base.classes.characteristic_schemas
 employee_projects = base.classes.employee_projects
 inspection_purchase_orders = base.classes.inspection_purchase_orders
 inspection_receiver_numbers = base.classes.inspection_receiver_numbers
@@ -65,9 +66,13 @@ app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 #region page navigation
 
-@app.route("/data_entry/")
-def data_entry():
-    return render_template("data_entry.html")
+@app.route("/characteristic_schemas")
+def open_characteristic_schemas():
+    return render_template("characteristic_schemas.html")
+
+@app.route("/inspection_reports/")
+def open_inspection_reports():
+    return render_template("inspection_reports.html")
 
 #endregion
 
@@ -676,7 +681,75 @@ def get_all_lot_numbers():
 
 # --------------------------------------------------
 
-#region data entry - inspection reports
+#region characteristic schemas - schemas
+
+@app.route("/characteristic_schemas/get_filtered_characteristic_schemas", methods = ["POST"])
+def characteristic_schemas_get_filtered_characteristic_schemas():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = str(form_data["search_term"]).lower()
+
+    # define the output columns
+    columns = [
+        characteristic_schemas.id,
+        parts.id,
+        parts.item,
+        parts.drawing,
+        parts.revision
+    ]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(*columns)\
+            .join(parts, (parts.id == characteristic_schemas.part_id))\
+            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
+            .distinct(parts.item, parts.drawing, parts.revision)\
+            .order_by(parts.item, parts.drawing, parts.revision).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for schema_id, part_id, item, drawing, revision in results:
+                output_arr.append({
+                    "schema_id": schema_id,
+                    "part_id": part_id,
+                    "item": item,
+                    "drawing": drawing,
+                    "revision": revision.upper()
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no matching records found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+#endregion
+
+# --------------------------------------------------
+
+#region inspection reports - inspection reports
 
 @app.route("/data_entry/get_all_item_drawing_combinations/")
 def data_entry_get_all_item_drawing_combinations():
@@ -985,7 +1058,7 @@ def data_entry_create_new_inspection_report():
 
 #endregion
 
-#region data entry - characteristic display
+#region inspection reports - characteristic display
 
 @app.route("/data_entry/get_filter_selector_lists/", methods = ["POST"])
 def data_entry_get_filter_selector_lists():
@@ -1416,7 +1489,7 @@ def data_entry_save_inspection_report():
 
 #endregion
 
-#region data entry - metadata
+#region inspection reports - metadata
 
 @app.route("/data_entry/get_matching_revisions/", methods = ["POST"])
 def data_entry_get_matching_revisions():
@@ -1544,7 +1617,7 @@ def data_entry_save_metadata():
 
 #endregion
 
-#region data entry - receiver numbers
+#region inspection reports - receiver numbers
 
 @app.route("/data_entry/get_filtered_receiver_numbers/", methods = ["POST"])
 def data_entry_get_filtered_receiver_numbers():
@@ -1738,7 +1811,7 @@ def data_entry_remove_receiver_number_association():
 
 #endregion
 
-#region data entry - purchase orders
+#region inspection reports - purchase orders
 
 @app.route("/data_entry/get_filtered_purchase_orders/", methods = ["POST"])
 def data_entry_get_filtered_purchase_orders():
@@ -1932,7 +2005,7 @@ def data_entry_remove_remove_purchase_order_association():
 
 #endregion
 
-#region data entry - lot numbers
+#region inspection reports - lot numbers
 
 @app.route("/data_entry/get_filtered_lot_numbers/", methods = ["POST"])
 def data_entry_get_filtered_lot_numbers():
@@ -2126,7 +2199,7 @@ def data_entry_remove_lot_number_association():
 
 #endregion
 
-#region data entry - deviations
+#region inspection reports - deviations
 
 @app.route("/data_entry/save_deviations/", methods = ["POST"])
 def data_entry_save_deviations():
