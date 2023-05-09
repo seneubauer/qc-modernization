@@ -9,10 +9,10 @@ const char_table_scope = document.querySelector("#main_char_table");
 
 // inspection_reports
 const ir_button_create = d3.select("#inspection_report_create_new_btn");
-const ir_input_new_item_filter = d3.select("#inspection_report_item_filter");
-const ir_select_new_item = d3.select("#inspection_report_item");
-const ir_input_new_drawing_filter = d3.select("#inspection_report_drawing_filter");
-const ir_select_new_drawing = d3.select("#inspection_report_drawing");
+const ir_input_new_part_filter = d3.select("#inspection_report_part_filter");
+const ir_select_new_part = d3.select("#inspection_report_part");
+const ir_input_new_employee_filter = d3.select("#inspection_report_employee_filter");
+const ir_select_new_employee = d3.select("#inspection_report_employee");
 const ir_input_char_schema_filter = d3.select("#inspection_report_char_schema_filter");
 const ir_select_char_schema = d3.select("#inspection_report_char_schema");
 const ir_select_filter_part = d3.select("#inspection_report_filter_part");
@@ -143,12 +143,12 @@ function init()
     });
 
     // inspection reports
-    ir_input_new_item_filter.on("keydown", (x) => {
+    ir_input_new_part_filter.on("keydown", (x) => {
         if (x.keyCode == 13) {
             update_new_inspection_report_selectors();
         }
     });
-    ir_input_new_drawing_filter.on("keydown", (x) => {
+    ir_input_new_employee_filter.on("keydown", (x) => {
         if (x.keyCode == 13) {
             update_new_inspection_report_selectors();
         }
@@ -171,8 +171,6 @@ function init()
     ir_button_create.on("click", inspection_report_create_new);
     ir_select_filter_part.on("change", update_filtered_inspection_reports);
     ir_select_filter_job_order.on("change", update_filtered_inspection_reports);
-    ir_select_new_item.on("change", inspection_reports_item_number_changed);
-    ir_select_new_drawing.on("change", inspection_reports_drawing_changed);
     ir_input_started_after.property("value", "1970-01-01");
     ir_input_finished_before.property("value", "2100-01-01");
 
@@ -629,7 +627,8 @@ function populate_generic_selectors()
 function inspection_report_create_new()
 {
     // confirm the identity parameter
-    let part_id = ir_select_new_item.property("value");
+    let part_id = ir_select_new_part.property("value");
+    let employee_id = ir_select_new_employee.property("value");
     let schema_id = ir_select_char_schema.property("value");
 
     // query the flask server
@@ -637,6 +636,7 @@ function inspection_report_create_new()
         method: "POST",
         body: JSON.stringify({
             part_id: part_id,
+            employee_id: employee_id,
             schema_id: schema_id
         }),
         headers: {
@@ -644,6 +644,7 @@ function inspection_report_create_new()
         }
     }).then((json) => {
         if (json.status == "ok_func") {
+            
             update_filtered_inspection_reports();
         }
         else if (json.status == "ok_log") {
@@ -659,6 +660,11 @@ function inspection_report_create_new()
             alert(json.response);
         }
     });
+}
+
+function inspection_reports_add_check_set()
+{
+
 }
 
 function inspection_report_selected(data)
@@ -789,24 +795,13 @@ function update_filtered_inspection_reports()
     });
 }
 
-function inspection_reports_item_number_changed()
-{
-    ir_select_new_drawing.property("value", ir_select_new_item.property("value"));
-}
-
-function inspection_reports_drawing_changed()
-{
-    ir_select_new_item.property("value", ir_select_new_drawing.property("value"));
-}
-
 function update_new_inspection_report_selectors()
 {
     // query the flask server
     d3.json("/data_entry/get_filtered_parts/", {
         method: "POST",
         body: JSON.stringify({
-            item: ir_input_new_item_filter.property("value"),
-            drawing: ir_input_new_drawing_filter.property("value")
+            search_term: ir_input_new_part_filter.property("value"),
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -815,26 +810,54 @@ function update_new_inspection_report_selectors()
         if (json.status == "ok_func") {
 
             // clear the old entries
-            ir_select_new_item.selectAll("option").remove();
-            ir_select_new_drawing.selectAll("option").remove();
+            ir_select_new_part.selectAll("option").remove();
 
             // populate the item numbers
-            ir_select_new_item.selectAll("option")
+            ir_select_new_part.selectAll("option")
                 .data(json.response)
                 .enter()
                 .append("option")
                 .attr("value", (x) => x.id)
-                .text((x) => x.item);
-            ir_select_new_item.property("value", json.response[0].id)
+                .text((x) => x.part_name);
+            ir_select_new_part.property("value", json.response[0].id)
+        }
+        else if (json.status == "ok_log") {
+            console.log(json.response);
+        }
+        else if (json.status == "ok_alert") {
+            alert(json.response);
+        }
+        else if (json.status == "err_log") {
+            console.log(json.response);
+        }
+        else if (json.status == "err_alert") {
+            alert(json.response);
+        }
+    });
 
-            // populate the drawings
-            ir_select_new_drawing.selectAll("option")
+    // query the flask server
+    d3.json("/data_entry/get_filtered_employees/", {
+        method: "POST",
+        body: JSON.stringify({
+            search_term: ir_input_new_employee_filter.property("value"),
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok_func") {
+
+            // clear the old entries
+            ir_select_new_employee.selectAll("option").remove();
+
+            // populate the item numbers
+            ir_select_new_employee.selectAll("option")
                 .data(json.response)
                 .enter()
                 .append("option")
                 .attr("value", (x) => x.id)
-                .text((x) => x.drawing);
-            ir_select_new_drawing.property("value", json.response[0].id)
+                .text((x) => x.name);
+                ir_select_new_employee.property("value", json.response[0].id)
         }
         else if (json.status == "ok_log") {
             console.log(json.response);
@@ -873,8 +896,8 @@ function update_characteristic_schema_selector()
                 .data(json.response)
                 .enter()
                 .append("option")
-                .attr("value", (x) => x)
-                .text((x) => x);
+                .attr("value", (x) => x.schema_id)
+                .text((x) => x.name);
         }
         else if (json.status == "ok_log") {
             console.log(json.response);

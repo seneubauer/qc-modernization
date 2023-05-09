@@ -22,6 +22,7 @@ var specification_types = null;
 var characteristic_types = null;
 var frequency_types = null;
 var gauge_types = null;
+var current_schema_id = null;
 
 // main schema table columns
 const table_columns = [
@@ -689,11 +690,11 @@ function get_selected_schema(schema_id)
     });
 }
 
-function enforce_precision(precision, schema_id)
+function enforce_precision(precision, detail_id)
 {
     main_schema_table.select("tbody").selectAll("td").selectAll("input")
         .property("value", (x) => {
-            if (x.column.datatype == "decimal" && x.row.schema_id == schema_id) {
+            if (x.column.datatype == "decimal" && x.row.detail_id == detail_id) {
                 return x.row.value.toFixed(precision);
             }
         });
@@ -768,7 +769,7 @@ function update_table(data)
         .on("change", (e, x) => {
             x.row.value = parseFloat(e.srcElement.value);
             if (x.column.key == "precision") {
-                enforce_precision(x.row.value, x.row.schema_id);
+                enforce_precision(x.row.value, x.row.detail_id);
             }
         });
 

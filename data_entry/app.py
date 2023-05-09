@@ -10,13 +10,11 @@ from sqlalchemy import create_engine, and_, or_, func
 # import general dependencies
 import json
 import datetime
-from os.path import join, isfile, splitext
-from os import listdir
 
 # import confidential information
 from sys import path
 path.insert(0, "..")
-from config import pg_key, pg_db, pg_host, pg_port, pg_user, char_schema_destination
+from config import pg_key, pg_db, pg_host, pg_port, pg_user
 
 # create the sqlalchemy engine
 engine = create_engine(f"postgresql://{pg_user}:{pg_key}@{pg_host}:{pg_port}/{pg_db}", pool_pre_ping = True, echo = False)
@@ -1110,11 +1108,10 @@ def characteristic_schemas_get_filtered_characteristic_schemas():
         # query the database
         results = session.query(*columns)\
             .join(parts, (parts.id == characteristic_schemas.part_id))\
-            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
-            .order_by(parts.item, parts.drawing, parts.revision)
+            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))
         if locked_status >= 0:
             results = results.filter(characteristic_schemas.is_locked == bool(locked_status))
-        results = results.order_by(parts.item, parts.drawing, parts.revision).all()
+        results = results.order_by(parts.item.asc(), parts.drawing.asc(), parts.revision.asc()).all()
 
         # close the database session
         session.close()
@@ -1400,7 +1397,8 @@ def data_entry_get_filtered_parts():
                 output_arr.append({
                     "id": id,
                     "item": item,
-                    "drawing": drawing
+                    "drawing": drawing,
+                    "part_name": f"{item}, {drawing}"
                 })
             return {
                 "status": "ok_func",
@@ -1426,31 +1424,61 @@ def data_entry_get_filtered_characteristic_schemas():
     form_data = json.loads(request.data)
 
     # get the required parameters
-    search_term = str(form_data["search_term"]).lower()
+    search_term = form_data["search_term"]
+
+    # define the output columns
+    columns = [
+        characteristic_schemas.id,
+        characteristic_schemas.is_locked,
+        parts.id,
+        parts.item,
+        parts.drawing,
+        parts.revision
+    ]
 
     try:
-        filtered_list = list(filter(lambda item:
-                                isfile(join(char_schema_destination, item))
-                                and item[-len(".csv"):].lower() == ".csv"
-                                and search_term in item.lower(), listdir(char_schema_destination)))
-        schema_list = [splitext(x)[0] for x in filtered_list]
-        schema_list.sort()
-    except OSError as e:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(*columns)\
+            .join(parts, (parts.id == characteristic_schemas.part_id))\
+            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
+            .order_by(parts.item.asc(), parts.drawing.asc(), parts.revision.asc()).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for schema_id, is_locked, part_id, item, drawing, revision in results:
+                output_arr.append({
+                    "schema_id": schema_id,
+                    "is_locked": is_locked,
+                    "part_id": part_id,
+                    "item": item,
+                    "drawing": drawing,
+                    "revision": revision.upper(),
+                    "name": f"{item}, {drawing}, {revision.upper()}"
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records found"
+            }
+
+    except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "not_ok",
             "response": error_msg
-        }
-
-    if len(schema_list) > 0:
-        return {
-            "status": "ok_func",
-            "response": schema_list
-        }
-    else:
-        return {
-            "status": "ok_log",
-            "response": "no matching schema files found"
         }
 
 @app.route("/data_entry/get_filtered_inspection_reports/", methods = ["POST"])
@@ -1549,16 +1577,9 @@ def data_entry_create_new_inspection_report():
     form_data = json.loads(request.data)
 
     # get the required parameters
-    item = form_data["item"]
-    drawing = form_data["drawing"]
-    revision = form_data["revision"]
-
-    # handle null values
-    if revision == "":
-        return {
-            "status": "ok_alert",
-            "response": "revision must be defined"
-        }
+    part_id = form_data["part_id"]
+    employee_id = form_data["employee_id"]
+    schema_id = form_data["schema_id"]
 
     try:
 
@@ -1566,69 +1587,174 @@ def data_entry_create_new_inspection_report():
         session = Session(engine)
 
         # make sure the part exists
+        exists = session.query(parts.id)\
+            .filter(parts.id == part_id).first()
+        if exists is None:
+            return {
+                "status": "err_log",
+                "response": f"the referenced part ({part_id}) does not exist"
+            }
+        
+        # make sure this part isn't already associated with an inspection report
+        exists = session.query(parts.id, inspection_reports.id, checks.id)\
+            .join(parts, (parts.id == checks.part_id))\
+            .join(inspection_reports, (inspection_reports.id == checks.inspection_id))\
+            .filter(parts.id == part_id).first()
+        if exists is not None:
+            return {
+                "status": "ok_alert",
+                "response": f"the referenced part ({part_id}) already exists in an inspection report ({exists[1]})"
+            }
 
         # make sure the characteristic schema exists
-
-        # make sure the inputs exist in the database
-        results = session.query(parts.id)\
-            .filter(func.lower(parts.item) == item)\
-            .filter(func.lower(parts.drawing) == drawing)\
-            .filter(func.lower(parts.revision) == revision).first()
-
-        if results is None:
+        exists = session.query(characteristic_schemas.id)\
+            .filter(characteristic_schemas.id == schema_id).first()
+        if exists is None:
             return {
-                "status": "ok_alt",
-                "response": f"referenced part ({item}, {drawing}, {revision}) does not exist in the database"
+                "status": "err_log",
+                "response": f"the referenced schema ({schema_id}) does not exist"
             }
 
-        # define the associated part id
-        part_id = results[0]
+        # create the inspection report record
+        inspection_report_query = inspection_reports(
+            material_type_id = 0,
+            employee_id = employee_id,
+            disposition_id = 2
+        )
+        session.add(inspection_report_query)
+        session.commit()
+        inspection_id = inspection_report_query.id
 
-        # check if this part is already associated with an inspection report
-        results = session.query(inspection_reports.id)\
-            .filter(inspection_reports.part_id == part_id).first()
-        if results is not None:
-            return {
-                "status": "ok_alt",
-                "response": f"referenced part ({item}, {drawing}, {revision}) is already associated with an inspection report"
-            }
+        # create the new check set
+        check_query = checks(
+            part_index = 0,
+            datetime_measured = datetime.datetime.now(),
+            inspection_id = inspection_id,
+            part_id = part_id,
+            employee_id = employee_id
+        )
+        session.add(check_query)
+        session.commit()
+        check_id = check_query.id
 
-        # define the new inspection report id
-        new_id = len(session.query(inspection_reports.id).order_by(inspection_reports.id.asc()).all())
+        # get the schema details
+        schema_details = session.query(*[
+            characteristic_schema_details.name,
+            characteristic_schema_details.nominal,
+            characteristic_schema_details.usl,
+            characteristic_schema_details.lsl,
+            characteristic_schema_details.precision,
+            characteristic_schema_details.specification_type_id,
+            characteristic_schema_details.characteristic_type_id,
+            characteristic_schema_details.frequency_type_id,
+            gauges.id])\
+            .join(gauges, (gauges.gauge_type_id == characteristic_schema_details.gauge_type_id), isouter = True)\
+            .filter(characteristic_schema_details.schema_id == schema_id)\
+            .order_by(characteristic_schema_details.name.asc()).all()
+        schema_details_list = []
+        for name, nominal, usl, lsl, precision, spectype, chartype, freqtype, gauge_id in schema_details:
+            schema_details_list.append({
+                "name": name,
+                "nominal": nominal,
+                "usl": usl,
+                "lsl": lsl,
+                "precision": precision,
+                "specification_type_id": spectype,
+                "characteristic_type_id": chartype,
+                "frequency_type_id": freqtype,
+                "gauge_id": gauge_id
+            })
 
-        # get today's date
-        dt_now = datetime.datetime.now()
-        today = datetime.date(dt_now.year, dt_now.month, dt_now.day)
-
-        # add the record
-        session.add(inspection_reports(
-            id = new_id,
-            day_started = today,
-            full_inspect_qty = 0,
-            full_inspect_qty_type = "custom",
-            released_qty = 0,
-            released_qty_type = "custom",
-            completed_qty = 0,
-            completed_qty_type = "custom",
-            material_type_id = "aluminum",
-            disposition = "incomplete",
-            part_id = part_id))
-
-        # commit the changes
+        # create the characteristic records
+        for obj in schema_details_list:
+            characteristics_query = characteristics(
+                name = obj["name"],
+                nominal = obj["nominal"],
+                usl = obj["usl"],
+                lsl = obj["lsl"],
+                precision = obj["precision"],
+                check_id = check_id,
+                specification_type_id = obj["specification_type_id"],
+                characteristic_type_id = obj["characteristic_type_id"],
+                frequency_type_id = obj["frequency_type_id"],
+                gauge_id = obj["gauge_id"]
+            )
+            session.add(characteristics_query)
         session.commit()
 
         # close the database session
         session.close()
 
         return {
-            "status": "ok",
-            "response": f"new inspection report (ID: {new_id}) added"
+            "status": "ok_func",
+            "response": f"new inspection report (ID: {inspection_id}) added"
         }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "not_ok",
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/get_filtered_employees/", methods = ["POST"])
+def data_entry_get_filtered_employees():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = form_data["search_term"]
+
+    # define the required fields
+    columns = [
+        employees.id,
+        employees.first_name,
+        employees.last_name
+    ]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(*columns)\
+            .filter(or_(employees.first_name.ilike(f"%{search_term}%"), employees.last_name.ilike(f"%{search_term}%")))\
+            .order_by(employees.last_name.asc(), employees.first_name.asc()).all()
+        if search_term.isnumeric():
+            results = session.query(*columns)\
+                .filter(employees.id == search_term)\
+                .order_by(employees.last_name.asc(), employees.first_name.asc()).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, first_name, last_name in results:
+                output_arr.append({
+                    "id": id,
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "name": f"{last_name}, {first_name}"
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no matching records found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
             "response": error_msg
         }
 
