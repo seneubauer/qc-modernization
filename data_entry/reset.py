@@ -36,6 +36,7 @@ inspection_lot_numbers = base.classes.inspection_lot_numbers
 inspection_receiver_numbers = base.classes.inspection_receiver_numbers
 inspection_purchase_orders = base.classes.inspection_purchase_orders
 employee_projects = base.classes.employee_projects
+characteristic_schema_details = base.classes.characteristic_schema_details
 characteristic_schemas = base.classes.characteristic_schemas
 deviations = base.classes.deviations
 characteristics = base.classes.characteristics
@@ -159,6 +160,7 @@ checks_df = pd.read_csv(join("data", "checks.csv"))
 characteristics_df = pd.read_csv(join("data", "characteristics.csv"))
 deviations_df = pd.read_csv(join("data", "deviations.csv"))
 characteristic_schemas_df = pd.read_csv(join("data", "characteristic_schemas.csv"))
+characteristic_schema_details_df = pd.read_csv(join("data", "characteristic_schema_details.csv"))
 
 # populate record data
 for i, r in lot_numbers_df.iterrows():
@@ -318,6 +320,12 @@ session.commit()
 
 for i, r in characteristic_schemas_df.iterrows():
     session.add(characteristic_schemas(
+        is_locked = r["is_locked"],
+        part_id = r["part_id"]))
+session.commit()
+
+for i, r in characteristic_schema_details_df.iterrows():
+    session.add(characteristic_schema_details(
         name = r["name"],
         nominal = r["nominal"],
         usl = r["usl"],
@@ -327,7 +335,7 @@ for i, r in characteristic_schemas_df.iterrows():
         characteristic_type_id = r["characteristic_type_id"],
         frequency_type_id = r["frequency_type_id"],
         gauge_type_id = r["gauge_type_id"],
-        part_id = r["part_id"]))
+        schema_id = r["schema_id"]))
 session.commit()
 
 # retrieve linking data

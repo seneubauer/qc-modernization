@@ -53,6 +53,7 @@ checks = base.classes.checks
 characteristics = base.classes.characteristics
 deviations = base.classes.deviations
 characteristic_schemas = base.classes.characteristic_schemas
+characteristic_schema_details = base.classes.characteristic_schema_details
 employee_projects = base.classes.employee_projects
 inspection_purchase_orders = base.classes.inspection_purchase_orders
 inspection_receiver_numbers = base.classes.inspection_receiver_numbers
@@ -683,21 +684,403 @@ def get_all_lot_numbers():
 
 #region characteristic schemas - schemas
 
+@app.route("/characteristic_schemas/get_filtered_parts/", methods = ["POST"])
+def characteristic_schemas_get_filtered_parts():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = form_data["search_term"]
+
+    try:
+
+        # start the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(parts.id, parts.item, parts.drawing, parts.revision)\
+            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
+            .order_by(parts.item.asc(), parts.drawing.asc(), parts.revision.asc()).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, item, drawing, revision in results:
+                output_arr.append({
+                    "id": id,
+                    "item": item,
+                    "drawing": drawing,
+                    "revision": revision,
+                    "part_name": f"{item}, {drawing}, {revision.upper()}"
+                })
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no matching parts found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "not_ok",
+            "response": error_msg
+        }
+
+@app.route("/characteristic_schemas/lock_schema/", methods = ["POST"])
+def characteristic_schemas_lock_schema():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    schema_id = form_data["schema_id"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # make sure the characteristic schema exists
+        exists = session.query(characteristic_schemas.id)\
+            .filter(characteristic_schemas.id == schema_id)\
+            .first()
+        if exists is None:
+            return {
+                "status": "ok_alert",
+                "response": "this schema does not exists"
+            }
+
+        # set the locked status
+        rows_affected = session.query(characteristic_schemas)\
+            .filter(characteristic_schemas.id == schema_id)\
+            .update({ "is_locked": True })
+
+        # commit the changes
+        session.commit()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if rows_affected > 0:
+            return {
+                "status": "ok_func",
+                "response": "this schema is now readonly"
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records added to 'characteristic_schemas'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
 @app.route("/characteristic_schemas/save_current_characteristic_schema/", methods = ["POST"])
 def characteristic_schemas_save_current_characteristic_schema():
 
-    return {
-        "status": "ok_func",
-        "response": "none"
-    }
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    schema_id = form_data["schema_id"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # make sure the characteristic schema exists
+        exists = session.query(characteristic_schema_details.id)\
+            .filter(characteristic_schema_details.schema_id == schema_id)\
+            .first()
+        if exists is None:
+            return {
+                "status": "ok_alert",
+                "response": "this schema does not exists"
+            }
+
+        # query the database
+        rows_affected = 0
+        for obj in form_data["data"]:
+
+            results = session.query(characteristic_schema_details)\
+                .filter(characteristic_schema_details.id == obj["detail_id"])
+
+            field_affected = 0
+            for x in obj["contents"]:
+                field_affected += results.update({ x["key"]: x["value"] })
+            if field_affected > 0:
+                rows_affected += 1
+
+        # commit the changes
+        session.commit()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if rows_affected > 0:
+            return {
+                "status": "ok_func",
+                "response": f"{rows_affected} rows were updated"
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records added to 'characteristic_schemas'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/characteristic_schemas/add_row/", methods = ["POST"])
+def characteristic_schemas_add_row():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    if bool(form_data["locked_status"]):
+        return {
+            "status": "ok_alert",
+            "response": "this schema is locked; it cannot be modified"
+        }
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = characteristic_schema_details(
+            name = form_data["data"]["name"],
+            nominal = form_data["data"]["nominal"],
+            usl = form_data["data"]["usl"],
+            lsl = form_data["data"]["lsl"],
+            precision = form_data["data"]["precision"],
+            specification_type_id = form_data["data"]["specification_type_id"],
+            characteristic_type_id = form_data["data"]["characteristic_type_id"],
+            frequency_type_id = form_data["data"]["frequency_type_id"],
+            gauge_type_id = form_data["data"]["gauge_type_id"],
+            schema_id = form_data["data"]["schema_id"]
+        )
+        session.add(results)
+
+        # commit the changes
+        session.commit()
+
+        # retrieve the serial id
+        detail_id = results.id
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if detail_id is not None:
+            return {
+                "status": "ok_func",
+                "response": detail_id
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records added to 'characteristic_schema_details'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/characteristic_schemas/remove_row/", methods = ["POST"])
+def characteristic_schemas_remove_row():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    detail_id = form_data["detail_id"]
+
+    if bool(form_data["locked_status"]):
+        return {
+            "status": "ok_alert",
+            "response": "this schema is locked; it cannot be modified"
+        }
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # make sure there is something to be deleted
+        results = session.query(characteristic_schema_details.id)\
+            .filter(characteristic_schema_details.id == detail_id)\
+            .first()
+        if results is None:
+            return {
+                "status": "err_alert",
+                "response": "this schema characteristic does not exist in the database"
+            }
+
+        # remove the matching schema id
+        results = session.query(characteristic_schema_details)\
+            .filter(characteristic_schema_details.id == detail_id)\
+            .delete()
+
+        # commit the changes
+        session.commit()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if results > 0:
+            return {
+                "status": "ok_func",
+                "response": f"{results} records deleted from 'characteristic_schemas'"
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records deleted"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
 
 @app.route("/characteristic_schemas/create_new_characteristic_schema/", methods = ["POST"])
 def characteristic_schemas_create_new_characteristic_schema():
 
-    return {
-        "status": "ok_func",
-        "response": "none"
-    }
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    part_id = form_data["data"]["part_id"]
+    search_term = str(form_data["search_term"])
+    locked_status = int(form_data["locked_status"])
+
+    # define the required columns
+    schema_columns = [
+        characteristic_schemas.id,
+        characteristic_schemas.is_locked,
+        parts.id,
+        parts.item,
+        parts.drawing,
+        parts.revision
+    ]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # make sure the characteristic schema doesn't already exist
+        exists = session.query(characteristic_schemas.id)\
+            .filter(characteristic_schemas.part_id == part_id)\
+            .first()
+        if exists is not None:
+            return {
+                "status": "ok_alert",
+                "response": "this characteristic schema already exists"
+            }
+
+        # create new governing record in the database
+        results = characteristic_schemas(
+            is_locked = False,
+            part_id = part_id
+        )
+        session.add(results)
+        session.commit()
+        schema_id = results.id
+
+        if schema_id is None:
+            return {
+                "status": "err_alert",
+                "response": "error in creating the new schema id"
+            }
+
+        # create the placeholder details
+        results = characteristic_schema_details(
+            name = form_data["data"]["name"],
+            nominal = form_data["data"]["nominal"],
+            usl = form_data["data"]["usl"],
+            lsl = form_data["data"]["lsl"],
+            precision = form_data["data"]["precision"],
+            specification_type_id = form_data["data"]["specification_type_id"],
+            characteristic_type_id = form_data["data"]["characteristic_type_id"],
+            frequency_type_id = form_data["data"]["frequency_type_id"],
+            gauge_type_id = form_data["data"]["gauge_type_id"],
+            schema_id = schema_id
+        )
+        session.add(results)
+        session.commit()
+
+        # requery the schemas with the same filter parameters
+        results = session.query(*schema_columns)\
+            .join(parts, (parts.id == characteristic_schemas.part_id))\
+            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
+            .order_by(parts.item.asc(), parts.drawing.asc(), parts.revision.asc())
+        if locked_status >= 0:
+            results = results.filter(characteristic_schemas.is_locked == bool(locked_status))
+        schema_query = results.all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(schema_query) > 0:
+            output_arr = []
+            for schema_id, is_locked, part_id, item, drawing, revision in schema_query:
+                output_arr.append({
+                    "schema_id": schema_id,
+                    "is_locked": is_locked,
+                    "part_id": part_id,
+                    "item": item,
+                    "drawing": drawing,
+                    "revision": revision.upper()
+                })
+
+            return {
+                "status": "ok_func",
+                "response": {
+                    "schema_id": schema_id,
+                    "data": output_arr
+                }
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no records added to 'characteristic_schemas'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
 
 @app.route("/characteristic_schemas/get_filtered_characteristic_schemas/", methods = ["POST"])
 def characteristic_schemas_get_filtered_characteristic_schemas():
@@ -707,10 +1090,12 @@ def characteristic_schemas_get_filtered_characteristic_schemas():
 
     # get the required parameters
     search_term = str(form_data["search_term"])
+    locked_status = int(form_data["locked_status"])
 
     # define the output columns
     columns = [
         characteristic_schemas.id,
+        characteristic_schemas.is_locked,
         parts.id,
         parts.item,
         parts.drawing,
@@ -726,8 +1111,10 @@ def characteristic_schemas_get_filtered_characteristic_schemas():
         results = session.query(*columns)\
             .join(parts, (parts.id == characteristic_schemas.part_id))\
             .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
-            .distinct(parts.item, parts.drawing, parts.revision)\
-            .order_by(parts.item, parts.drawing, parts.revision).all()
+            .order_by(parts.item, parts.drawing, parts.revision)
+        if locked_status >= 0:
+            results = results.filter(characteristic_schemas.is_locked == bool(locked_status))
+        results = results.order_by(parts.item, parts.drawing, parts.revision).all()
 
         # close the database session
         session.close()
@@ -735,9 +1122,96 @@ def characteristic_schemas_get_filtered_characteristic_schemas():
         # return the results
         if len(results) > 0:
             output_arr = []
-            for schema_id, part_id, item, drawing, revision in results:
+            for schema_id, is_locked, part_id, item, drawing, revision in results:
                 output_arr.append({
                     "schema_id": schema_id,
+                    "is_locked": is_locked,
+                    "part_id": part_id,
+                    "item": item,
+                    "drawing": drawing,
+                    "revision": revision.upper()
+                })
+
+            return {
+                "status": "ok_func",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok_log",
+                "response": "no matching records found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "err_log",
+            "response": error_msg
+        }
+
+@app.route("/characteristic_schemas/delete_characteristic_schema/", methods = ["POST"])
+def characteristic_schemas_delete_characteristic_schema():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    schema_id = form_data["schema_id"]
+    search_term = str(form_data["search_term"])
+    locked_status = int(form_data["locked_status"])
+
+    # define the output columns
+    columns = [
+        characteristic_schemas.id,
+        characteristic_schemas.is_locked,
+        parts.id,
+        parts.item,
+        parts.drawing,
+        parts.revision
+    ]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # make sure the referenced schema exists
+        exists = session.query(characteristic_schemas.id)\
+            .filter(characteristic_schemas.id == schema_id).first()
+        if exists is None:
+            return {
+                "status": "ok_alert",
+                "response": "the referenced schema does not exist in the database"
+            }
+
+        # delete the referenced schema
+        results = session.query(characteristic_schema_details)\
+            .filter(characteristic_schema_details.schema_id == schema_id)\
+            .delete()
+        results = session.query(characteristic_schemas)\
+            .filter(characteristic_schemas.id == schema_id)\
+            .delete()
+        session.commit()
+
+        # query the database
+        results = session.query(*columns)\
+            .join(parts, (parts.id == characteristic_schemas.part_id))\
+            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
+            .order_by(parts.item, parts.drawing, parts.revision)
+        if locked_status >= 0:
+            results = results.filter(characteristic_schemas.is_locked == bool(locked_status))
+        results = results.order_by(parts.item, parts.drawing, parts.revision).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for schema_id, is_locked, part_id, item, drawing, revision in results:
+                output_arr.append({
+                    "schema_id": schema_id,
+                    "is_locked": is_locked,
                     "part_id": part_id,
                     "item": item,
                     "drawing": drawing,
@@ -772,21 +1246,23 @@ def characteristic_schemas_get_current_characteristic_schema():
     form_data = json.loads(request.data)
 
     # get the required parameters
-    part_id = form_data["part_id"]
+    schema_id = form_data["schema_id"]
 
     # define the output columns
     columns = [
         characteristic_schemas.id,
+        characteristic_schemas.is_locked,
         parts.id,
-        characteristic_schemas.name,
-        characteristic_schemas.nominal,
-        characteristic_schemas.usl,
-        characteristic_schemas.lsl,
-        characteristic_schemas.precision,
-        characteristic_schemas.specification_type_id,
-        characteristic_schemas.characteristic_type_id,
-        characteristic_schemas.frequency_type_id,
-        characteristic_schemas.gauge_type_id
+        characteristic_schema_details.id,
+        characteristic_schema_details.name,
+        characteristic_schema_details.nominal,
+        characteristic_schema_details.usl,
+        characteristic_schema_details.lsl,
+        characteristic_schema_details.precision,
+        characteristic_schema_details.specification_type_id,
+        characteristic_schema_details.characteristic_type_id,
+        characteristic_schema_details.frequency_type_id,
+        characteristic_schema_details.gauge_type_id
     ]
 
     try:
@@ -797,55 +1273,17 @@ def characteristic_schemas_get_current_characteristic_schema():
         # get the requested schema
         results = session.query(*columns)\
             .join(parts, (parts.id == characteristic_schemas.part_id))\
-            .filter(parts.id == part_id)\
-            .order_by(characteristic_schemas.id.asc(), characteristic_schemas.name.asc()).all()
-
-        # get the required enumerations
-        specification_types_results = session.query(specification_types.id, specification_types.name)\
-            .order_by(specification_types.name).all()
-        characteristic_types_results = session.query(characteristic_types.id, characteristic_types.name)\
-            .order_by(characteristic_types.name).all()
-        frequency_types_results = session.query(frequency_types.id, frequency_types.name)\
-            .order_by(frequency_types.name).all()
-        gauge_types_results = session.query(gauge_types.id, gauge_types.name)\
-            .order_by(gauge_types.name).all()
+            .join(characteristic_schema_details, (characteristic_schema_details.schema_id == characteristic_schemas.id))\
+            .filter(characteristic_schemas.id == schema_id)\
+            .order_by(characteristic_schema_details.id.asc(), characteristic_schema_details.name.asc()).all()
 
         # close the database session
         session.close()
 
         # return the results
         if len(results) > 0:
-
-            specification_types_list = []
-            for id, name in specification_types_results:
-                specification_types_list.append({
-                    "id": id,
-                    "name": name
-                })
-
-            characteristic_types_list = []
-            for id, name in characteristic_types_results:
-                characteristic_types_list.append({
-                    "id": id,
-                    "name": name
-                })
-
-            frequency_types_list = []
-            for id, name in frequency_types_results:
-                frequency_types_list.append({
-                    "id": id,
-                    "name": name
-                })
-
-            gauge_types_list = []
-            for id, name in gauge_types_results:
-                gauge_types_list.append({
-                    "id": id,
-                    "name": name
-                })
-
             output_arr = []
-            for schema_id, part_id, name, nominal, usl, lsl, precision, specification_type_id, characteristic_type_id, frequency_type_id, gauge_type_id in results:
+            for schema_id, is_locked, part_id, detail_id, name, nominal, usl, lsl, precision, specification_type_id, characteristic_type_id, frequency_type_id, gauge_type_id in results:
 
                 # parse decimal to float
                 nominal_flt = round(float(nominal), precision)
@@ -854,27 +1292,23 @@ def characteristic_schemas_get_current_characteristic_schema():
 
                 output_arr.append({
                     "schema_id": schema_id,
+                    "is_locked": is_locked,
                     "part_id": part_id,
+                    "detail_id": detail_id,
                     "name": name,
                     "nominal": nominal_flt,
                     "usl": usl_flt,
                     "lsl": lsl_flt,
                     "precision": precision,
                     "specification_type_id": specification_type_id,
-                    "characteristic_type": characteristic_type_id,
+                    "characteristic_type_id": characteristic_type_id,
                     "frequency_type_id": frequency_type_id,
                     "gauge_type_id": gauge_type_id
                 })
 
             return {
                 "status": "ok_func",
-                "response": {
-                    "data": output_arr,
-                    "specification_types": specification_types_list,
-                    "characteristic_types": characteristic_types_list,
-                    "frequency_types": frequency_types_list,
-                    "gauge_types": gauge_types_list
-                }
+                "response": output_arr
             }
         else:
             return {
@@ -944,8 +1378,7 @@ def data_entry_get_filtered_parts():
     form_data = json.loads(request.data)
 
     # get the required parameters
-    item_search_term = form_data["item"]
-    drawing_search_term = form_data["drawing"]
+    search_term = form_data["search_term"]
 
     try:
 
@@ -954,9 +1387,8 @@ def data_entry_get_filtered_parts():
 
         # query the database
         results = session.query(parts.id, parts.item, parts.drawing)\
-            .filter(parts.item.ilike(f"%{item_search_term}%"))\
-            .filter(parts.drawing.ilike(f"%{drawing_search_term}%"))\
-            .order_by(parts.drawing.asc()).all()
+            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%")))\
+            .order_by(parts.item.asc(), parts.drawing.asc()).all()
 
         # close the database session
         session.close()

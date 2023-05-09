@@ -3,6 +3,7 @@ drop table inspection_lot_numbers;
 drop table inspection_receiver_numbers;
 drop table inspection_purchase_orders;
 drop table employee_projects;
+drop table characteristic_schema_details;
 drop table characteristic_schemas;
 drop table deviations;
 drop table characteristics;
@@ -434,35 +435,49 @@ create table deviations
 create table characteristic_schemas
 (
     id serial not null,
+    is_locked boolean not null,
+
+    -- one characteristic schema relates to one part
+    part_id integer unique not null,
+    constraint fk_schema_part foreign key (part_id) references parts(id),
+
+    -- primary key and unique constraints
+    constraint pk_characteristic_schemas primary key (id),
+    constraint uc_characteristic_schemas unique (id)
+);
+
+create table characteristic_schema_details
+(
+    id serial not null,
     name varchar(32) not null,
     nominal decimal not null,
     usl decimal not null,
     lsl decimal not null,
     precision integer not null,
 
-    -- many characteristic schemas relate to one specification type
+    -- many characteristic schema details relate to one specification type
     specification_type_id integer not null,
     constraint fk_spectype_id_schema foreign key (specification_type_id) references specification_types(id),
 
-    -- many characteristic schemas relate to one characteristic type
+    -- many characteristic schema details relate to one characteristic type
     characteristic_type_id integer not null,
     constraint fk_chartype_id_schema foreign key (characteristic_type_id) references characteristic_types(id),
 
-    -- many characteristic schemas relate to one frequency type
+    -- many characteristic schema details relate to one frequency type
     frequency_type_id integer not null,
     constraint fk_freqtype_id_schema foreign key (frequency_type_id) references frequency_types(id),
 
-    -- many characteristic schemas relate to one gauge type
+    -- many characteristic schema details relate to one gauge type
     gauge_type_id integer not null,
     constraint fk_gaugtype_id_schema foreign key (gauge_type_id) references gauge_types(id),
 
-    -- many characteristic schemas relate to one part
-    part_id integer not null,
-    constraint fk_schema_part foreign key (part_id) references parts(id),
+    -- many characteristic schema details relate to one characteristic schema
+    schema_id integer not null,
+    constraint fk_schema_id foreign key (schema_id) references characteristic_schemas(id),
 
     -- primary key and unique constraints
-    constraint pk_schemas primary key (id),
-    constraint uc_schemas unique (id)
+    constraint pk_schema_details primary key (id),
+    constraint uc_schema_details unique (id)
 );
 
 -- linking tables
