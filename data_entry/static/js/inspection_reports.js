@@ -2358,72 +2358,72 @@ function toggle_options(destination_arg, open_width)
     if (destination_arg == "inspection_reports") {
         if (document.getElementById("inspection_reports_sidebar").style.width == open_width) {
             document.getElementById("inspection_reports_sidebar").style.width = close_width;
-            document.getElementById("inspection_reports_btn").style.marginLeft = close_width;
+            document.getElementById("inspection_reports_btn").style.marginRight = close_width;
         }
         else {
             document.getElementById("inspection_reports_sidebar").style.width = open_width;
-            document.getElementById("inspection_reports_btn").style.marginLeft = open_width;
+            document.getElementById("inspection_reports_btn").style.marginRight = open_width;
             update_filtered_inspection_reports();
         }
     }
     else if (destination_arg == "characteristic_display") {
         if (document.getElementById("characteristic_display_sidebar").style.width == open_width) {
             document.getElementById("characteristic_display_sidebar").style.width = close_width;
-            document.getElementById("characteristic_display_btn").style.marginLeft = close_width;
+            document.getElementById("characteristic_display_btn").style.marginRight = close_width;
         }
         else {
             document.getElementById("characteristic_display_sidebar").style.width = open_width;
-            document.getElementById("characteristic_display_btn").style.marginLeft = open_width;
+            document.getElementById("characteristic_display_btn").style.marginRight = open_width;
         }
     }
     else if (destination_arg == "metadata") {
         if (document.getElementById("metadata_sidebar").style.width == open_width) {
             document.getElementById("metadata_sidebar").style.width = close_width;
-            document.getElementById("metadata_btn").style.marginLeft = close_width;
+            document.getElementById("metadata_btn").style.marginRight = close_width;
         }
         else {
             document.getElementById("metadata_sidebar").style.width = open_width;
-            document.getElementById("metadata_btn").style.marginLeft = open_width;
+            document.getElementById("metadata_btn").style.marginRight = open_width;
         }
     }
     else if (destination_arg == "receiver_numbers") {
         if (document.getElementById("receiver_numbers_sidebar").style.width == open_width) {
             document.getElementById("receiver_numbers_sidebar").style.width = close_width;
-            document.getElementById("receiver_numbers_btn").style.marginLeft = close_width;
+            document.getElementById("receiver_numbers_btn").style.marginRight = close_width;
         }
         else {
             document.getElementById("receiver_numbers_sidebar").style.width = open_width;
-            document.getElementById("receiver_numbers_btn").style.marginLeft = open_width;
+            document.getElementById("receiver_numbers_btn").style.marginRight = open_width;
         }
     }
     else if (destination_arg == "purchase_orders") {
         if (document.getElementById("purchase_orders_sidebar").style.width == open_width) {
             document.getElementById("purchase_orders_sidebar").style.width = close_width;
-            document.getElementById("purchase_orders_btn").style.marginLeft = close_width;
+            document.getElementById("purchase_orders_btn").style.marginRight = close_width;
         }
         else {
             document.getElementById("purchase_orders_sidebar").style.width = open_width;
-            document.getElementById("purchase_orders_btn").style.marginLeft = open_width;
+            document.getElementById("purchase_orders_btn").style.marginRight = open_width;
         }
     }
     else if (destination_arg == "lot_numbers") {
         if (document.getElementById("lot_numbers_sidebar").style.width == open_width) {
             document.getElementById("lot_numbers_sidebar").style.width = close_width;
-            document.getElementById("lot_numbers_btn").style.marginLeft = close_width;
+            document.getElementById("lot_numbers_btn").style.marginRight = close_width;
         }
         else {
             document.getElementById("lot_numbers_sidebar").style.width = open_width;
-            document.getElementById("lot_numbers_btn").style.marginLeft = open_width;
+            document.getElementById("lot_numbers_btn").style.marginRight = open_width;
         }
     }
     else if (destination_arg == "deviations") {
         if (document.getElementById("deviations_sidebar").style.width == open_width) {
             document.getElementById("deviations_sidebar").style.width = close_width;
-            document.getElementById("deviations_btn").style.marginLeft = close_width;
+            document.getElementById("deviations_btn").style.marginRight = close_width;
         }
         else {
             document.getElementById("deviations_sidebar").style.width = open_width;
-            document.getElementById("deviations_btn").style.marginLeft = open_width;
+            document.getElementById("deviations_btn").style.marginRight = open_width;
         }
     }
 }

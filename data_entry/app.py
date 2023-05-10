@@ -117,20 +117,20 @@ def get_all_gauges():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
 
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records found in 'gauges'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -158,19 +158,19 @@ def get_all_gauge_types():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records found in 'gauge_types'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -198,19 +198,19 @@ def get_all_specification_types():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records found in 'specification_types'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -238,19 +238,19 @@ def get_all_frequency_types():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records found in 'frequency_types'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -278,19 +278,19 @@ def get_all_characteristic_types():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records found in 'characteristic_types'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -329,19 +329,19 @@ def get_all_employees():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records found in 'employees'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -369,19 +369,19 @@ def get_all_disposition_types():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records found in 'disposition_types'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -419,19 +419,19 @@ def get_all_parts():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records found in 'parts'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -459,19 +459,19 @@ def get_all_job_orders():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records found in 'job_orders'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -499,19 +499,19 @@ def get_all_material_types():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records found in 'material_types'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -539,19 +539,19 @@ def get_all_suppliers():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records found in 'suppliers'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -579,19 +579,19 @@ def get_all_receiver_numbers():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no record found in 'receiver_numbers'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -620,19 +620,19 @@ def get_all_purchase_orders():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records found in 'purchase_orders'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -660,19 +660,19 @@ def get_all_lot_numbers():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records found in 'purchase_orders'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -681,6 +681,8 @@ def get_all_lot_numbers():
 # --------------------------------------------------
 
 #region characteristic schemas - schemas
+
+# routes
 
 @app.route("/characteristic_schemas/get_filtered_parts/", methods = ["POST"])
 def characteristic_schemas_get_filtered_parts():
@@ -716,12 +718,12 @@ def characteristic_schemas_get_filtered_parts():
                     "part_name": f"{item}, {drawing}, {revision.upper()}"
                 })
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no matching parts found"
             }
 
@@ -752,7 +754,7 @@ def characteristic_schemas_lock_schema():
             .first()
         if exists is None:
             return {
-                "status": "ok_alert",
+                "status": "alert",
                 "response": "this schema does not exists"
             }
 
@@ -770,19 +772,19 @@ def characteristic_schemas_lock_schema():
         # return the results
         if rows_affected > 0:
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": "this schema is now readonly"
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records added to 'characteristic_schemas'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -806,7 +808,7 @@ def characteristic_schemas_save_current_characteristic_schema():
             .first()
         if exists is None:
             return {
-                "status": "ok_alert",
+                "status": "alert",
                 "response": "this schema does not exists"
             }
 
@@ -832,19 +834,19 @@ def characteristic_schemas_save_current_characteristic_schema():
         # return the results
         if rows_affected > 0:
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": f"{rows_affected} rows were updated"
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records added to 'characteristic_schemas'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -856,7 +858,7 @@ def characteristic_schemas_add_row():
 
     if bool(form_data["locked_status"]):
         return {
-            "status": "ok_alert",
+            "status": "alert",
             "response": "this schema is locked; it cannot be modified"
         }
 
@@ -892,19 +894,19 @@ def characteristic_schemas_add_row():
         # return the results
         if detail_id is not None:
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": detail_id
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records added to 'characteristic_schema_details'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -919,7 +921,7 @@ def characteristic_schemas_remove_row():
 
     if bool(form_data["locked_status"]):
         return {
-            "status": "ok_alert",
+            "status": "alert",
             "response": "this schema is locked; it cannot be modified"
         }
 
@@ -934,7 +936,7 @@ def characteristic_schemas_remove_row():
             .first()
         if results is None:
             return {
-                "status": "err_alert",
+                "status": "alert",
                 "response": "this schema characteristic does not exist in the database"
             }
 
@@ -952,19 +954,19 @@ def characteristic_schemas_remove_row():
         # return the results
         if results > 0:
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": f"{results} records deleted from 'characteristic_schemas'"
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records deleted"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -1000,7 +1002,7 @@ def characteristic_schemas_create_new_characteristic_schema():
             .first()
         if exists is not None:
             return {
-                "status": "ok_alert",
+                "status": "alert",
                 "response": "this characteristic schema already exists"
             }
 
@@ -1015,7 +1017,7 @@ def characteristic_schemas_create_new_characteristic_schema():
 
         if schema_id is None:
             return {
-                "status": "err_alert",
+                "status": "alert",
                 "response": "error in creating the new schema id"
             }
 
@@ -1061,7 +1063,7 @@ def characteristic_schemas_create_new_characteristic_schema():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": {
                     "schema_id": schema_id,
                     "data": output_arr
@@ -1069,19 +1071,19 @@ def characteristic_schemas_create_new_characteristic_schema():
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records added to 'characteristic_schemas'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
 @app.route("/characteristic_schemas/get_filtered_characteristic_schemas/", methods = ["POST"])
-def characteristic_schemas_get_filtered_characteristic_schemas():
+def characteristic_schemas_get_filtered_schemas():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -1089,6 +1091,99 @@ def characteristic_schemas_get_filtered_characteristic_schemas():
     # get the required parameters
     search_term = str(form_data["search_term"])
     locked_status = int(form_data["locked_status"])
+
+    # call the relevant method
+    return func_characteristic_schemas_get_filtered_schemas(search_term, locked_status)
+
+@app.route("/characteristic_schemas/delete_characteristic_schema/", methods = ["POST"])
+def characteristic_schemas_delete_characteristic_schema():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    schema_id = form_data["schema_id"]
+    search_term = str(form_data["search_term"])
+    locked_status = int(form_data["locked_status"])
+
+    # define the output columns
+    columns = [
+        characteristic_schemas.id,
+        characteristic_schemas.is_locked,
+        parts.id,
+        parts.item,
+        parts.drawing,
+        parts.revision
+    ]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # make sure the referenced schema exists
+        exists = session.query(characteristic_schemas.id)\
+            .filter(characteristic_schemas.id == schema_id).first()
+        if exists is None:
+            return {
+                "status": "alert",
+                "response": "the referenced schema does not exist in the database"
+            }
+
+        # delete the referenced schema
+        results = session.query(characteristic_schema_details)\
+            .filter(characteristic_schema_details.schema_id == schema_id)\
+            .delete()
+        results = session.query(characteristic_schemas)\
+            .filter(characteristic_schemas.id == schema_id)\
+            .delete()
+        session.commit()
+
+        # query the database
+        results = session.query(*columns)\
+            .join(parts, (parts.id == characteristic_schemas.part_id))\
+            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
+            .order_by(parts.item, parts.drawing, parts.revision)
+        if locked_status >= 0:
+            results = results.filter(characteristic_schemas.is_locked == bool(locked_status))
+        results = results.order_by(parts.item, parts.drawing, parts.revision).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for schema_id, is_locked, part_id, item, drawing, revision in results:
+                output_arr.append({
+                    "schema_id": schema_id,
+                    "is_locked": is_locked,
+                    "part_id": part_id,
+                    "item": item,
+                    "drawing": drawing,
+                    "revision": revision.upper()
+                })
+
+            return {
+                "status": "ok",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "log",
+                "response": "no matching records found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+# recycled functions
+
+def func_characteristic_schemas_get_filtered_schemas(search_term:str, locked_status:int):
 
     # define the output columns
     columns = [
@@ -1130,105 +1225,19 @@ def characteristic_schemas_get_filtered_characteristic_schemas():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no matching records found"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
-            "response": error_msg
-        }
-
-@app.route("/characteristic_schemas/delete_characteristic_schema/", methods = ["POST"])
-def characteristic_schemas_delete_characteristic_schema():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    schema_id = form_data["schema_id"]
-    search_term = str(form_data["search_term"])
-    locked_status = int(form_data["locked_status"])
-
-    # define the output columns
-    columns = [
-        characteristic_schemas.id,
-        characteristic_schemas.is_locked,
-        parts.id,
-        parts.item,
-        parts.drawing,
-        parts.revision
-    ]
-
-    try:
-
-        # open the database session
-        session = Session(engine)
-
-        # make sure the referenced schema exists
-        exists = session.query(characteristic_schemas.id)\
-            .filter(characteristic_schemas.id == schema_id).first()
-        if exists is None:
-            return {
-                "status": "ok_alert",
-                "response": "the referenced schema does not exist in the database"
-            }
-
-        # delete the referenced schema
-        results = session.query(characteristic_schema_details)\
-            .filter(characteristic_schema_details.schema_id == schema_id)\
-            .delete()
-        results = session.query(characteristic_schemas)\
-            .filter(characteristic_schemas.id == schema_id)\
-            .delete()
-        session.commit()
-
-        # query the database
-        results = session.query(*columns)\
-            .join(parts, (parts.id == characteristic_schemas.part_id))\
-            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
-            .order_by(parts.item, parts.drawing, parts.revision)
-        if locked_status >= 0:
-            results = results.filter(characteristic_schemas.is_locked == bool(locked_status))
-        results = results.order_by(parts.item, parts.drawing, parts.revision).all()
-
-        # close the database session
-        session.close()
-
-        # return the results
-        if len(results) > 0:
-            output_arr = []
-            for schema_id, is_locked, part_id, item, drawing, revision in results:
-                output_arr.append({
-                    "schema_id": schema_id,
-                    "is_locked": is_locked,
-                    "part_id": part_id,
-                    "item": item,
-                    "drawing": drawing,
-                    "revision": revision.upper()
-                })
-
-            return {
-                "status": "ok_func",
-                "response": output_arr
-            }
-        else:
-            return {
-                "status": "ok_log",
-                "response": "no matching records found"
-            }
-
-    except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
-        return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -1304,19 +1313,19 @@ def characteristic_schemas_get_current_characteristic_schema():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no matching records found"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -1352,12 +1361,12 @@ def data_entry_get_all_item_drawing_combinations():
                     "drawing": drawing
                 })
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no matching parts found"
             }
 
@@ -1401,12 +1410,12 @@ def data_entry_get_filtered_parts():
                     "part_name": f"{item}, {drawing}"
                 })
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no matching parts found"
             }
 
@@ -1465,12 +1474,12 @@ def data_entry_get_filtered_characteristic_schemas():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records found"
             }
 
@@ -1554,19 +1563,19 @@ def data_entry_get_filtered_inspection_reports():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no matching records found"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -1591,7 +1600,7 @@ def data_entry_create_new_inspection_report():
             .filter(parts.id == part_id).first()
         if exists is None:
             return {
-                "status": "err_log",
+                "status": "log",
                 "response": f"the referenced part ({part_id}) does not exist"
             }
         
@@ -1602,7 +1611,7 @@ def data_entry_create_new_inspection_report():
             .filter(parts.id == part_id).first()
         if exists is not None:
             return {
-                "status": "ok_alert",
+                "status": "alert",
                 "response": f"the referenced part ({part_id}) already exists in an inspection report ({exists[1]})"
             }
 
@@ -1611,7 +1620,7 @@ def data_entry_create_new_inspection_report():
             .filter(characteristic_schemas.id == schema_id).first()
         if exists is None:
             return {
-                "status": "err_log",
+                "status": "log",
                 "response": f"the referenced schema ({schema_id}) does not exist"
             }
 
@@ -1686,14 +1695,14 @@ def data_entry_create_new_inspection_report():
         session.close()
 
         return {
-            "status": "ok_func",
+            "status": "ok",
             "response": f"new inspection report (ID: {inspection_id}) added"
         }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -1742,19 +1751,19 @@ def data_entry_get_filtered_employees():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no matching records found"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -1910,7 +1919,7 @@ def data_entry_get_filter_selector_lists():
 
             # return the data object
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": {
                     "frequency_types": frequency_types_list,
                     "revisions": revisions_list,
@@ -1924,14 +1933,14 @@ def data_entry_get_filter_selector_lists():
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "queries returned null values"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -2096,7 +2105,7 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
 
             # return the data object
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": {
                     "characteristics": output_characteristics_list,
                     "inspectors": output_inspectors_list,
@@ -2106,14 +2115,14 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no matching characteristics found"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -2167,25 +2176,25 @@ def data_entry_save_inspection_report():
             # return the result
             if check_rows_affected > 0 and characteristic_rows_affected > 0:
                 return {
-                    "status": "ok_func",
+                    "status": "ok",
                     "response": f"{check_rows_affected} 'check' table rows and {characteristic_rows_affected} 'characteristic' table rows were updated"
                 }
             else:
                 return {
-                    "status": "ok_alert",
+                    "status": "alert",
                     "response": "no rows affected"
                 }
 
         except SQLAlchemyError as e:
             error_msg = str(e.__dict__["orig"])
             return {
-                "status": "err_log",
+                "status": "log",
                 "response": error_msg
             }
 
     else:
         return {
-            "status": "ok_alert",
+            "status": "alert",
             "response": "no data passed to flask server"
         }
 
@@ -2227,19 +2236,19 @@ def data_entry_get_matching_revisions():
                     "completed_qty": completed_qty
                 })
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no matching parts found"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -2266,7 +2275,7 @@ def data_entry_save_metadata():
             .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"%{drawing}%"), inspection_reports.id == inspection_id)).all()
         if len(results) == 0:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no matching inspection report and part found"
             }
 
@@ -2301,19 +2310,19 @@ def data_entry_save_metadata():
         # return the response
         if ir_is_affected > 0 and pa_is_affected > 0:
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": "tables 'inspection_reports' and 'parts' successfully updated"
             }
         else:
             return {
-                "status": "ok_alert",
+                "status": "alert",
                 "response": "no records in 'inspection_reports' and 'parts' updated"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -2358,19 +2367,19 @@ def data_entry_get_filtered_receiver_numbers():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no connection found between 'inspection_reports', 'receiver_numbers', and 'inspection_receiver_numbers'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -2397,7 +2406,7 @@ def data_entry_assign_receiver_number_association():
         # logic gate
         if len(results) > 0:
             return {
-                "status": "ok_alert",
+                "status": "alert",
                 "response": "this receiver number association already exists"
             }
 
@@ -2427,19 +2436,19 @@ def data_entry_assign_receiver_number_association():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no connection found between 'inspection_reports', 'receiver_numbers', and 'inspection_receiver_numbers'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -2467,7 +2476,7 @@ def data_entry_remove_receiver_number_association():
         # logic gate
         if results == 0:
             return {
-                "status": "ok_alert",
+                "status": "alert",
                 "response": "no records deleted; none matched the provided criteria"
             }
         else:
@@ -2495,19 +2504,19 @@ def data_entry_remove_receiver_number_association():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no connection found between 'inspection_reports', 'receiver_numbers', and 'inspection_receiver_numbers'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -2552,19 +2561,19 @@ def data_entry_get_filtered_purchase_orders():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no connection found between 'inspection_reports', 'purchase_orders', and 'inspection_purchase_orders'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -2591,7 +2600,7 @@ def data_entry_assign_assign_purchase_order_association():
         # logic gate
         if len(results) > 0:
             return {
-                "status": "ok_alert",
+                "status": "alert",
                 "response": "this purchase order association already exists"
             }
 
@@ -2621,19 +2630,19 @@ def data_entry_assign_assign_purchase_order_association():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no connection found between 'inspection_reports', 'purchase_orders', and 'inspection_purchase_orders'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -2661,7 +2670,7 @@ def data_entry_remove_remove_purchase_order_association():
         # logic gate
         if results == 0:
             return {
-                "status": "ok_alert",
+                "status": "alert",
                 "response": "no records deleted; none matched the provided criteria"
             }
         else:
@@ -2689,19 +2698,19 @@ def data_entry_remove_remove_purchase_order_association():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no connection found between 'inspection_reports', 'purchase_orders', and 'inspection_purchase_orders'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -2746,19 +2755,19 @@ def data_entry_get_filtered_lot_numbers():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no connection found between 'inspection_reports', 'lot_numbers', and 'inspection_lot_numbers'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -2785,7 +2794,7 @@ def data_entry_assign_lot_number_association():
         # logic gate
         if len(results) > 0:
             return {
-                "status": "ok_alert",
+                "status": "alert",
                 "response": "this lot number association already exists"
             }
 
@@ -2815,19 +2824,19 @@ def data_entry_assign_lot_number_association():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no connection found between 'inspection_reports', 'lot_numbers', and 'inspection_lot_numbers'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -2855,7 +2864,7 @@ def data_entry_remove_lot_number_association():
         # logic gate
         if results == 0:
             return {
-                "status": "ok_alert",
+                "status": "alert",
                 "response": "no records deleted; none matched the provided criteria"
             }
         else:
@@ -2883,19 +2892,19 @@ def data_entry_remove_lot_number_association():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": output_arr
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no connection found between 'inspection_reports', 'lot_numbers', and 'inspection_lot_numbers'"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -2932,19 +2941,19 @@ def data_entry_save_deviations():
         # return the results
         if is_affected > 0:
             return {
-                "status": "ok_alert",
+                "status": "alert",
                 "response": f"{is_affected} records in 'deviations' has been successfully updated"
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no records in 'deviations' have been updated"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 
@@ -3036,7 +3045,7 @@ def data_entry_get_matching_deviations():
                 })
 
             return {
-                "status": "ok_func",
+                "status": "ok",
                 "response": {
                     "main": output_arr,
                     "deviations": deviation_types_lst,
@@ -3045,14 +3054,14 @@ def data_entry_get_matching_deviations():
             }
         else:
             return {
-                "status": "ok_log",
+                "status": "log",
                 "response": "no matching deviations found"
             }
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "err_log",
+            "status": "log",
             "response": error_msg
         }
 

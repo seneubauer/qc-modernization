@@ -26,10 +26,31 @@
 <body>
     <!-- navigation bar -->
     <div class="nav_bar">
-        <a href="#">Bulk Data</a>
-        <a href="#">Data Analysis</a>
-        <a href="/inspection_reports">Inspection Reports</a>
-        <a href="/characteristic_schemas">Characteristic Schemas</a>
+        <div class="navbar-dropdown">
+            <button class="dropdown-button">
+                Data Entry
+            </button>
+            <div class="navbar-dropdown-content">
+                <a href="/characteristic_schemas">Characteristic Schemas</a>
+                <a href="/inspection_reports">Inspection Reports</a>
+            </div>
+        </div>
+        <div class="navbar-dropdown">
+            <button class="dropdown-button">
+                Data Analysis
+            </button>
+            <div class="navbar-dropdown-content">
+                <a href="#">Trend Detection</a>
+            </div>
+        </div>
+        <div class="navbar-dropdown">
+            <button class="dropdown-button">
+                Bulk Data
+            </button>
+            <div class="navbar-dropdown-content">
+                <a href="#">Query</a>
+            </div>
+        </div>
         <label id="navbar_info"></label>
     </div>
 
