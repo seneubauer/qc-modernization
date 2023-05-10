@@ -44,6 +44,11 @@
     --table-bg-l: 30%;
     --table-fg-l: 85%;
 
+    --contextmenu-bg-h-static: 30;
+    --contextmenu-bg-h-hover: 30;
+    --contextmenu-bg-h-active: 30;
+    --contextmenu-bg-l: 15%;
+
     /* colors */
     --main-color-bg: hsl(0, 0%, var(--page-bg-l));
     --dark-bg: hsl(0, 0%, var(--dark-bg-l));
@@ -51,7 +56,11 @@
     --sidebar-toggler-bg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--sidebar-toggler-bg-l));
     --sidebar-toggler-fg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--sidebar-toggler-fg-l));
     --sidebar-toggler-bg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--sidebar-toggler-bg-l) + var(--hover-l)));
-    --sidebar-toggler-fg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--sidebar-toggler-fg-l) + 5%));
+    --sidebar-toggler-fg-hover: hsl(var(--primary-hue), var(--is-grayscale), calc(var(--sidebar-toggler-fg-l) + var(--hover-l)));
+
+    --contextmenu-bg-static: hsl(var(--contextmenu-bg-h-static), var(--is-color), var(--contextmenu-bg-l));
+    --contextmenu-bg-hover: hsl(var(--contextmenu-bg-h-hover), var(--is-color), calc(var(--contextmenu-bg-l) + var(--hover-l)));
+    --contextmenu-bg-active: hsl(var(--contextmenu-bg-h-active), var(--is-color), calc(var(--contextmenu-bg-l) + var(--active-l)));
 
     --dark-label-bg-static: transparent;
     --dark-label-fg-static: hsl(var(--primary-hue), var(--is-grayscale), var(--control-fg-l));
@@ -141,12 +150,13 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     top: 0;
     width: 100%;
     position: fixed;
+    z-index: 2;
 }
 
 .nav_bar label {
     float: right;
     color: var(--dark-control-fg-static);
-    padding: var(--title-padding) 0px var(--title-padding) 30px;
+    padding: var(--title-padding) 30px var(--title-padding) 0px;
     font-size: var(--fontsize-title);
     vertical-align: middle;
 }
@@ -178,6 +188,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     background-color: var(--dark-control-bg-static);
     min-width: 160px;
     box-shadow: 0px 8px 16px 0px rbga(0, 0, 0, 0.2);
+    border-radius: 0px 0px 6px 6px;
     z-index: 1;
 }
 
@@ -189,6 +200,10 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     text-decoration: none;
     display: block;
     text-align: left;
+}
+
+.navbar-dropdown-content a:last-child {
+    border-radius: 0px 0px 6px 6px;
 }
 
 .navbar-dropdown-content a:hover {
@@ -258,7 +273,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     position: fixed;
     z-index: 10000;
     width: 200px;
-    background-color: var(--dark-bg);
+    background-color: var(--contextmenu-bg-static);
     border-radius: 6px;
     display: none;
 }
@@ -284,12 +299,12 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 }
 
 .context-menu-button:hover {
-    background-color: var(--dark-button-bg-hover);
+    background-color: var(--contextmenu-bg-hover);
     color: var(--dark-button-fg-hover);
 }
 
 .context-menu-button:active {
-    background-color: var(--dark-button-bg-active);
+    background-color: var(--contextmenu-bg-active);
     color: var(--dark-button-fg-active);
 }
 

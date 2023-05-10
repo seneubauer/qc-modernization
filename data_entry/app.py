@@ -684,6 +684,409 @@ def get_all_lot_numbers():
 
 # routes
 
+@app.route("/characteristic_schemas/create_new_characteristic_schema/", methods = ["POST"])
+def characteristic_schemas_create_new_characteristic_schema():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    part_id = form_data["part_id"]
+    search_term = form_data["search_term"]
+    is_locked = int(form_data["is_locked"])
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # make sure the characteristic schema doesn't already exist
+        exists = session.query(characteristic_schemas.id)\
+            .filter(characteristic_schemas.part_id == part_id)\
+            .first()
+        if exists is not None:
+            session.close()
+            return {
+                "status": "alert",
+                "response": "this characteristic schema already exists"
+            }
+
+        # create new governing record in the database
+        results = characteristic_schemas(
+            is_locked = False,
+            part_id = part_id
+        )
+        session.add(results)
+        session.commit()
+        schema_id = results.id
+        if schema_id is None:
+            session.close()
+            return {
+                "status": "alert",
+                "response": "error in creating the new schema id"
+            }
+
+        # close the database session
+        session.close()
+
+        # create the first characteristic in the new schema
+        returned_obj0 = func_characteristic_schemas_add_row(schema_id)
+
+        # requery the schemas with the same filter parameters
+        returned_obj1 = func_characteristic_schemas_get_filtered_schemas(search_term, is_locked)
+
+        # return the results
+        if returned_obj0["status"] == "ok" and returned_obj1["status"] == "ok":
+            return {
+                "status": "ok",
+                "response": {
+                    "schema_list": returned_obj1["response"],
+                    "schema_characteristics": returned_obj0["response"]
+                }
+            }
+        else:
+            return {
+                "status": "log",
+                "response": "no records added to 'characteristic_schemas' and 'characteristic_schema_details'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+@app.route("/characteristic_schemas/add_row/", methods = ["POST"])
+def characteristic_schemas_add_row():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    schema_id = form_data["schema_id"]
+    
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # check if the schema is locked
+        locked_query = session.query(characteristic_schemas.is_locked)\
+            .filter(characteristic_schemas.id == schema_id)\
+            .first()[0]
+        if locked_query:
+            session.close()
+            return {
+                "status": "alert",
+                "response": "this schema is locked; it cannot be modified"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+    return func_characteristic_schemas_add_row(schema_id)
+
+@app.route("/characteristic_schemas/remove_row/", methods = ["POST"])
+def characteristic_schemas_remove_row():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    detail_id = form_data["detail_id"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # get the schema id
+        schema_id = session.query(characteristic_schema_details.schema_id)\
+            .filter(characteristic_schema_details.id == detail_id)\
+            .first()[0]
+
+        # check if the schema is locked
+        locked_query = session.query(characteristic_schemas.is_locked)\
+            .filter(characteristic_schemas.id == schema_id)\
+            .first()[0]
+        if locked_query:
+            session.close()
+            return {
+                "status": "alert",
+                "response": "this schema is locked; it cannot be modified"
+            }
+
+        # make sure there is something to be deleted
+        results = session.query(characteristic_schema_details.id)\
+            .filter(characteristic_schema_details.id == detail_id)\
+            .first()
+        if results is None:
+            session.close()
+            return {
+                "status": "alert",
+                "response": "this schema characteristic does not exist in the database"
+            }
+
+        # remove the matching schema id
+        results = session.query(characteristic_schema_details)\
+            .filter(characteristic_schema_details.id == detail_id)\
+            .delete()
+
+        # commit the changes
+        session.commit()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if results > 0:
+            return {
+                "status": "ok",
+                "response": f"{results} records deleted from 'characteristic_schema_details'"
+            }
+        else:
+            return {
+                "status": "log",
+                "response": "no records deleted from 'characteristic_schema_details'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+@app.route("/characteristic_schemas/toggle_lock_schema/", methods = ["POST"])
+def characteristic_schemas_toggle_lock_schema():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = form_data["search_term"]
+    is_locked = int(form_data["is_locked"])
+    schema_id = form_data["schema_id"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # make sure the characteristic schema exists
+        exists = session.query(characteristic_schemas.id)\
+            .filter(characteristic_schemas.id == schema_id)\
+            .first()
+        if exists is None:
+            session.close()
+            return {
+                "status": "alert",
+                "response": "this schema does not exists"
+            }
+
+        # get the current locked status
+        locked_query = session.query(characteristic_schemas.is_locked)\
+            .filter(characteristic_schemas.id == schema_id)\
+            .first()[0]
+
+        # set the locked status
+        rows_affected = session.query(characteristic_schemas)\
+            .filter(characteristic_schemas.id == schema_id)\
+            .update({ "is_locked": not locked_query })
+
+        # commit the changes
+        session.commit()
+
+        # close the database session
+        session.close()
+
+        # logic gate
+        if rows_affected == 0:
+            return {
+                "status": "log",
+                "response": "no records modified in 'characteristic_schemas'"
+            }
+
+        # requery the schemas
+        returned_obj = func_characteristic_schemas_get_filtered_schemas(search_term, is_locked)
+
+        # return the results
+        if returned_obj["status"] == "ok":
+            return {
+                "status": "ok",
+                "response": {
+                    "is_locked": not locked_query,
+                    "schema_list": returned_obj["response"]
+                }
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+@app.route("/characteristic_schemas/save_characteristic_schema/", methods = ["POST"])
+def characteristic_schemas_save_characteristic_schema():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    schema_id = form_data["schema_id"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # make sure the characteristic schema exists
+        exists = session.query(characteristic_schema_details.id)\
+            .filter(characteristic_schema_details.schema_id == schema_id)\
+            .first()
+        if exists is None:
+            session.close()
+            return {
+                "status": "alert",
+                "response": "this schema does not exists"
+            }
+
+        # query the database
+        rows_affected = 0
+        for obj in form_data["data"]:
+            results = session.query(characteristic_schema_details)\
+                .filter(characteristic_schema_details.id == obj["detail_id"])
+            field_affected = 0
+            for x in obj["contents"]:
+                field_affected += results.update({ x["key"]: x["value"] })
+            if field_affected > 0:
+                rows_affected += 1
+
+        # commit the changes
+        session.commit()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if rows_affected > 0:
+            return {
+                "status": "alert",
+                "response": f"{rows_affected} rows were updated"
+            }
+        else:
+            return {
+                "status": "log",
+                "response": "no records added to 'characteristic_schemas'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+@app.route("/characteristic_schemas/delete_characteristic_schema/", methods = ["POST"])
+def characteristic_schemas_delete_characteristic_schema():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    schema_id = form_data["schema_id"]
+    search_term = form_data["search_term"]
+    is_locked = int(form_data["is_locked"])
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # make sure the referenced schema exists
+        exists = session.query(characteristic_schemas.id)\
+            .filter(characteristic_schemas.id == schema_id).first()
+        if exists is None:
+            session.close()
+            return {
+                "status": "alert",
+                "response": "the referenced schema does not exist in the database"
+            }
+
+        # check if the schema is already locked
+        schema_is_locked = session.query(characteristic_schemas.is_locked)\
+            .filter(characteristic_schemas.id == schema_id)\
+            .first()[0]
+        if schema_is_locked:
+            session.close()
+            return {
+                "status": "alert",
+                "response": "this schema is locked: it cannot be deleted"
+            }
+
+        # delete the referenced schema
+        details_results = session.query(characteristic_schema_details)\
+            .filter(characteristic_schema_details.schema_id == schema_id)\
+            .delete()
+        schema_results = session.query(characteristic_schemas)\
+            .filter(characteristic_schemas.id == schema_id)\
+            .delete()
+
+        # logic gate
+        if details_results == 0 and schema_results == 0:
+            session.close()
+            return {
+                "status": "alert",
+                "response": "no records in 'characteristic_schemas' and 'characteristic_schema_details' were deleted"
+            }
+        elif details_results == 0:
+            session.close()
+            return {
+                "status": "alert",
+                "response": "no records in 'characteristic_schema_details' were deleted"
+            }
+        elif schema_results == 0:
+            session.close()
+            return {
+                "status": "alert",
+                "response": "no records in 'characteristic_schemas' were deleted"
+            }
+
+        # commit the changes
+        session.commit()
+
+        # close the database session
+        session.close()
+
+        # requery the schemas
+        return func_characteristic_schemas_get_filtered_schemas(search_term, is_locked)
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+@app.route("/characteristic_schemas/get_filtered_characteristic_schemas/", methods = ["POST"])
+def characteristic_schemas_get_filtered_schemas():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = str(form_data["search_term"])
+    is_locked = int(form_data["is_locked"])
+
+    # call the relevant method
+    return func_characteristic_schemas_get_filtered_schemas(search_term, is_locked)
+
 @app.route("/characteristic_schemas/get_filtered_parts/", methods = ["POST"])
 def characteristic_schemas_get_filtered_parts():
 
@@ -730,172 +1133,85 @@ def characteristic_schemas_get_filtered_parts():
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
         return {
-            "status": "not_ok",
-            "response": error_msg
-        }
-
-@app.route("/characteristic_schemas/lock_schema/", methods = ["POST"])
-def characteristic_schemas_lock_schema():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    schema_id = form_data["schema_id"]
-
-    try:
-
-        # open the database session
-        session = Session(engine)
-
-        # make sure the characteristic schema exists
-        exists = session.query(characteristic_schemas.id)\
-            .filter(characteristic_schemas.id == schema_id)\
-            .first()
-        if exists is None:
-            return {
-                "status": "alert",
-                "response": "this schema does not exists"
-            }
-
-        # set the locked status
-        rows_affected = session.query(characteristic_schemas)\
-            .filter(characteristic_schemas.id == schema_id)\
-            .update({ "is_locked": True })
-
-        # commit the changes
-        session.commit()
-
-        # close the database session
-        session.close()
-
-        # return the results
-        if rows_affected > 0:
-            return {
-                "status": "ok",
-                "response": "this schema is now readonly"
-            }
-        else:
-            return {
-                "status": "log",
-                "response": "no records added to 'characteristic_schemas'"
-            }
-
-    except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
-        return {
             "status": "log",
             "response": error_msg
         }
 
-@app.route("/characteristic_schemas/save_current_characteristic_schema/", methods = ["POST"])
-def characteristic_schemas_save_current_characteristic_schema():
+# recycled functions
 
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    schema_id = form_data["schema_id"]
+def func_characteristic_schemas_add_row(schema_id:int):
 
     try:
 
         # open the database session
         session = Session(engine)
 
-        # make sure the characteristic schema exists
-        exists = session.query(characteristic_schema_details.id)\
-            .filter(characteristic_schema_details.schema_id == schema_id)\
-            .first()
-        if exists is None:
-            return {
-                "status": "alert",
-                "response": "this schema does not exists"
-            }
+        # get the default specification type id
+        default_specification_type_id = session.query(specification_types.id)\
+            .order_by(specification_types.name.asc())\
+            .first()[0]
 
-        # query the database
-        rows_affected = 0
-        for obj in form_data["data"]:
+        # get the default characteristic type id
+        default_characteristic_type_id = session.query(characteristic_types.id)\
+            .order_by(characteristic_types.name.asc())\
+            .first()[0]
 
-            results = session.query(characteristic_schema_details)\
-                .filter(characteristic_schema_details.id == obj["detail_id"])
+        # get the default frequency type id
+        default_frequency_type_id = session.query(frequency_types.id)\
+            .order_by(frequency_types.name.asc())\
+            .first()[0]
 
-            field_affected = 0
-            for x in obj["contents"]:
-                field_affected += results.update({ x["key"]: x["value"] })
-            if field_affected > 0:
-                rows_affected += 1
+        # get the default gauge type id
+        default_gauge_type_id = session.query(gauge_types.id)\
+            .order_by(gauge_types.name.asc())\
+            .first()[0]
 
-        # commit the changes
-        session.commit()
+        # define the placeholder values
+        default_name = "DIM X"
+        default_nominal = 0
+        default_usl = 0
+        default_lsl = 0
+        default_precision = 1
 
-        # close the database session
-        session.close()
-
-        # return the results
-        if rows_affected > 0:
-            return {
-                "status": "ok",
-                "response": f"{rows_affected} rows were updated"
-            }
-        else:
-            return {
-                "status": "log",
-                "response": "no records added to 'characteristic_schemas'"
-            }
-
-    except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
-        return {
-            "status": "log",
-            "response": error_msg
-        }
-
-@app.route("/characteristic_schemas/add_row/", methods = ["POST"])
-def characteristic_schemas_add_row():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    if bool(form_data["locked_status"]):
-        return {
-            "status": "alert",
-            "response": "this schema is locked; it cannot be modified"
-        }
-
-    try:
-
-        # open the database session
-        session = Session(engine)
-
-        # query the database
+        # set the placeholder data
         results = characteristic_schema_details(
-            name = form_data["data"]["name"],
-            nominal = form_data["data"]["nominal"],
-            usl = form_data["data"]["usl"],
-            lsl = form_data["data"]["lsl"],
-            precision = form_data["data"]["precision"],
-            specification_type_id = form_data["data"]["specification_type_id"],
-            characteristic_type_id = form_data["data"]["characteristic_type_id"],
-            frequency_type_id = form_data["data"]["frequency_type_id"],
-            gauge_type_id = form_data["data"]["gauge_type_id"],
-            schema_id = form_data["data"]["schema_id"]
+            name = default_name,
+            nominal = default_nominal,
+            usl = default_usl,
+            lsl = default_lsl,
+            precision = default_precision,
+            specification_type_id = default_specification_type_id,
+            characteristic_type_id = default_characteristic_type_id,
+            frequency_type_id = default_frequency_type_id,
+            gauge_type_id = default_gauge_type_id,
+            schema_id = schema_id
         )
         session.add(results)
-
-        # commit the changes
         session.commit()
 
-        # retrieve the serial id
+        # capture the new serial id
         detail_id = results.id
 
         # close the database session
         session.close()
 
         # return the results
-        if detail_id is not None:
+        if results.id is not None:
             return {
                 "status": "ok",
-                "response": detail_id
+                "response": {
+                    "id": detail_id,
+                    "name": default_name,
+                    "nominal": default_nominal,
+                    "usl": default_usl,
+                    "lsl": default_lsl,
+                    "precision": default_precision,
+                    "specification_type_id": default_specification_type_id,
+                    "characteristic_type_id": default_characteristic_type_id,
+                    "frequency_type_id": default_frequency_type_id,
+                    "gauge_type_id": default_gauge_type_id,
+                    "schema_id": schema_id
+                }
             }
         else:
             return {
@@ -910,280 +1226,7 @@ def characteristic_schemas_add_row():
             "response": error_msg
         }
 
-@app.route("/characteristic_schemas/remove_row/", methods = ["POST"])
-def characteristic_schemas_remove_row():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    detail_id = form_data["detail_id"]
-
-    if bool(form_data["locked_status"]):
-        return {
-            "status": "alert",
-            "response": "this schema is locked; it cannot be modified"
-        }
-
-    try:
-
-        # open the database session
-        session = Session(engine)
-
-        # make sure there is something to be deleted
-        results = session.query(characteristic_schema_details.id)\
-            .filter(characteristic_schema_details.id == detail_id)\
-            .first()
-        if results is None:
-            return {
-                "status": "alert",
-                "response": "this schema characteristic does not exist in the database"
-            }
-
-        # remove the matching schema id
-        results = session.query(characteristic_schema_details)\
-            .filter(characteristic_schema_details.id == detail_id)\
-            .delete()
-
-        # commit the changes
-        session.commit()
-
-        # close the database session
-        session.close()
-
-        # return the results
-        if results > 0:
-            return {
-                "status": "ok",
-                "response": f"{results} records deleted from 'characteristic_schemas'"
-            }
-        else:
-            return {
-                "status": "log",
-                "response": "no records deleted"
-            }
-
-    except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
-        return {
-            "status": "log",
-            "response": error_msg
-        }
-
-@app.route("/characteristic_schemas/create_new_characteristic_schema/", methods = ["POST"])
-def characteristic_schemas_create_new_characteristic_schema():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    part_id = form_data["data"]["part_id"]
-    search_term = str(form_data["search_term"])
-    locked_status = int(form_data["locked_status"])
-
-    # define the required columns
-    schema_columns = [
-        characteristic_schemas.id,
-        characteristic_schemas.is_locked,
-        parts.id,
-        parts.item,
-        parts.drawing,
-        parts.revision
-    ]
-
-    try:
-
-        # open the database session
-        session = Session(engine)
-
-        # make sure the characteristic schema doesn't already exist
-        exists = session.query(characteristic_schemas.id)\
-            .filter(characteristic_schemas.part_id == part_id)\
-            .first()
-        if exists is not None:
-            return {
-                "status": "alert",
-                "response": "this characteristic schema already exists"
-            }
-
-        # create new governing record in the database
-        results = characteristic_schemas(
-            is_locked = False,
-            part_id = part_id
-        )
-        session.add(results)
-        session.commit()
-        schema_id = results.id
-
-        if schema_id is None:
-            return {
-                "status": "alert",
-                "response": "error in creating the new schema id"
-            }
-
-        # create the placeholder details
-        results = characteristic_schema_details(
-            name = form_data["data"]["name"],
-            nominal = form_data["data"]["nominal"],
-            usl = form_data["data"]["usl"],
-            lsl = form_data["data"]["lsl"],
-            precision = form_data["data"]["precision"],
-            specification_type_id = form_data["data"]["specification_type_id"],
-            characteristic_type_id = form_data["data"]["characteristic_type_id"],
-            frequency_type_id = form_data["data"]["frequency_type_id"],
-            gauge_type_id = form_data["data"]["gauge_type_id"],
-            schema_id = schema_id
-        )
-        session.add(results)
-        session.commit()
-
-        # requery the schemas with the same filter parameters
-        results = session.query(*schema_columns)\
-            .join(parts, (parts.id == characteristic_schemas.part_id))\
-            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
-            .order_by(parts.item.asc(), parts.drawing.asc(), parts.revision.asc())
-        if locked_status >= 0:
-            results = results.filter(characteristic_schemas.is_locked == bool(locked_status))
-        schema_query = results.all()
-
-        # close the database session
-        session.close()
-
-        # return the results
-        if len(schema_query) > 0:
-            output_arr = []
-            for schema_id, is_locked, part_id, item, drawing, revision in schema_query:
-                output_arr.append({
-                    "schema_id": schema_id,
-                    "is_locked": is_locked,
-                    "part_id": part_id,
-                    "item": item,
-                    "drawing": drawing,
-                    "revision": revision.upper()
-                })
-
-            return {
-                "status": "ok",
-                "response": {
-                    "schema_id": schema_id,
-                    "data": output_arr
-                }
-            }
-        else:
-            return {
-                "status": "log",
-                "response": "no records added to 'characteristic_schemas'"
-            }
-
-    except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
-        return {
-            "status": "log",
-            "response": error_msg
-        }
-
-@app.route("/characteristic_schemas/get_filtered_characteristic_schemas/", methods = ["POST"])
-def characteristic_schemas_get_filtered_schemas():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    search_term = str(form_data["search_term"])
-    locked_status = int(form_data["locked_status"])
-
-    # call the relevant method
-    return func_characteristic_schemas_get_filtered_schemas(search_term, locked_status)
-
-@app.route("/characteristic_schemas/delete_characteristic_schema/", methods = ["POST"])
-def characteristic_schemas_delete_characteristic_schema():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    schema_id = form_data["schema_id"]
-    search_term = str(form_data["search_term"])
-    locked_status = int(form_data["locked_status"])
-
-    # define the output columns
-    columns = [
-        characteristic_schemas.id,
-        characteristic_schemas.is_locked,
-        parts.id,
-        parts.item,
-        parts.drawing,
-        parts.revision
-    ]
-
-    try:
-
-        # open the database session
-        session = Session(engine)
-
-        # make sure the referenced schema exists
-        exists = session.query(characteristic_schemas.id)\
-            .filter(characteristic_schemas.id == schema_id).first()
-        if exists is None:
-            return {
-                "status": "alert",
-                "response": "the referenced schema does not exist in the database"
-            }
-
-        # delete the referenced schema
-        results = session.query(characteristic_schema_details)\
-            .filter(characteristic_schema_details.schema_id == schema_id)\
-            .delete()
-        results = session.query(characteristic_schemas)\
-            .filter(characteristic_schemas.id == schema_id)\
-            .delete()
-        session.commit()
-
-        # query the database
-        results = session.query(*columns)\
-            .join(parts, (parts.id == characteristic_schemas.part_id))\
-            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
-            .order_by(parts.item, parts.drawing, parts.revision)
-        if locked_status >= 0:
-            results = results.filter(characteristic_schemas.is_locked == bool(locked_status))
-        results = results.order_by(parts.item, parts.drawing, parts.revision).all()
-
-        # close the database session
-        session.close()
-
-        # return the results
-        if len(results) > 0:
-            output_arr = []
-            for schema_id, is_locked, part_id, item, drawing, revision in results:
-                output_arr.append({
-                    "schema_id": schema_id,
-                    "is_locked": is_locked,
-                    "part_id": part_id,
-                    "item": item,
-                    "drawing": drawing,
-                    "revision": revision.upper()
-                })
-
-            return {
-                "status": "ok",
-                "response": output_arr
-            }
-        else:
-            return {
-                "status": "log",
-                "response": "no matching records found"
-            }
-
-    except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
-        return {
-            "status": "log",
-            "response": error_msg
-        }
-
-# recycled functions
-
-def func_characteristic_schemas_get_filtered_schemas(search_term:str, locked_status:int):
+def func_characteristic_schemas_get_filtered_schemas(search_term:str, is_locked:int):
 
     # define the output columns
     columns = [
@@ -1204,8 +1247,8 @@ def func_characteristic_schemas_get_filtered_schemas(search_term:str, locked_sta
         results = session.query(*columns)\
             .join(parts, (parts.id == characteristic_schemas.part_id))\
             .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))
-        if locked_status >= 0:
-            results = results.filter(characteristic_schemas.is_locked == bool(locked_status))
+        if is_locked >= 0:
+            results = results.filter(characteristic_schemas.is_locked == bool(is_locked))
         results = results.order_by(parts.item.asc(), parts.drawing.asc(), parts.revision.asc()).all()
 
         # close the database session
@@ -1245,8 +1288,8 @@ def func_characteristic_schemas_get_filtered_schemas(search_term:str, locked_sta
 
 #region characteristic schemas - schema view
 
-@app.route("/characteristic_schemas/get_current_characteristic_schema/", methods = ["POST"])
-def characteristic_schemas_get_current_characteristic_schema():
+@app.route("/characteristic_schemas/get_schema_characteristics/", methods = ["POST"])
+def characteristic_schemas_get_schema_characteristics():
 
     # interpret the posted data
     form_data = json.loads(request.data)

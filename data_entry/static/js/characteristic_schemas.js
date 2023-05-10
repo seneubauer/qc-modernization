@@ -2,27 +2,26 @@
 // navbar
 const navbar_info = d3.select("#navbar_info");
 
-// characteristics
-const main_schema_table = d3.select("#main_schema_table");
-const schema_table_context_menu = document.getElementById("schema_context_menu");
-const schema_table_scope = document.querySelector("#main_schema_table");
+// schema view
+const vw_characteristics_table = d3.select("#schema_view_characteristics_table");
+const vw_characteristics_table_contextmenu = d3.select("#schema_view_characteristics_table_contextmenu");
 
-// inspection_reports
+// schemas panel
 const sc_button_create = d3.select("#schemas_create_new_btn");
 const sc_button_add_row = d3.select("#schemas_add_row_btn");
 const sc_button_remove_row = d3.select("#schemas_remove_row_btn");
 const sc_input_new_part_filter = d3.select("#schemas_part_filter");
 const sc_select_new_part = d3.select("#schemas_part");
 const sc_input_schema_filter = d3.select("#schemas_search_term");
-const sc_select_locked_status = d3.select("#schemas_is_locked");
+const sc_select_is_locked = d3.select("#schemas_is_locked");
 const sc_ul_list = d3.select("#schemas_filtered_list");
+const sc_ul_list_contextmenu = d3.select("#schemas_filtered_list_contextmenu");
 
 // enumerations
 var specification_types = null;
 var characteristic_types = null;
 var frequency_types = null;
 var gauge_types = null;
-var current_schema_id = null;
 
 // main schema table columns
 const table_columns = [
@@ -49,12 +48,11 @@ function init()
     // populate selectors
     populate_generic_selectors();
 
-    // schema view table
-    setup_context_menus();
-
     // panels
     prepare_schema_panel();
 
+    // schema view table
+    setup_context_menus();
 }
 
 function retrieve_global_enumerations()
@@ -63,19 +61,13 @@ function retrieve_global_enumerations()
     d3.json("/get_all_characteristic_types/", {
         method: "GET"
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
             characteristic_types = json.response;
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
@@ -84,19 +76,13 @@ function retrieve_global_enumerations()
     d3.json("/get_all_frequency_types/", {
         method: "GET"
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
             frequency_types = json.response;
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
@@ -105,19 +91,13 @@ function retrieve_global_enumerations()
     d3.json("/get_all_specification_types/", {
         method: "GET"
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
             specification_types = json.response;
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
@@ -126,19 +106,13 @@ function retrieve_global_enumerations()
     d3.json("/get_all_gauge_types/", {
         method: "GET"
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
             gauge_types = json.response;
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
@@ -146,37 +120,69 @@ function retrieve_global_enumerations()
 
 function setup_context_menus()
 {
-    schema_table_scope.addEventListener("contextmenu", (e) => {
-        if (e.target.tagName != "TH") {
-            e.preventDefault();
-            const { clientX: mouseX, clientY: mouseY } = e;
-            schema_table_context_menu.style.top = `${mouseY}px`;
-            schema_table_context_menu.style.left = `${mouseX}px`;
-            schema_table_context_menu.classList.add("visible");
+    // open the schema characteristic view context menu
+    vw_characteristics_table.on("contextmenu", (e) => {
+        
+        // extract data
+        let row_data = e.target.__data__.row;
 
-            // requery the database
-            d3.select("#context_menu_0").on("click", () => {
-                let schema_id = main_schema_table.select("tbody").selectAll("tr").data()[0].schema_id;
-                get_selected_schema(schema_id);
-                schema_table_context_menu.classList.remove("visible");
-            });
+        // position and show the context menu
+        vw_characteristics_table_contextmenu.style("position", "absolute")
+            .style("left", `${e.pageX}px`)
+            .style("top", `${e.pageY}px`)
+            .style("display", "block");
 
-            // lock the schema
-            d3.select("#context_menu_1").on("click", () => {
-                schema_lock();
-                schema_table_context_menu.classList.remove("visible");
-            });
+        // reload schema
+        vw_characteristics_table_contextmenu.select("#context_menu_0").on("click", () => {
+            view_get_schema_characteristics(row_data.schema_id);
+            vw_characteristics_table_contextmenu.style("display", "none");
+        });
 
-            // save the schema
-            d3.select("#context_menu_2").on("click", () => {
-                schema_save();
-                schema_table_context_menu.classList.remove("visible");
-            });
+        // prevent the default behavior
+        e.preventDefault();
+    });
+    vw_characteristics_table.on("click", () => {
+        if (vw_characteristics_table_contextmenu.style("display") == "block") {
+            vw_characteristics_table_contextmenu.style("display", "none");
         }
     });
-    schema_table_scope.addEventListener("click", (e) => {
-        if (e.target.offsetParent != schema_table_context_menu) {
-            schema_table_context_menu.classList.remove("visible");
+
+    // open the schema list context menu
+    sc_ul_list.on("contextmenu", (e) => {
+
+        // extract the data
+        let row_data = e.target.__data__;
+
+        // position and show the context menu
+        sc_ul_list_contextmenu.style("position", "absolute")
+            .style("left", `${e.pageX}px`)
+            .style("top", `${e.pageY}px`)
+            .style("display", "block");
+
+        // toggle locked status
+        sc_ul_list_contextmenu.select("#context_menu_0").on("click", () => {
+            schemas_toggle_lock(row_data.schema_id);
+            sc_ul_list_contextmenu.style("display", "none");
+        });
+
+        // save schema
+        sc_ul_list_contextmenu.select("#context_menu_1").on("click", () => {
+            schemas_save(row_data.schema_id);
+            sc_ul_list_contextmenu.style("display", "none");
+        });
+
+        // delete schema
+        sc_ul_list_contextmenu.select("#context_menu_2").on("click", () => {
+            schemas_delete(row_data.schema_id);
+            sc_ul_list_contextmenu.style("display", "none");
+        });
+
+        // prevent the default behavior
+        e.preventDefault();
+    });
+    sc_ul_list.on("click", () => {
+        if (sc_ul_list_contextmenu.style("display") == "block") {
+            sc_ul_list_contextmenu.style("display", "none");
         }
     });
 }
@@ -184,19 +190,11 @@ function setup_context_menus()
 function prepare_schema_panel()
 {
     // input events
-    sc_input_new_part_filter.on("keydown", (x) => {
-        if (x.keyCode == 13) {
-            schemas_update_part_id_select();
-        }
-    });
-    sc_input_schema_filter.on("keydown", (x) => {
-        if (x.keyCode == 13) {
-            update_filtered_schemas();
-        }
-    });
+    sc_input_new_part_filter.on("change", schemas_update_part_id_selector);
+    sc_input_schema_filter.on("change", schemas_update_filtered_schemas);
 
     // select events
-    sc_select_locked_status.on("change", update_filtered_schemas);
+    sc_select_is_locked.on("change", schemas_update_filtered_schemas);
     sc_button_create.on("click", schemas_create_new_schema);
     sc_button_add_row.on("click", schemas_add_row);
     sc_button_remove_row.on("click", schemas_remove_row);
@@ -205,7 +203,7 @@ function prepare_schema_panel()
 function populate_generic_selectors()
 {
     // schemas
-    schemas_update_part_id_select();
+    schemas_update_part_id_selector();
 }
 
 // #endregion
@@ -220,7 +218,7 @@ function schemas_create_new_schema()
         body: JSON.stringify({
             part_id: sc_select_new_part.property("value"),
             search_term: sc_input_schema_filter.property("value"),
-            locked_status: sc_select_locked_status.property("value")
+            is_locked: sc_select_is_locked.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -228,6 +226,11 @@ function schemas_create_new_schema()
     }).then((json) => {
         if (json.status == "ok") {
 
+            // repopulate the schema view
+            view_repopulate_schema_characteristics_table([json.response.schema_characteristics]);
+
+            // repopulate the schema list
+            schemas_repopulate_schema_list(json.response.schema_list);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -241,63 +244,52 @@ function schemas_create_new_schema()
 function schemas_add_row()
 {
     // logic gate
-    if (main_schema_table.select("tbody").selectAll("tr").data().length == 0) {
+    if (vw_characteristics_table.select("tbody").selectAll("tr").data().length == 0) {
         return;
     }
 
     // get the current data array
-    let current_data = main_schema_table.select("tbody").selectAll("tr").data();
-
-    // get the current part id
-    let schema_id = current_data[0].schema_id;
-
-    // create placeholder data
-    let placeholder_data = {
-        detail_id: -1,
-        schema_id: schema_id,
-        name: "DIM x",
-        nominal: 0,
-        usl: 0,
-        lsl: 0,
-        precision: 1,
-        specification_type_id: 0,
-        characteristic_type_id: 0,
-        frequency_type_id: 0,
-        gauge_type_id: 0
-    };
+    let current_data = vw_characteristics_table.select("tbody").selectAll("tr").data();
 
     // query the flask server
     d3.json("/characteristic_schemas/add_row/", {
         method: "POST",
         body: JSON.stringify({
-            locked_status: current_data[0].is_locked,
-            data: placeholder_data
+            schema_id: current_data[0].schema_id
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
-            // update the detail id
-            placeholder_data.detail_id = json.response;
+            // get the required information
+            let new_data = json.response;
 
-            // append placeholder data to current data
-            current_data.push(placeholder_data);
+            // append new data to current data
+            current_data.push({
+                schema_id: new_data.schema_id,
+                is_locked: current_data[0].is_locked,
+                part_id: current_data[0].part_id,
+                detail_id: new_data.id,
+                name: new_data.name,
+                nominal: new_data.nominal,
+                usl: new_data.usl,
+                lsl: new_data.lsl,
+                precision: new_data.precision,
+                specification_type_id: new_data.specification_type_id,
+                characteristic_type_id: new_data.characteristic_type_id,
+                frequency_type_id: new_data.frequency_type_id,
+                gauge_type_id: new_data.gauge_type_id
+            });
 
             // update the table
-            update_table(current_data);
+            view_repopulate_schema_characteristics_table(current_data);
         }
-        else if (json.status == "ok_alert") {
+        else if (json.status == "log") {
             alert(json.response);
         }
-        else if (json.status == "ok_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
+        else if (json.status == "alert") {
             console.log(json.response);
         }
     });
@@ -306,12 +298,11 @@ function schemas_add_row()
 function schemas_remove_row()
 {
     // logic gate
-    if (main_schema_table.select("tbody").selectAll("tr").data().length == 0) {
+    if (vw_characteristics_table.select("tbody").selectAll("tr").data().length == 0) {
         return;
     }
-    else if (main_schema_table.select("tbody").selectAll("tr").data().length == 1) {
-        let schema_id = main_schema_table.select("tbody").selectAll("tr").data().slice(-1)[0].schema_id;
-        delete_schema(schema_id);
+    else if (vw_characteristics_table.select("tbody").selectAll("tr").data().length == 1) {
+        schemas_delete(vw_characteristics_table.select("tbody").selectAll("tr").data()[0].schema_id);
         return;
     }
 
@@ -321,183 +312,191 @@ function schemas_remove_row()
     }
 
     // get the last row
-    let last_row = main_schema_table.select("tbody").selectAll("tr").data().slice(-1)[0];
+    let last_row = vw_characteristics_table.select("tbody").selectAll("tr").data().slice(-1)[0];
 
     // query the flask server
     d3.json("/characteristic_schemas/remove_row/", {
         method: "POST",
         body: JSON.stringify({
-            locked_status: last_row.is_locked,
+            is_locked: last_row.is_locked,
             detail_id: last_row.detail_id
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
-            main_schema_table.select("tbody").selectAll("tr:last-child").remove();
+        if (json.status == "ok") {
+            vw_characteristics_table.select("tbody").selectAll("tr:last-child").remove();
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
 }
 
-function schema_selected(data)
+function schemas_toggle_lock(schema_id)
+{
+    // query the flask server
+    d3.json("/characteristic_schemas/toggle_lock_schema/", {
+        method: "POST",
+        body: JSON.stringify({
+            search_term: sc_input_schema_filter.property("value"),
+            is_locked: sc_select_is_locked.property("value"),
+            schema_id: schema_id
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            // convert current data to reflect locked status
+            let current_data = vw_characteristics_table.select("tbody").selectAll("tr").data();
+            current_data.forEach(element => {
+                element.is_locked = json.response.is_locked;
+            });
+
+            // repopulate the schema view
+            view_repopulate_schema_characteristics_table(current_data);
+
+            // repopulate the schema list
+            schemas_repopulate_schema_list(json.response.schema_list);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+function schemas_save(schema_id)
+{
+    // request confirmation
+    if (!confirm("This action will modify information in the database and cannot be reverted. Continue?")) {
+        return;
+    }
+
+    // build the data object
+    let data = [];
+    vw_characteristics_table.select("tbody").selectAll("td").data().forEach(element => {
+        if (data.some((e) => e.detail_id == element.row.detail_id)) {
+            data.filter((e) => e.detail_id == element.row.detail_id)[0]
+                .contents.push({
+                    key: element.column.key,
+                    value: element.row.value
+                });
+        }
+        else {
+            data.push({
+                detail_id: element.row.detail_id,
+                contents: [{
+                    key: element.column.key,
+                    value: element.row.value
+                }]
+            });
+        }
+    });
+
+    // query the flask server
+    d3.json("/characteristic_schemas/save_characteristic_schema/", {
+        method: "POST",
+        body: JSON.stringify({
+            schema_id: schema_id,
+            data: data
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+            
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+function schemas_delete(schema_id)
+{
+    // request confirmation
+    if (!confirm("This action will modify information in the database and cannot be reverted. Continue?")) {
+        return;
+    }
+
+    d3.json("/characteristic_schemas/delete_characteristic_schema/", {
+        method: "POST",
+        body: JSON.stringify({
+            schema_id: schema_id,
+            search_term: sc_input_schema_filter.property("value"),
+            is_locked: sc_select_is_locked.property("value")
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            // repopulate the schema list
+            schemas_repopulate_schema_list(json.response);
+
+            // clear the characteristic table
+            vw_characteristics_table.select("thead").remove();
+            vw_characteristics_table.select("tbody").remove();
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+function schemas_update_filtered_schemas()
+{
+    d3.json("/characteristic_schemas/get_filtered_characteristic_schemas/", {
+        method: "POST",
+        body: JSON.stringify({
+            search_term: sc_input_schema_filter.property("value"),
+            is_locked: sc_select_is_locked.property("value")
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            // populate the schema list
+            schemas_repopulate_schema_list(json.response);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+function schemas_schema_selected(data)
 {
     // update the main display
     navbar_info.text(`${data.item} // ${data.drawing} // ${data.revision}`);
 
     // characteristic display
-    get_selected_schema(data.schema_id);
+    view_get_schema_characteristics(data.schema_id);
 }
 
-function update_filtered_schemas()
-{
-    // get the inputs
-    let search_term = sc_input_schema_filter.property("value");
-    let locked_status = sc_select_locked_status.property("value");
-
-    // query the flask server
-    d3.json("/characteristic_schemas/get_filtered_characteristic_schemas/", {
-        method: "POST",
-        body: JSON.stringify({
-            search_term: search_term,
-            locked_status: locked_status
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok_func") {
-            populate_schema_list(json.response);
-        }
-        else if (json.status == "ok_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
-            alert(json.response);
-        }
-    });
-}
-
-function populate_schema_list(data)
-{
-    // clear the old entries
-    sc_ul_list.selectAll("li").remove();
-
-    // populate the inspection reports list
-    let items = sc_ul_list.selectAll("li")
-        .data(data)
-        .enter()
-        .append("li")
-        .append("div")
-        .attr("class", "list-item-dark")
-        .style("--grid-template-columns", "2fr 2fr 1fr 2fr 1fr");
-    items.append("label")
-        .style("--grid-column", "1")
-        .style("--grid-row", "1")
-        .style("text-align", "center")
-        .style("border-radius", "6px 0px 0px 6px")
-        .attr("class", "list-item-label-dark")
-        .text((x) => x.item)
-        .on("click", (_, d) => schema_selected(d));
-    items.append("label")
-        .style("--grid-column", "2")
-        .style("--grid-row", "1")
-        .style("text-align", "center")
-        .attr("class", "list-item-label-dark")
-        .text((x) => x.drawing)
-        .on("click", (_, d) => schema_selected(d));
-    items.append("label")
-        .style("--grid-column", "3")
-        .style("--grid-row", "1")
-        .style("text-align", "center")
-        .attr("class", "list-item-label-dark")
-        .text((x) => x.revision)
-        .on("click", (_, d) => schema_selected(d));
-    items.append("label")
-        .style("--grid-column", "4")
-        .style("--grid-row", "1")
-        .style("text-align", "center")
-        .attr("class", "list-item-label-dark")
-        .text((x) => {
-            switch (x.is_locked) {
-                case true:
-                    return "Locked";
-                case false:
-                    return "Unlocked";
-            }
-        })
-        .on("click", (_, d) => schema_selected(d));
-    items.append("button")
-        .style("--grid-column", "5")
-        .style("--grid-row", "1")
-        .style("text-align", "center")
-        .style("border-radius", "0px 6px 6px 0px")
-        .attr("class", "list-item-button-dark")
-        .text("Delete")
-        .on("click", (_, d) => delete_schema(d.schema_id));
-}
-
-function delete_schema(schema_id)
-{
-    // get the required parameters
-    let locked_status = sc_select_locked_status.property("value");
-    let search_term = sc_input_schema_filter.property("value");
-
-    // query the flask server
-    d3.json("/characteristic_schemas/delete_characteristic_schema/", {
-        method: "POST",
-        body: JSON.stringify({
-            schema_id: schema_id,
-            search_term: search_term,
-            locked_status: locked_status
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok_func") {
-
-            // repopulate the schema list
-            populate_schema_list(json.response);
-
-            // clear the characteristic table
-            main_schema_table.select("thead").remove();
-            main_schema_table.select("tbody").remove();
-        }
-        else if (json.status == "ok_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
-            alert(json.response);
-        }
-    });
-}
-
-function schemas_update_part_id_select()
+function schemas_update_part_id_selector()
 {
     d3.json("/characteristic_schemas/get_filtered_parts/", {
         method: "POST",
@@ -508,7 +507,7 @@ function schemas_update_part_id_select()
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
             // clear the old entries
             sc_select_new_part.selectAll("option").remove();
@@ -522,29 +521,64 @@ function schemas_update_part_id_select()
                 .text((x) => x.part_name);
             sc_select_new_part.property("value", json.response[0].id)
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
+}
+
+function schemas_repopulate_schema_list(data)
+{
+    // clear the old entries
+    sc_ul_list.selectAll("li").remove();
+
+    // populate the inspection reports list
+    let items = sc_ul_list.selectAll("li")
+        .data(data)
+        .enter()
+        .append("li")
+        .append("div")
+        .attr("class", "list-item-dark")
+        .style("--grid-template-columns", "1fr 1fr 1fr");
+    items.append("label")
+        .style("--grid-column", "1")
+        .style("--grid-row", "1")
+        .style("border-radius", "6px 0px 0px 6px")
+        .attr("class", "list-item-label-dark")
+        .text((x) => {
+            if (x.is_locked) {
+                return `**${x.item}`;
+            }
+            else {
+                return x.item;
+            }
+        })
+        .on("click", (_, d) => schemas_schema_selected(d));
+    items.append("label")
+        .style("--grid-column", "2")
+        .style("--grid-row", "1")
+        .attr("class", "list-item-label-dark")
+        .text((x) => x.drawing)
+        .on("click", (_, d) => schemas_schema_selected(d));
+    items.append("label")
+        .style("--grid-column", "3")
+        .style("--grid-row", "1")
+        .attr("class", "list-item-label-dark")
+        .text((x) => x.revision)
+        .on("click", (_, d) => schemas_schema_selected(d));
 }
 
 // #endregion
 
 // #region view
 
-function get_selected_schema(schema_id)
+function view_get_schema_characteristics(schema_id)
 {
     // query the flask server
-    d3.json("/characteristic_schemas/get_current_characteristic_schema/", {
+    d3.json("/characteristic_schemas/get_schema_characteristics/", {
         method: "POST",
         body: JSON.stringify({
             schema_id: schema_id
@@ -553,43 +587,27 @@ function get_selected_schema(schema_id)
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
             // update the view table
-            update_table(json.response);
+            view_repopulate_schema_characteristics_table(json.response);
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
 }
 
-function enforce_precision(precision, detail_id)
-{
-    main_schema_table.select("tbody").selectAll("td").selectAll("input")
-        .property("value", (x) => {
-            if (x.column.datatype == "decimal" && x.row.detail_id == detail_id) {
-                return x.row.value.toFixed(precision);
-            }
-        });
-}
-
-function update_table(data)
+function view_repopulate_schema_characteristics_table(data)
 {
     // clear the old columns
-    main_schema_table.selectAll("thead").remove();
+    vw_characteristics_table.selectAll("thead").remove();
 
     // add the columns
-    main_schema_table.append("thead")
+    vw_characteristics_table.append("thead")
         .selectAll("tr")
         .data(table_columns)
         .join("th")
@@ -597,10 +615,10 @@ function update_table(data)
         .text((x) => x.display);
 
     // clear the old rows
-    main_schema_table.selectAll("tbody").remove();
+    vw_characteristics_table.selectAll("tbody").remove();
 
     // add the rows
-    let rows = main_schema_table.append("tbody")
+    let rows = vw_characteristics_table.append("tbody")
         .selectAll("tr")
         .data(data)
         .join("tr");
@@ -757,108 +775,14 @@ function update_table(data)
         });
 }
 
-function schema_save()
+function enforce_precision(precision, detail_id)
 {
-    // request confirmation
-    if (!confirm("This action will modify information in the database and cannot be reverted. Continue?")) {
-        return;
-    }
-
-    // declare the table's data
-    let table_data = main_schema_table.select("tbody").selectAll("td").data();
-
-    // get required parameters
-    let schema_id = table_data[0].row.schema_id;
-
-    // build the data object
-    let data = [];
-    table_data.forEach(element => {
-        if (data.some((e) => e.detail_id == element.row.detail_id)) {
-            data.filter((e) => e.detail_id == element.row.detail_id)[0]
-                .contents.push({
-                    key: element.column.key,
-                    value: element.row.value
-                });
-        }
-        else {
-            data.push({
-                detail_id: element.row.detail_id,
-                contents: [{
-                    key: element.column.key,
-                    value: element.row.value
-                }]
-            });
-        }
-    });
-
-    // query the flask server
-    d3.json("/characteristic_schemas/save_current_characteristic_schema/", {
-        method: "POST",
-        body: JSON.stringify({
-            schema_id: schema_id,
-            data: data
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok_func") {
-            alert(json.response);
-        }
-        else if (json.status == "ok_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
-            alert(json.response);
-        }
-    });
-}
-
-function schema_lock()
-{
-    // request confirmation
-    if (!confirm("This action will modify information in the database and cannot be reverted. Continue?")) {
-        return;
-    }
-
-    // declare the table's data
-    let table_data = main_schema_table.select("tbody").selectAll("td").data();
-
-    // get required parameters
-    let schema_id = table_data[0].row.schema_id;
-
-    // query the flask server
-    d3.json("/characteristic_schemas/lock_schema/", {
-        method: "POST",
-        body: JSON.stringify({
-            schema_id: schema_id
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok_func") {
-            alert(json.response);
-        }
-        else if (json.status == "ok_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
-            alert(json.response);
-        }
-    });
+    vw_characteristics_table.select("tbody").selectAll("td").selectAll("input")
+        .property("value", (x) => {
+            if (x.column.datatype == "decimal" && x.row.detail_id == detail_id) {
+                return x.row.value.toFixed(precision);
+            }
+        });
 }
 
 // #endregion
@@ -876,7 +800,7 @@ function toggle_options(destination_arg, open_width)
         else {
             document.getElementById("schemas_sidebar").style.width = open_width;
             document.getElementById("schemas_btn").style.marginRight = open_width;
-            update_filtered_schemas();
+            schemas_update_filtered_schemas();
         }
     }
 }
