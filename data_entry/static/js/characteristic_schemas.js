@@ -134,6 +134,13 @@ function setup_context_menus()
 
         // reload schema
         vw_characteristics_table_contextmenu.select("#context_menu_0").on("click", () => {
+
+            // request confirmation
+            if (!confirm("This action will erase any progress on the current schema. Continue?")) {
+                vw_characteristics_table_contextmenu.style("display", "none");
+                return;
+            }
+
             view_get_schema_characteristics(row_data.schema_id);
             vw_characteristics_table_contextmenu.style("display", "none");
         });
@@ -669,6 +676,9 @@ function view_repopulate_schema_characteristics_table(data)
         .property("disabled", (x) => x.row.is_locked)
         .on("change", (e, x) => {
             x.row.value = parseFloat(e.srcElement.value);
+            if (x.column.datatype == "decimal") {
+                e.srcElement.value = x.row.value.toFixed(x.row.precision);
+            }
             if (x.column.key == "precision") {
                 enforce_precision(x.row.value, x.row.detail_id);
             }
