@@ -25,11 +25,11 @@ var gauge_types = null;
 
 // main schema table columns
 const table_columns = [
-    { display: "Name",                  key: "name",                    type: "input", datatype: "string"},
-    { display: "Nominal",               key: "nominal",                 type: "input", datatype: "decimal"},
-    { display: "USL",                   key: "usl",                     type: "input", datatype: "decimal"},
-    { display: "LSL",                   key: "lsl",                     type: "input", datatype: "decimal"},
-    { display: "Precision",             key: "precision",               type: "input", datatype: "integer"},
+    { display: "Name",                  key: "name",                    type: "input",  datatype: "string"},
+    { display: "Nominal",               key: "nominal",                 type: "input",  datatype: "decimal"},
+    { display: "USL",                   key: "usl",                     type: "input",  datatype: "decimal"},
+    { display: "LSL",                   key: "lsl",                     type: "input",  datatype: "decimal"},
+    { display: "Precision",             key: "precision",               type: "input",  datatype: "integer"},
     { display: "Specification Type",    key: "specification_type_id",   type: "select", datatype: "integer"},
     { display: "Characteristic Type",   key: "characteristic_type_id",  type: "select", datatype: "integer"},
     { display: "Frequency Type",        key: "frequency_type_id",       type: "select", datatype: "integer"},
