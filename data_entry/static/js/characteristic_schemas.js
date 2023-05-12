@@ -51,7 +51,7 @@ function init()
     // panels
     prepare_schema_panel();
 
-    // schema view table
+    // context menus
     setup_context_menus();
 }
 
@@ -202,6 +202,8 @@ function prepare_schema_panel()
 
     // select events
     sc_select_is_locked.on("change", schemas_update_filtered_schemas);
+
+    // button events
     sc_button_create.on("click", schemas_create_new_schema);
     sc_button_add_row.on("click", schemas_add_row);
     sc_button_remove_row.on("click", schemas_remove_row);

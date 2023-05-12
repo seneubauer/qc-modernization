@@ -3,12 +3,12 @@
 const navbar_info = d3.select("#navbar_info");
 
 // characteristics
-const main_characteristic_table = d3.select("#main_char_table");
-const char_table_context_menu = document.getElementById("char_context_menu");
-const char_table_scope = document.querySelector("#main_char_table");
+const vw_characteristics_table = d3.select("#characteristics_view_characteristics_table");
+const vw_characteristics_table_contextmenu = d3.select("#characteristics_view_characteristics_table_contextmenu");
 
 // inspection_reports
-const ir_button_create = d3.select("#inspection_report_create_new_btn");
+const ir_button_create_new_report = d3.select("#inspection_report_create_new_report_btn");
+const ir_button_add_check_set = d3.select("#inspection_report_add_check_set_btn")
 const ir_input_new_part_filter = d3.select("#inspection_report_part_filter");
 const ir_select_new_part = d3.select("#inspection_report_part");
 const ir_input_new_employee_filter = d3.select("#inspection_report_employee_filter");
@@ -22,7 +22,7 @@ const ir_input_finished_before = d3.select("#inspection_report_filter_finished_b
 const ir_ul_list = d3.select("#inspection_report_filtered_list");
 
 // characteristic display
-const cd_button_apply = d3.select("#characteristic_display_apply");
+const cd_button_update_display = d3.select("#characteristic_display_apply");
 const cd_select_display_type = d3.select("#characteristic_display_type");
 const cd_input_name = d3.select("#characteristic_display_name");
 const cd_select_frequency_type = d3.select("#characteristic_display_frequency_type");
@@ -47,20 +47,23 @@ const md_select_supplier = d3.select("#metadata_supplier");
 const md_ul_quantities = d3.select("#metadata_quantity_list");
 
 // receiver numbers
-const rn_input_search_term = d3.select("#receiver_numbers_search_term");
+const rn_input_selected_search_term = d3.select("#receiver_numbers_selected_search_term");
 const rn_select_selected = d3.select("#receiver_numbers_selected");
+const rn_input_search_term = d3.select("#receiver_numbers_search_term");
 const rn_button_add = d3.select("#receiver_numbers_add");
 const rn_ul_list = d3.select("#receiver_numbers_list");
 
 // purchase orders
-const po_input_search_term = d3.select("#purchase_orders_search_term");
+const po_input_selected_search_term = d3.select("#purchase_orders_selected_search_term");
 const po_select_selected = d3.select("#purchase_orders_selected");
+const po_input_search_term = d3.select("#purchase_orders_search_term");
 const po_button_add = d3.select("#purchase_orders_add");
 const po_ul_list = d3.select("#purchase_orders_list");
 
 // lot numbers
-const ln_input_search_term = d3.select("#lot_numbers_search_term");
+const ln_input_selected_search_term = d3.select("#lot_numbers_selected_search_term");
 const ln_select_selected = d3.select("#lot_numbers_selected");
+const ln_input_search_term = d3.select("#lot_numbers_search_term");
 const ln_button_add = d3.select("#lot_numbers_add");
 const ln_ul_list = d3.select("#lot_numbers_list");
 
@@ -70,6 +73,11 @@ const dv_button_add = d3.select("#deviations_add");
 const dv_button_remove = d3.select("#deviations_remove");
 const dv_input_notes = d3.select("#deviations_notes");
 const dv_ul_list = d3.select("#deviations_list");
+
+// enumerations
+var employees = null;
+var gauge_ids = null;
+var current_inspection_id = null;
 
 // main characteristic table columns
 const char_table_columns = [
@@ -95,117 +103,161 @@ init();
 
 function init()
 {
+    // retrieve lists
+    retrieve_global_enumerations();
+
     // populate selectors
     populate_generic_selectors();
 
-    // characteristic table
-    char_table_scope.addEventListener("contextmenu", (e) => {
-        if (e.target.tagName != "TH") {
-            e.preventDefault();
-            const { clientX: mouseX, clientY: mouseY } = e;
-            char_table_context_menu.style.top = `${mouseY}px`;
-            char_table_context_menu.style.left = `${mouseX}px`;
-            char_table_context_menu.classList.add("visible");
+    // panels
+    prepare_inspection_reports_panel();
+    prepare_characteristic_display_panel();
+    prepare_metadata_panel();
+    prepare_receiver_numbers_panel();
+    prepare_purchase_orders_panel();
+    prepare_lot_numbers_panel();
+    prepare_deviations_panel();
 
-            // tunnel to physical part
-            d3.select("#context_menu_0").on("click", () => {
-                cd_select_part_index.property("value", e.target.__data__.row.part_index);
-                get_filtered_characteristics();
-                char_table_context_menu.classList.remove("visible");
-            });
+    // context menus
+    setup_context_menus();
+}
 
-            // requery the database
-            d3.select("#context_menu_1").on("click", () => {
-                get_filtered_characteristics();
-                char_table_context_menu.classList.remove("visible");
-            });
-
-            // view the associated deviations
-            d3.select("#context_menu_2").on("click", () => {
-                if (e.target.__data__.row.has_deviations) {
-                    populate_deviations(e.target.__data__.row.characteristic_id);
-                    toggle_options("deviations", "1000px");
-                }
-                char_table_context_menu.classList.remove("visible");
-            });
-
-            // save the characteristics
-            d3.select("#context_menu_3").on("click", () => {
-                submit_current_characteristics();
-                char_table_context_menu.classList.remove("visible");
-            });
+function retrieve_global_enumerations()
+{
+    // employees
+    d3.json("/get_all_employees/", {
+        method: "GET"
+    }).then((json) => {
+        if (json.status == "ok") {
+            employees = json.response;
         }
-    });
-    char_table_scope.addEventListener("click", (e) => {
-        if (e.target.offsetParent != char_table_context_menu) {
-            char_table_context_menu.classList.remove("visible");
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
         }
     });
 
-    // inspection reports
-    ir_input_new_part_filter.on("keydown", (x) => {
-        if (x.keyCode == 13) {
-            update_new_inspection_report_selectors();
+    // gauges
+    d3.json("/get_all_gauges/", {
+        method: "GET"
+    }).then((json) => {
+        if (json.status == "ok") {
+            gauge_ids = json.response;
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
         }
     });
-    ir_input_new_employee_filter.on("keydown", (x) => {
-        if (x.keyCode == 13) {
-            update_new_inspection_report_selectors();
+}
+
+function setup_context_menus()
+{
+    // open the characteristic table context menu
+    vw_characteristics_table.on("contextmenu", (e) => {
+        
+        // extract data
+        let row_data = e.target.__data__.row;
+
+        // position and show the context menu
+        vw_characteristics_table_contextmenu.style("position", "absolute")
+            .style("left", `${e.pageX}px`)
+            .style("top", `${e.pageY}px`)
+            .style("display", "block");
+
+        // reload schema
+        vw_characteristics_table_contextmenu.select("#context_menu_0").on("click", () => {
+
+            // request confirmation
+            if (!confirm("This action will erase any progress on the current schema. Continue?")) {
+                vw_characteristics_table_contextmenu.style("display", "none");
+                return;
+            }
+
+            view_get_schema_characteristics(row_data.schema_id);
+            vw_characteristics_table_contextmenu.style("display", "none");
+        });
+
+        // prevent the default behavior
+        e.preventDefault();
+    });
+    vw_characteristics_table.on("click", () => {
+        if (vw_characteristics_table_contextmenu.style("display") == "block") {
+            vw_characteristics_table_contextmenu.style("display", "none");
         }
     });
-    ir_input_char_schema_filter.on("keydown", (x) => {
-        if (x.keyCode == 13) {
-            update_characteristic_schema_selector();
-        }
-    });
-    ir_input_started_after.on("keydown", (x) => {
-        if (x.keyCode == 13) {
-            update_filtered_inspection_reports();
-        }
-    });
-    ir_input_finished_before.on("keydown", (x) => {
-        if (x.keyCode == 13) {
-            update_filtered_inspection_reports();
-        }
-    });
-    ir_button_create.on("click", inspection_report_create_new);
-    ir_select_filter_part.on("change", update_filtered_inspection_reports);
-    ir_select_filter_job_order.on("change", update_filtered_inspection_reports);
+}
+
+function prepare_inspection_reports_panel()
+{
+    // input events
+    ir_input_new_part_filter.on("change", inspection_reports_update_part_id_selector);
+    ir_input_new_employee_filter.on("change", inspection_reports_update_employee_selector);
+    ir_input_char_schema_filter.on("change", inspection_reports_update_characteristic_schemas);
+    ir_input_started_after.on("change", inspection_reports_update_filtered_reports);
+    ir_input_finished_before.on("change", inspection_reports_update_filtered_reports);
+
+    // select events
+    ir_select_filter_part.on("change", inspection_reports_update_filtered_reports);
+    ir_select_filter_job_order.on("change", inspection_reports_update_filtered_reports);
+
+    // button events
+    ir_button_create_new_report.on("click", inspection_reports_create_new_report);
+    ir_button_add_check_set.on("click", inspection_reports_add_check_set);
+
+    // default values
     ir_input_started_after.property("value", "1970-01-01");
     ir_input_finished_before.property("value", "2100-01-01");
+}
 
-    // characteristic display
-    cd_button_apply.on("click", () => get_filtered_characteristics());
-    cd_button_apply.on("change", () => get_filtered_characteristics());
+function prepare_characteristic_display_panel()
+{
+    // button events
+    cd_button_update_display.on("click", () => characteristic_display_retrieve_characteristics());
+}
 
-    // metadata
+function prepare_metadata_panel()
+{
+    // button events
     md_button_save.on("click", metadata_save);
+}
 
-    // receiver numbers
-    rn_input_search_term.on("keydown", (x) => {
-        if (x.keyCode == 13) {
-            update_filtered_receiver_numbers(-1);
-        }
-    });
-    rn_button_add.on("click", assign_receiver_number_association);
+function prepare_receiver_numbers_panel()
+{
+    // input events
+    rn_input_selected_search_term.on("change", reciever_numbers_update_filtered_selector);
+    rn_input_search_term.on("change", () => { receiver_numbers_update_filtered_list(-1); });
 
-    // purchase orders
-    po_input_search_term.on("keydown", (x) => {
-        if (x.keyCode == 13) {
-            update_filtered_purchase_orders(-1);
-        }
-    });
-    po_button_add.on("click", assign_purchase_order_association);
+    // button events
+    rn_button_add.on("click", reciever_numbers_assign_association);
+}
 
-    // lot numbers
-    ln_input_search_term.on("keydown", (x) => {
-        if (x.keyCode == 13) {
-            update_filtered_lot_numbers(-1);
-        }
-    });
-    ln_button_add.on("click", assign_lot_number_association);
+function prepare_purchase_orders_panel()
+{
+    // input events
+    po_input_selected_search_term.on("change", purchase_orders_update_filtered_selector);
+    po_input_search_term.on("change", () => { purchase_orders_update_filtered_list(-1); });
 
-    // deviations
+    // button events
+    po_button_add.on("click", purchase_orders_assign_association);
+}
+
+function prepare_lot_numbers_panel()
+{
+    // input events
+    ln_input_selected_search_term.on("change", lot_numbers_update_filtered_selector);
+    ln_input_search_term.on("change", () => { lot_numbers_update_filtered_list(-1); });
+
+    // button events
+    ln_button_add.on("click", lot_numbers_assign_association);
+}
+
+function prepare_deviations_panel()
+{
     dv_button_save.on("click", deviations_save);
     dv_button_add.on("click", deviations_add);
     dv_button_remove.on("click", deviations_remove);
@@ -214,12 +266,15 @@ function init()
 function populate_generic_selectors()
 {
     // inspection reports
-    d3.json("/data_entry/get_all_item_drawing_combinations/", {
+    inspection_reports_update_part_id_selector();
+    inspection_reports_update_employee_selector();
+    inspection_reports_update_characteristic_schemas();
+    d3.json("/get_all_parts/", {
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
             // clear the old entries
             ir_select_filter_part.selectAll("option").remove();
@@ -233,22 +288,6 @@ function populate_generic_selectors()
                 .enter()
                 .append("option")
                 .attr("value", (x) => x.id)
-                .attr("data-item", (x) => {
-                    if (x.id > 0) {
-                        return x.item;
-                    }
-                    else {
-                        return "";
-                    }
-                })
-                .attr("data-drawing", (x) => {
-                    if (x.id > 0) {
-                        return x.drawing;
-                    }
-                    else {
-                        return "";
-                    }
-                })
                 .text((x) => {
                     if (x.id > 0) {
                         return `${x.item}, ${x.drawing}`;
@@ -257,16 +296,10 @@ function populate_generic_selectors()
                         return "n/a";
                     }});
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
@@ -275,7 +308,7 @@ function populate_generic_selectors()
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
             // clear the old entries
             ir_select_filter_job_order.selectAll("option").remove();
@@ -298,43 +331,13 @@ function populate_generic_selectors()
                     }
                 });
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
-    update_new_inspection_report_selectors();
-    update_characteristic_schema_selector();
-
-    // characteristic display
-    cd_select_display_type.selectAll("option")
-        .data([
-            { id: 0, name: "Data Entry" },
-            { id: 1, name: "Metadata" },
-            { id: 2, name: "All" }
-        ])
-        .enter()
-        .append("option")
-        .attr("value", (x) => x.id)
-        .text((x) => x.name);
-    cd_select_has_deviations.selectAll("option")
-        .data([
-            { id: -1, name: "n/a" },
-            { id: 0, name: "False" },
-            { id: 1, name: "True" }
-        ])
-        .enter()
-        .append("option")
-        .attr("value", (x) => x.id)
-        .text((x) => x.name);
 
     // metadata
     d3.json("/get_all_disposition_types/", {
@@ -342,7 +345,7 @@ function populate_generic_selectors()
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
             // clear the old entries
             md_select_disposition.selectAll("option").remove();
@@ -355,16 +358,10 @@ function populate_generic_selectors()
                 .attr("value", (x) => x.id)
                 .text((x) => x.name);
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
@@ -373,7 +370,7 @@ function populate_generic_selectors()
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
             // clear the old entries
             md_select_material_type.selectAll("option").remove();
@@ -386,16 +383,10 @@ function populate_generic_selectors()
                 .attr("value", (x) => x.id)
                 .text((x) => x.name);
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
@@ -404,7 +395,7 @@ function populate_generic_selectors()
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
             // clear the old entries
             md_select_inspector.selectAll("option").remove();
@@ -426,16 +417,10 @@ function populate_generic_selectors()
                         return "n/a";
                     }});
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
@@ -444,7 +429,7 @@ function populate_generic_selectors()
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
             // clear the old entries
             md_select_job_order.selectAll("option").remove();
@@ -466,16 +451,10 @@ function populate_generic_selectors()
                         return "n/a";
                     }});
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
@@ -484,7 +463,7 @@ function populate_generic_selectors()
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
             // clear the old entries
             md_select_supplier.selectAll("option").remove();
@@ -506,52 +485,16 @@ function populate_generic_selectors()
                         return "n/a";
                     }});
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
 
     // receiver numbers
-    d3.json("/get_all_receiver_numbers/", {
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok_func") {
-
-            // clear the old entries
-            rn_select_selected.selectAll("option").remove();
-
-            // populate the item numbers
-            rn_select_selected.selectAll("option")
-                .data(json.response)
-                .enter()
-                .append("option")
-                .attr("value", (x) => x.id)
-                .text((x) => x.name);
-        }
-        else if (json.status == "ok_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
-            alert(json.response);
-        }
-    });
+    reciever_numbers_update_filtered_selector();
 
     // purchase orders
     d3.json("/get_all_purchase_orders/", {
@@ -559,7 +502,7 @@ function populate_generic_selectors()
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
             // clear the old entries
             po_select_selected.selectAll("option").remove();
@@ -572,16 +515,10 @@ function populate_generic_selectors()
                 .attr("value", (x) => x.id)
                 .text((x) => x.name);
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
@@ -592,7 +529,7 @@ function populate_generic_selectors()
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
             // clear the old entries
             ln_select_selected.selectAll("option").remove();
@@ -605,16 +542,10 @@ function populate_generic_selectors()
                 .attr("value", (x) => x.id)
                 .text((x) => x.name);
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
@@ -624,39 +555,26 @@ function populate_generic_selectors()
 
 // #region inspection reports
 
-function inspection_report_create_new()
+function inspection_reports_create_new_report()
 {
-    // confirm the identity parameter
-    let part_id = ir_select_new_part.property("value");
-    let employee_id = ir_select_new_employee.property("value");
-    let schema_id = ir_select_char_schema.property("value");
-
-    // query the flask server
-    d3.json("/data_entry/create_new_inspection_report/", {
+    d3.json("/data_entry/inspection_reports_create_new_report/", {
         method: "POST",
         body: JSON.stringify({
-            part_id: part_id,
-            employee_id: employee_id,
-            schema_id: schema_id
+            part_id: ir_select_new_part.property("value"),
+            employee_id: ir_select_new_employee.property("value"),
+            schema_id: ir_select_char_schema.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
-            
-            update_filtered_inspection_reports();
+        if (json.status == "ok") {
+
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
@@ -667,137 +585,64 @@ function inspection_reports_add_check_set()
 
 }
 
-function inspection_report_selected(data)
+function inspection_reports_delete(report_id)
 {
-    // update the main display
-    navbar_info.text(`${data.item} // ${data.drawing}`);
 
-    // characteristic display
-    get_filtered_characteristics(data.inspection_id, data.item, data.drawing);
-    update_filter_selectors(data.inspection_id, data.item, data.drawing);
-
-    // metadata
-    populate_metadata(data);
-
-    // receiver numbers
-    update_filtered_receiver_numbers(data.inspection_id);
-
-    // purchase orders
-    update_filtered_purchase_orders(data.inspection_id);
-
-    // lot numbers
-    update_filtered_lot_numbers(data.inspection_id);
 }
 
-function update_filtered_inspection_reports()
+function inspection_reports_update_filtered_reports()
 {
-    // get the raw values
-    let started_after = new Date(ir_input_started_after.property("value") + "T00:00:00");
-    let finished_before = new Date(ir_input_finished_before.property("value") + "T00:00:00");
-    let part_item = ir_select_filter_part.attr("data-item");
-    let part_drawing = ir_select_filter_part.attr("data-drawing");
-    let job_order_id = ir_select_filter_job_order.property("value");
-
-    // logic gates
-    if (started_after instanceof Date && !isNaN(started_after)) {
-        started_after = new Date(1970, 0, 1);
-    }
-    if (finished_before instanceof Date && !isNaN(finished_before)) {
-        finished_before = new Date(2100, 0, 1);
-    }
-    if (part_item == undefined) {
-        part_item = "";
-    }
-    if (part_drawing == undefined) {
-        part_drawing = "";
-    }
-    if (job_order_id == undefined || job_order_id == "") {
-        job_order_id = -1;
-    }
-
-    // parse the dates
-    let start_day = started_after.getDate();
-    let start_month = started_after.getMonth() + 1;
-    let start_year = started_after.getFullYear();
-    let finish_day = finished_before.getDate();
-    let finish_month = finished_before.getMonth() + 1;
-    let finish_year = finished_before.getFullYear();
-
-    // query the flask server
-    d3.json("/data_entry/get_filtered_inspection_reports/", {
+    d3.json("/data_entry/inspection_reports_get_filtered_reports/", {
         method: "POST",
         body: JSON.stringify({
-            item: part_item,
-            drawing: part_drawing,
-            job_order_id: job_order_id,
-            start_day: start_day,
-            start_month: start_month,
-            start_year: start_year,
-            finish_day: finish_day,
-            finish_month: finish_month,
-            finish_year: finish_year
+            part_id: ir_select_filter_part.property("value"),
+            job_order_id: ir_select_filter_job_order.property("value"),
+            started_after: ir_input_started_after.property("value"),
+            finished_before: ir_input_finished_before.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
-            // clear the old entries
-            ir_ul_list.selectAll("li").remove();
-
-            // populate the inspection reports list
-            let items = ir_ul_list.selectAll("li")
-                .data(json.response)
-                .enter()
-                .append("li")
-                .append("div")
-                .attr("class", "list-item-dark")
-                .style("--grid-template-columns", "1fr 1fr 1fr")
-                .on("click", (_, d) => inspection_report_selected(d));
-            items.append("label")
-                .style("--grid-column", "1")
-                .style("--grid-row", "1")
-                .style("border-radius", "6px 0px 0px 6px")
-                .attr("class", "list-item-label-dark")
-                .text((x) => x.item);
-            items.append("label")
-                .style("--grid-column", "2")
-                .style("--grid-row", "1")
-                .attr("class", "list-item-label-dark")
-                .text((x) => x.drawing);
-            items.append("label")
-                .style("--grid-column", "3")
-                .style("--grid-row", "1")
-                .style("border-radius", "0px 6px 6px 0px")
-                .attr("class", "list-item-label-dark")
-                .text((x) => {
-                    if (x.job_order == null) {
-                        return "n/a";
-                    }
-                    else {
-                        return x.job_order;
-                    }
-                });
+            // repopulate the inspection report list
+            inspection_reports_repopulate_report_list(json.response);
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
 }
 
-function update_new_inspection_report_selectors()
+function inspection_reports_report_selected(data)
 {
-    // query the flask server
+    // update the main display
+    navbar_info.text(`${data.item} // ${data.drawing}`);
+    current_inspection_id = data.inspection_id;
+
+    // characteristic display
+    characteristic_display_retrieve_characteristics(data.inspection_id, data.item, data.drawing);
+    characteristic_display_update_filter_selectors(data.inspection_id, data.item, data.drawing);
+
+    // metadata
+    metadata_repopulate_controls(data);
+
+    // receiver numbers
+    receiver_numbers_update_filtered_list(data.inspection_id);
+
+    // purchase orders
+    purchase_orders_update_filtered_list(data.inspection_id);
+
+    // lot numbers
+    lot_numbers_update_filtered_list(data.inspection_id);
+}
+
+function inspection_reports_update_part_id_selector()
+{
     d3.json("/data_entry/get_filtered_parts/", {
         method: "POST",
         body: JSON.stringify({
@@ -807,7 +652,7 @@ function update_new_inspection_report_selectors()
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
             // clear the old entries
             ir_select_new_part.selectAll("option").remove();
@@ -821,21 +666,17 @@ function update_new_inspection_report_selectors()
                 .text((x) => x.part_name);
             ir_select_new_part.property("value", json.response[0].id)
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
+}
 
-    // query the flask server
+function inspection_reports_update_employee_selector()
+{
     d3.json("/data_entry/get_filtered_employees/", {
         method: "POST",
         body: JSON.stringify({
@@ -845,7 +686,7 @@ function update_new_inspection_report_selectors()
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
             // clear the old entries
             ir_select_new_employee.selectAll("option").remove();
@@ -859,24 +700,17 @@ function update_new_inspection_report_selectors()
                 .text((x) => x.name);
                 ir_select_new_employee.property("value", json.response[0].id)
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
 }
 
-function update_characteristic_schema_selector()
+function inspection_reports_update_characteristic_schemas()
 {
-    // query the flask server
     d3.json("/data_entry/get_filtered_characteristic_schemas/", {
         method: "POST",
         body: JSON.stringify({
@@ -886,7 +720,7 @@ function update_characteristic_schema_selector()
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
             // clear the old entries
             ir_select_char_schema.selectAll("option").remove();
@@ -899,26 +733,60 @@ function update_characteristic_schema_selector()
                 .attr("value", (x) => x.schema_id)
                 .text((x) => x.name);
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
+}
+
+function inspection_reports_repopulate_report_list(data)
+{
+    // clear the old entries
+    ir_ul_list.selectAll("li").remove();
+
+    // populate the inspection reports list
+    let items = ir_ul_list.selectAll("li")
+        .data(data)
+        .enter()
+        .append("li")
+        .append("div")
+        .attr("class", "list-item-dark")
+        .style("--grid-template-columns", "1fr 1fr 1fr")
+        .on("click", (_, d) => inspection_reports_report_selected(d));
+    items.append("label")
+        .style("--grid-column", "1")
+        .style("--grid-row", "1")
+        .style("border-radius", "6px 0px 0px 6px")
+        .attr("class", "list-item-label-dark")
+        .text((x) => x.item);
+    items.append("label")
+        .style("--grid-column", "2")
+        .style("--grid-row", "1")
+        .attr("class", "list-item-label-dark")
+        .text((x) => x.drawing);
+    items.append("label")
+        .style("--grid-column", "3")
+        .style("--grid-row", "1")
+        .style("border-radius", "0px 6px 6px 0px")
+        .attr("class", "list-item-label-dark")
+        .text((x) => {
+            if (x.job_order == null) {
+                return "n/a";
+            }
+            else {
+                return x.job_order;
+            }
+        });
 }
 
 // #endregion
 
 // #region characteristic display
 
-function update_filter_selectors(inspection_id, item, drawing)
+function characteristic_display_update_filter_selectors(inspection_id, item, drawing)
 {
     // query the flask server
     d3.json("/data_entry/get_filter_selector_lists/", {
@@ -1029,7 +897,7 @@ function update_filter_selectors(inspection_id, item, drawing)
     });
 }
 
-function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "")
+function characteristic_display_retrieve_characteristics(inspection_id = -1, item = "", drawing = "")
 {
     // confirm the identity parameters
     if (inspection_id == -1) {
@@ -1102,10 +970,10 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
         if (json.status == "ok_func") {
 
             // clear the old columns
-            main_characteristic_table.selectAll("thead").remove();
+            vw_characteristics_table.selectAll("thead").remove();
 
             // add the columns
-            main_characteristic_table.append("thead")
+            vw_characteristics_table.append("thead")
                 .selectAll("tr")
                 .data(char_table_columns)
                 .enter()
@@ -1119,10 +987,10 @@ function get_filtered_characteristics(inspection_id = -1, item = "", drawing = "
                 });
 
             // clear the old rows
-            main_characteristic_table.selectAll("tbody").remove();
+            vw_characteristics_table.selectAll("tbody").remove();
 
             // add the rows
-            let rows = main_characteristic_table.append("tbody")
+            let rows = vw_characteristics_table.append("tbody")
                 .selectAll("tr")
                 .data(json.response.characteristics)
                 .enter()
@@ -1283,7 +1151,7 @@ function submit_current_characteristics()
     // extract the modified data
     let checks_data = [];
     let characteristics_data = [];
-    main_characteristic_table.selectAll("tbody").selectAll("td").data().forEach(element => {
+    vw_characteristics_table.selectAll("tbody").selectAll("td").data().forEach(element => {
         switch (element.column.key) {
             case "part_index" || "employee_id":
                 if (element.column.type == "input" || element.column.type == "select") {
@@ -1361,7 +1229,7 @@ function submit_current_characteristics()
 
 // #region metadata
 
-function populate_metadata(data)
+function metadata_repopulate_controls(data)
 {
     // populate the static values
     md_label_identity.text(`${data.item} // ${data.drawing}`);
@@ -1530,19 +1398,115 @@ function metadata_save()
 
 // #region receiver numbers
 
-function update_filtered_receiver_numbers(inspection_id = -1)
+function reciever_numbers_assign_association()
+{
+    // request confirmation
+    if (!confirm("This action will write to the database and cannot be reverted. Continue?")) {
+        return;
+    }
+
+    // query the flask server
+    d3.json("/data_entry/reciever_numbers_assign_association/", {
+        method: "POST",
+        body: JSON.stringify({
+            search_term: rn_input_search_term.property("value"),
+            inspection_id: current_inspection_id,
+            receiver_number_id: rn_select_selected.property("value")
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            // repopulate the filtered list
+            receiver_numbers_repopulate_list(json.response);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+function reciever_numbers_remove_association(data)
+{
+    // request confirmation
+    if (!confirm("This action will remove records from the database and cannot be reverted. Continue?")) {
+        return;
+    }
+
+    // query the flask server
+    d3.json("/data_entry/reciever_numbers_remove_association/", {
+        method: "POST",
+        body: JSON.stringify({
+            search_term: rn_input_search_term.property("value"),
+            inspection_id: data.inspection_id,
+            receiver_number_id: data.id
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            // repopulate the filtered list
+            receiver_numbers_repopulate_list(json.response);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+function reciever_numbers_update_filtered_selector()
+{
+    d3.json("/data_entry/receiver_numbers_get_filtered_options/", {
+        method: "POST",
+        body: JSON.stringify({
+            search_term: rn_input_selected_search_term.property("value")
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            // clear the old entries
+            rn_select_selected.selectAll("option").remove();
+
+            // populate the selector
+            rn_select_selected.selectAll("option")
+                .data(json.response)
+                .enter()
+                .append("option")
+                .attr("value", (x) => x.id)
+                .text((x) => x.name);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+function receiver_numbers_update_filtered_list(inspection_id)
 {
     // get the input parameters
     let search_term = rn_input_search_term.property("value");
     if (inspection_id == -1) {
-        inspection_id = md_label_identity.attr("data-inspection_id");
-        if (inspection_id == undefined) {
-            return;
-        }
+        inspection_id = current_inspection_id;
     }
 
     // query the flask server
-    d3.json("/data_entry/get_filtered_receiver_numbers/", {
+    d3.json("/data_entry/receiver_numbers_get_filtered_associations/", {
         method: "POST",
         body: JSON.stringify({
             inspection_id: inspection_id,
@@ -1552,590 +1516,393 @@ function update_filtered_receiver_numbers(inspection_id = -1)
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
-            // clear the old entries
-            rn_ul_list.selectAll("li").remove();
-
-            // populate the receiver numbers
-            let items = rn_ul_list.selectAll("li")
-                .data(json.response)
-                .enter()
-                .append("li")
-                .append("div")
-                .attr("class", "list-item-dark")
-                .style("--grid-template-columns", "3fr 1fr");
-            items.append("label")
-                .style("--grid-column", "1")
-                .style("--grid-row", "1")
-                .style("text-align", "left")
-                .style("border-radius", "6px 0px 0px 6px")
-                .attr("class", "list-item-label-dark")
-                .text((x) => x.name);
-            items.append("button")
-                .style("--grid-column", "2")
-                .style("--grid-row", "1")
-                .style("border-radius", "0px 6px 6px 0px")
-                .attr("class", "list-item-button-dark")
-                .text("Delete")
-                .on("click", (_, d) => remove_receiver_number_association(d));
+            // repopulate the filtered list
+            receiver_numbers_repopulate_list(json.response);
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
 }
 
-function assign_receiver_number_association()
+function receiver_numbers_repopulate_list(data)
 {
-    // request confirmation
-    if (!confirm("This action will write to the database and cannot be reverted. Continue?")) {
-        return;
-    }
-
-    // get the input parameters
-    let search_term = rn_input_search_term.property("value");
-    let inspection_id = md_label_identity.attr("data-inspection_id");
-    let receiver_number_id = rn_select_selected.property("value");
+    // clear the old entries
+    rn_ul_list.selectAll("li").remove();
 
     // logic gate
-    if (inspection_id == undefined) {
+    if (data.size == 0) {
+        console.log(data.message);
         return;
     }
 
-    // query the flask server
-    d3.json("/data_entry/assign_receiver_number_association/", {
-        method: "POST",
-        body: JSON.stringify({
-            search_term: search_term,
-            inspection_id: inspection_id,
-            receiver_number_id: receiver_number_id
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok_func") {
-
-            // clear the old entries
-            rn_ul_list.selectAll("li").remove();
-
-            // populate the receiver numbers
-            let items = rn_ul_list.selectAll("li")
-                .data(json.response)
-                .enter()
-                .append("li")
-                .append("div")
-                .attr("class", "grid_container_item")
-                .style("--grid-template-columns", "3fr 1fr");
-            items.append("label")
-                .style("--grid-column", "1")
-                .style("--grid-row", "1")
-                .style("text-align", "left")
-                .style("border-radius", "6px 0px 0px 6px")
-                .text((x) => x.name);
-            items.append("button")
-                .style("--grid-column", "2")
-                .style("--grid-row", "1")
-                .style("border-radius", "0px 6px 6px 0px")
-                .text("Delete")
-                .on("click", (_, d) => console.log(d));
-        }
-        else if (json.status == "ok_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
-            alert(json.response);
-        }
-    });
-}
-
-function remove_receiver_number_association(data)
-{
-    // request confirmation
-    if (!confirm("This action will remove records from the database and cannot be reverted. Continue?")) {
-        return;
-    }
-
-    // get the input arguments
-    let search_term = rn_input_search_term.property("value");
-    let receiver_number_id = data.id;
-    let inspection_id = data.inspection_id;
-
-    // query the flask server
-    d3.json("/data_entry/remove_receiver_number_association/", {
-        method: "POST",
-        body: JSON.stringify({
-            search_term: search_term,
-            inspection_id: inspection_id,
-            receiver_number_id: receiver_number_id
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok_func") {
-
-            // clear the old entries
-            rn_ul_list.selectAll("li").remove();
-
-            // populate the receiver numbers
-            let items = rn_ul_list.selectAll("li")
-                .data(json.response)
-                .enter()
-                .append("li")
-                .append("div")
-                .attr("class", "grid_container_item")
-                .style("--grid-template-columns", "3fr 1fr");
-            items.append("label")
-                .style("--grid-column", "1")
-                .style("--grid-row", "1")
-                .style("text-align", "left")
-                .style("border-radius", "6px 0px 0px 6px")
-                .text((x) => x.name);
-            items.append("button")
-                .style("--grid-column", "2")
-                .style("--grid-row", "1")
-                .style("border-radius", "0px 6px 6px 0px")
-                .text("Delete")
-                .on("click", (_, d) => console.log(d));
-        }
-        else if (json.status == "ok_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
-            alert(json.response);
-        }
-    });
+    // populate the receiver numbers
+    let items = rn_ul_list.selectAll("li")
+        .data(data.data)
+        .enter()
+        .append("li")
+        .append("div")
+        .attr("class", "list-item-dark")
+        .style("--grid-template-columns", "3fr 1fr");
+    items.append("label")
+        .style("--grid-column", "1")
+        .style("--grid-row", "1")
+        .style("text-align", "left")
+        .style("border-radius", "6px 0px 0px 6px")
+        .attr("class", "list-item-label-dark")
+        .text((x) => x.name);
+    items.append("button")
+        .style("--grid-column", "2")
+        .style("--grid-row", "1")
+        .style("border-radius", "0px 6px 6px 0px")
+        .attr("class", "list-item-button-dark")
+        .text("Delete")
+        .on("click", (_, d) => reciever_numbers_remove_association(d));
 }
 
 // #endregion
 
 // #region purchase orders
 
-function update_filtered_purchase_orders(inspection_id = -1)
-{
-    // get the input parameters
-    let search_term = po_input_search_term.property("value");
-    if (inspection_id == -1) {
-        inspection_id = md_label_identity.attr("data-inspection_id");
-        if (inspection_id == undefined) {
-            return;
-        }
-    }
-
-    // query the flask server
-    d3.json("/data_entry/get_filtered_purchase_orders/", {
-        method: "POST",
-        body: JSON.stringify({
-            inspection_id: inspection_id,
-            search_term: search_term
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok_func") {
-
-            // clear the old entries
-            po_ul_list.selectAll("li").remove();
-
-            // populate the receiver numbers
-            let items = po_ul_list.selectAll("li")
-                .data(json.response)
-                .enter()
-                .append("li")
-                .append("div")
-                .attr("class", "list-item-dark")
-                .style("--grid-template-columns", "3fr 1fr");
-            items.append("label")
-                .style("--grid-column", "1")
-                .style("--grid-row", "1")
-                .style("text-align", "left")
-                .style("border-radius", "6px 0px 0px 6px")
-                .attr("class", "list-item-label-dark")
-                .text((x) => x.name);
-            items.append("button")
-                .style("--grid-column", "2")
-                .style("--grid-row", "1")
-                .style("border-radius", "0px 6px 6px 0px")
-                .attr("class", "list-item-button-dark")
-                .text("Delete")
-                .on("click", (_, d) => remove_purchase_order_association(d));
-        }
-        else if (json.status == "ok_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
-            alert(json.response);
-        }
-    });
-}
-
-function assign_purchase_order_association()
+function purchase_orders_assign_association()
 {
     // request confirmation
     if (!confirm("This action will write to the database and cannot be reverted. Continue?")) {
         return;
     }
 
-    // get the input parameters
-    let search_term = po_input_search_term.property("value");
-    let inspection_id = md_label_identity.attr("data-inspection_id");
-    let purchase_order_id = po_select_selected.property("value");
-
-    // logic gate
-    if (inspection_id == undefined) {
-        return;
-    }
-
     // query the flask server
-    d3.json("/data_entry/assign_purchase_order_association/", {
+    d3.json("/data_entry/purchase_orders_assign_association/", {
         method: "POST",
         body: JSON.stringify({
-            search_term: search_term,
-            inspection_id: inspection_id,
-            purchase_order_id: purchase_order_id
+            search_term: po_input_search_term.property("value"),
+            inspection_id: current_inspection_id,
+            purchase_order_id: po_select_selected.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
-            // clear the old entries
-            po_ul_list.selectAll("li").remove();
-
-            // populate the receiver numbers
-            let items = po_ul_list.selectAll("li")
-                .data(json.response)
-                .enter()
-                .append("li")
-                .append("div")
-                .attr("class", "grid_container_item")
-                .style("--grid-template-columns", "3fr 1fr");
-            items.append("label")
-                .style("--grid-column", "1")
-                .style("--grid-row", "1")
-                .style("text-align", "left")
-                .style("border-radius", "6px 0px 0px 6px")
-                .text((x) => x.name);
-            items.append("button")
-                .style("--grid-column", "2")
-                .style("--grid-row", "1")
-                .style("border-radius", "0px 6px 6px 0px")
-                .text("Delete")
-                .on("click", (_, d) => console.log(d));
+            // repopulate the filtered list
+            purchase_orders_repopulate_list(json.response);
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
 }
 
-function remove_purchase_order_association(data)
+function purchase_orders_remove_association(data)
 {
     // request confirmation
     if (!confirm("This action will remove records from the database and cannot be reverted. Continue?")) {
         return;
     }
 
-    // get the input arguments
-    let search_term = po_input_search_term.property("value");
-    let purchase_order_id = data.id;
-    let inspection_id = data.inspection_id;
-
     // query the flask server
-    d3.json("/data_entry/remove_purchase_order_association/", {
+    d3.json("/data_entry/purchase_orders_remove_association/", {
         method: "POST",
         body: JSON.stringify({
-            search_term: search_term,
-            inspection_id: inspection_id,
-            purchase_order_id: purchase_order_id
+            search_term: po_input_search_term.property("value"),
+            inspection_id: data.inspection_id,
+            purchase_order_id: data.id
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
-            // clear the old entries
-            po_ul_list.selectAll("li").remove();
-
-            // populate the receiver numbers
-            let items = po_ul_list.selectAll("li")
-                .data(json.response)
-                .enter()
-                .append("li")
-                .append("div")
-                .attr("class", "grid_container_item")
-                .style("--grid-template-columns", "3fr 1fr");
-            items.append("label")
-                .style("--grid-column", "1")
-                .style("--grid-row", "1")
-                .style("text-align", "left")
-                .style("border-radius", "6px 0px 0px 6px")
-                .text((x) => x.name);
-            items.append("button")
-                .style("--grid-column", "2")
-                .style("--grid-row", "1")
-                .style("border-radius", "0px 6px 6px 0px")
-                .text("Delete")
-                .on("click", (_, d) => console.log(d));
+            // repopulate the filtered list
+            purchase_orders_repopulate_list(json.response);
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
+}
+
+function purchase_orders_update_filtered_selector()
+{
+    d3.json("/data_entry/purchase_orders_get_filtered_options/", {
+        method: "POST",
+        body: JSON.stringify({
+            search_term: po_input_selected_search_term.property("value")
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            // clear the old entries
+            po_select_selected.selectAll("option").remove();
+
+            // populate the selector
+            po_select_selected.selectAll("option")
+                .data(json.response)
+                .enter()
+                .append("option")
+                .attr("value", (x) => x.id)
+                .text((x) => x.name);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+function purchase_orders_update_filtered_list(inspection_id)
+{
+    // get the input parameters
+    if (inspection_id == -1) {
+        inspection_id = current_inspection_id;
+    }
+
+    // query the flask server
+    d3.json("/data_entry/purchase_orders_get_filtered_associations/", {
+        method: "POST",
+        body: JSON.stringify({
+            inspection_id: inspection_id,
+            search_term: po_input_search_term.property("value")
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            // repopulate the filtered list
+            purchase_orders_repopulate_list(json.response);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+function purchase_orders_repopulate_list(data)
+{
+    // clear the old entries
+    po_ul_list.selectAll("li").remove();
+
+    // logic gate
+    if (data.size == 0) {
+        console.log(data.message);
+        return;
+    }
+
+    // populate the purchase orders
+    let items = po_ul_list.selectAll("li")
+        .data(data.data)
+        .enter()
+        .append("li")
+        .append("div")
+        .attr("class", "list-item-dark")
+        .style("--grid-template-columns", "3fr 1fr");
+    items.append("label")
+        .style("--grid-column", "1")
+        .style("--grid-row", "1")
+        .style("text-align", "left")
+        .style("border-radius", "6px 0px 0px 6px")
+        .attr("class", "list-item-label-dark")
+        .text((x) => x.name);
+    items.append("button")
+        .style("--grid-column", "2")
+        .style("--grid-row", "1")
+        .style("border-radius", "0px 6px 6px 0px")
+        .attr("class", "list-item-button-dark")
+        .text("Delete")
+        .on("click", (_, d) => purchase_orders_remove_association(d));
 }
 
 // #endregion
 
 // #region lot numbers
 
-function update_filtered_lot_numbers(inspection_id = -1)
-{
-    // get the input parameters
-    let search_term = ln_input_search_term.property("value");
-    if (inspection_id == -1) {
-        inspection_id = md_label_identity.attr("data-inspection_id");
-        if (inspection_id == undefined) {
-            return;
-        }
-    }
-
-    // query the flask server
-    d3.json("/data_entry/get_filtered_lot_numbers/", {
-        method: "POST",
-        body: JSON.stringify({
-            inspection_id: inspection_id,
-            search_term: search_term
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok_func") {
-
-            // clear the old entries
-            ln_ul_list.selectAll("li").remove();
-
-            // populate the lot numbers
-            let items = ln_ul_list.selectAll("li")
-                .data(json.response)
-                .enter()
-                .append("li")
-                .append("div")
-                .attr("class", "list-item-dark")
-                .style("--grid-template-columns", "3fr 1fr");
-            items.append("label")
-                .style("--grid-column", "1")
-                .style("--grid-row", "1")
-                .style("text-align", "left")
-                .style("border-radius", "6px 0px 0px 6px")
-                .attr("class", "list-item-label-dark")
-                .text((x) => x.name);
-            items.append("button")
-                .style("--grid-column", "2")
-                .style("--grid-row", "1")
-                .style("border-radius", "0px 6px 6px 0px")
-                .attr("class", "list-item-button-dark")
-                .text("Delete")
-                .on("click", (_, d) => remove_lot_number_association(d));
-        }
-        else if (json.status == "ok_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
-            alert(json.response);
-        }
-    });
-}
-
-function assign_lot_number_association()
+function lot_numbers_assign_association()
 {
     // request confirmation
     if (!confirm("This action will write to the database and cannot be reverted. Continue?")) {
         return;
     }
 
-    // get the input parameters
-    let search_term = ln_input_search_term.property("value");
-    let inspection_id = md_label_identity.attr("data-inspection_id");
-    let lot_number_id = ln_select_selected.property("value");
-
-    // logic gate
-    if (inspection_id == undefined) {
-        return;
-    }
-
     // query the flask server
-    d3.json("/data_entry/assign_lot_number_association/", {
+    d3.json("/data_entry/lot_numbers_assign_association/", {
         method: "POST",
         body: JSON.stringify({
-            search_term: search_term,
-            inspection_id: inspection_id,
-            lot_number_id: lot_number_id
+            search_term: ln_input_search_term.property("value"),
+            inspection_id: current_inspection_id,
+            lot_number_id: ln_select_selected.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
-            // clear the old entries
-            ln_ul_list.selectAll("li").remove();
-
-            // populate the lot numbers
-            let items = ln_ul_list.selectAll("li")
-                .data(json.response)
-                .enter()
-                .append("li")
-                .append("div")
-                .attr("class", "grid_container_item")
-                .style("--grid-template-columns", "3fr 1fr");
-            items.append("label")
-                .style("--grid-column", "1")
-                .style("--grid-row", "1")
-                .style("text-align", "left")
-                .style("border-radius", "6px 0px 0px 6px")
-                .text((x) => x.name);
-            items.append("button")
-                .style("--grid-column", "2")
-                .style("--grid-row", "1")
-                .style("border-radius", "0px 6px 6px 0px")
-                .text("Delete")
-                .on("click", (_, d) => console.log(d));
+            // repopulate the filtered list
+            lot_numbers_repopulate_list(json.response);
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
 }
 
-function remove_lot_number_association(data)
+function lot_numbers_remove_association(data)
 {
     // request confirmation
     if (!confirm("This action will remove records from the database and cannot be reverted. Continue?")) {
         return;
     }
 
-    // get the input arguments
-    let search_term = ln_input_search_term.property("value");
-    let lot_number_id = data.id;
-    let inspection_id = data.inspection_id;
-
     // query the flask server
-    d3.json("/data_entry/remove_lot_number_association/", {
+    d3.json("/data_entry/lot_numbers_remove_association/", {
         method: "POST",
         body: JSON.stringify({
-            search_term: search_term,
-            inspection_id: inspection_id,
-            lot_number_id: lot_number_id
+            search_term: ln_input_search_term.property("value"),
+            inspection_id: data.inspection_id,
+            lot_number_id: data.id
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
-            // clear the old entries
-            ln_ul_list.selectAll("li").remove();
-
-            // populate the lot numbers
-            let items = ln_ul_list.selectAll("li")
-                .data(json.response)
-                .enter()
-                .append("li")
-                .append("div")
-                .attr("class", "grid_container_item")
-                .style("--grid-template-columns", "3fr 1fr");
-            items.append("label")
-                .style("--grid-column", "1")
-                .style("--grid-row", "1")
-                .style("text-align", "left")
-                .style("border-radius", "6px 0px 0px 6px")
-                .text((x) => x.name);
-            items.append("button")
-                .style("--grid-column", "2")
-                .style("--grid-row", "1")
-                .style("border-radius", "0px 6px 6px 0px")
-                .text("Delete")
-                .on("click", (_, d) => console.log(d));
+            // repopulate the filtered list
+            lot_numbers_repopulate_list(json.response);
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
+}
+
+function lot_numbers_update_filtered_selector()
+{
+    d3.json("/data_entry/lot_numbers_get_filtered_options/", {
+        method: "POST",
+        body: JSON.stringify({
+            search_term: ln_input_selected_search_term.property("value")
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            // clear the old entries
+            ln_select_selected.selectAll("option").remove();
+
+            // populate the selector
+            ln_select_selected.selectAll("option")
+                .data(json.response)
+                .enter()
+                .append("option")
+                .attr("value", (x) => x.id)
+                .text((x) => x.name);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+function lot_numbers_update_filtered_list(inspection_id)
+{
+    // get the input parameters
+    if (inspection_id == -1) {
+        inspection_id = current_inspection_id;
+    }
+
+    // query the flask server
+    d3.json("/data_entry/lot_numbers_get_filtered_associations/", {
+        method: "POST",
+        body: JSON.stringify({
+            inspection_id: inspection_id,
+            search_term: ln_input_search_term.property("value")
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            // repopulate the filtered list
+            lot_numbers_repopulate_list(json.response);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+function lot_numbers_repopulate_list(data)
+{
+    // clear the old entries
+    ln_ul_list.selectAll("li").remove();
+
+    // logic gate
+    if (data.size == 0) {
+        console.log(data.message);
+        return;
+    }
+
+    // populate the lot numbers
+    let items = ln_ul_list.selectAll("li")
+        .data(data.data)
+        .enter()
+        .append("li")
+        .append("div")
+        .attr("class", "list-item-dark")
+        .style("--grid-template-columns", "3fr 1fr");
+    items.append("label")
+        .style("--grid-column", "1")
+        .style("--grid-row", "1")
+        .style("text-align", "left")
+        .style("border-radius", "6px 0px 0px 6px")
+        .attr("class", "list-item-label-dark")
+        .text((x) => x.name);
+    items.append("button")
+        .style("--grid-column", "2")
+        .style("--grid-row", "1")
+        .style("border-radius", "0px 6px 6px 0px")
+        .attr("class", "list-item-button-dark")
+        .text("Delete")
+        .on("click", (_, d) => lot_numbers_remove_association(d));
 }
 
 // #endregion
@@ -2363,7 +2130,7 @@ function toggle_options(destination_arg, open_width)
         else {
             document.getElementById("inspection_reports_sidebar").style.width = open_width;
             document.getElementById("inspection_reports_btn").style.marginRight = open_width;
-            update_filtered_inspection_reports();
+            inspection_reports_update_filtered_reports();
         }
     }
     else if (destination_arg == "characteristic_display") {
