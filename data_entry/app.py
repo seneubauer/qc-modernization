@@ -2557,17 +2557,11 @@ def func_data_entry_characteristic_display_get_filtered_characteristics(inspecti
         # get the list of characteristics that have deviations
         deviations_list = [x[0] for x in session.query(deviations.characteristic_id).all()]
 
-        # get the list of inspectors
-        inspectors_list = session.query(employees.id, employees.first_name, employees.last_name).order_by(employees.last_name.asc(), employees.first_name.asc()).all()
-
-        # get the list of gauges
-        gauges_list = session.query(gauges.id, gauges.name).order_by(gauges.name.asc()).all()
-
         # close the database session
         session.close()
 
         # return the results
-        if len(characteristic_list) > 0 and len(inspectors_list) > 0 and len(gauges_list) > 0:
+        if len(characteristic_list) > 0:
 
             # assemble characteristics output
             output_arr = []
@@ -3175,25 +3169,31 @@ def func_data_entry_inspection_get_filtered_potential_associations(search_term:s
 
 #region inspection reports - deviations
 
+# routes
+
 @app.route("/data_entry/save_deviations/", methods = ["POST"])
 def data_entry_save_deviations():
 
     # interpret the posted data
     form_data = json.loads(request.data)
-    print(form_data)
+
     try:
 
         # open the database session
         session = Session(engine)
 
         # query the database
-        is_affected = 0
+        rows_affected = 0
         for row in form_data["data"]:
             deviation_id = row["deviation_id"]
             results = session.query(deviations).filter(deviations.id == deviation_id)
 
+            is_affected = 0
             for k, v in row["content"].items():
                 is_affected += results.update({ k: v })
+
+            if is_affected > 0:
+                rows_affected += 1
 
         # commit the changes
         session.commit()
@@ -3202,15 +3202,184 @@ def data_entry_save_deviations():
         session.close()
 
         # return the results
-        if is_affected > 0:
+        if rows_affected > 0:
             return {
                 "status": "alert",
-                "response": f"{is_affected} records in 'deviations' has been successfully updated"
+                "response": f"{rows_affected} record(s) in 'deviations' has been successfully updated"
             }
         else:
             return {
                 "status": "log",
                 "response": "no records in 'deviations' have been updated"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/deviations_add_deviation/", methods = ["POST"])
+def data_entry_deviations_add_deviation():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    characteristic_id = int(form_data["characteristic_id"])
+    employee_id = int(form_data["employee_id"])
+    inspection_id = int(form_data["identity"]["inspection_id"])
+    item = form_data["identity"]["item"]
+    drawing = form_data["identity"]["drawing"]
+    part_index = int(form_data["content"]["part_index"])
+    frequency_type_id = int(form_data["content"]["frequency_type_id"])
+    revision = form_data["content"]["revision"]
+    name = form_data["content"]["name"]
+    has_deviations = int(form_data["content"]["has_deviations"])
+    inspector_id = int(form_data["content"]["inspector_id"])
+    gauge_id = int(form_data["content"]["gauge_id"])
+    gauge_type_id = int(form_data["content"]["gauge_type_id"])
+    specification_type_id = int(form_data["content"]["specification_type_id"])
+    characteristic_type_id = int(form_data["content"]["characteristic_type_id"])
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # add the placeholder data to the database
+        new_record = deviations(
+            nominal = 1,
+            usl = 1.1,
+            lsl = 0.9,
+            precision = 1,
+            date_implemented = datetime.datetime.now(),
+            notes = "none",
+            deviation_type_id = 0,
+            employee_id = employee_id,
+            characteristic_id = characteristic_id
+        )
+        session.add(new_record)
+        session.commit()
+
+        # close the session
+        session.close()
+
+        # get the new deviation data
+        deviation_results = func_data_entry_deviations_get_characteristic_deviations(characteristic_id)
+
+        # get the updated characteristic data
+        characteristic_results = func_data_entry_characteristic_display_get_filtered_characteristics(
+            inspection_id,
+            item,
+            drawing,
+            part_index,
+            frequency_type_id,
+            revision,
+            name,
+            has_deviations,
+            inspector_id,
+            gauge_id,
+            gauge_type_id,
+            specification_type_id,
+            characteristic_type_id
+        )
+
+        # return the results
+        if deviation_results["status"] == "ok" and characteristic_results["status"] == "ok":
+            return {
+                "status": "ok",
+                "response": {
+                    "deviation_data": deviation_results["response"],
+                    "characteristic_data": characteristic_results["response"]
+                }
+            }
+        else:
+            return {
+                "status": "log",
+                "response": deviation_results["response"] + " || " + characteristic_results["response"]
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/deviations_delete_deviation/", methods = ["POST"])
+def data_entry_deviations_delete_deviation():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    deviation_id = int(form_data["deviation_id"])
+    characteristic_id = int(form_data["characteristic_id"])
+    inspection_id = int(form_data["identity"]["inspection_id"])
+    item = form_data["identity"]["item"]
+    drawing = form_data["identity"]["drawing"]
+    part_index = int(form_data["content"]["part_index"])
+    frequency_type_id = int(form_data["content"]["frequency_type_id"])
+    revision = form_data["content"]["revision"]
+    name = form_data["content"]["name"]
+    has_deviations = int(form_data["content"]["has_deviations"])
+    inspector_id = int(form_data["content"]["inspector_id"])
+    gauge_id = int(form_data["content"]["gauge_id"])
+    gauge_type_id = int(form_data["content"]["gauge_type_id"])
+    specification_type_id = int(form_data["content"]["specification_type_id"])
+    characteristic_type_id = int(form_data["content"]["characteristic_type_id"])
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # remove the deviation
+        rows_deleted = session.query(deviations)\
+            .filter(deviations.id == deviation_id)\
+            .delete()
+
+        # commit the changes
+        session.commit()
+
+        # close the session
+        session.close()
+
+        # get the new deviation data
+        deviation_results = func_data_entry_deviations_get_characteristic_deviations(characteristic_id)
+
+        # get the updated characteristic data
+        characteristic_results = func_data_entry_characteristic_display_get_filtered_characteristics(
+            inspection_id,
+            item,
+            drawing,
+            part_index,
+            frequency_type_id,
+            revision,
+            name,
+            has_deviations,
+            inspector_id,
+            gauge_id,
+            gauge_type_id,
+            specification_type_id,
+            characteristic_type_id
+        )
+
+        # return the results
+        if deviation_results["status"] == "ok" and characteristic_results["status"] == "ok":
+            return {
+                "status": "ok",
+                "response": {
+                    "deviation_data": deviation_results["response"],
+                    "characteristic_data": characteristic_results["response"]
+                }
+            }
+        else:
+            return {
+                "status": "log",
+                "response": deviation_results["response"] + " || " + characteristic_results["response"]
             }
 
     except SQLAlchemyError as e:
@@ -3228,6 +3397,13 @@ def data_entry_deviations_get_characteristic_deviations():
 
     # get the required parameters
     characteristic_id = form_data["characteristic_id"]
+
+    # return the results
+    return func_data_entry_deviations_get_characteristic_deviations(characteristic_id)
+
+# recycled functions
+
+def func_data_entry_deviations_get_characteristic_deviations(characteristic_id:int):
 
     # define the columns
     columns = [
@@ -3257,16 +3433,12 @@ def data_entry_deviations_get_characteristic_deviations():
             .filter(deviations.characteristic_id == characteristic_id)\
             .order_by(deviations.id.asc())\
             .distinct(deviations.id).all()
-        deviation_type_list = session.query(deviation_types.id, deviation_types.name)\
-            .order_by(deviation_types.name.asc()).all()
-        employee_list = session.query(employees.id, employees.first_name, employees.last_name)\
-            .order_by(employees.last_name.asc(), employees.first_name.asc()).all()
 
         # close the session
         session.close()
 
         # return the results
-        if len(results) > 0 and len(deviation_type_list) > 0 and len(employee_list) > 0:
+        if len(results) > 0:
 
             output_arr = []
             for id, nominal, usl, lsl, precision, date_implemented, notes, deviation_type_id, deviation_type, employee_id, first_name, last_name in results:
@@ -3291,20 +3463,6 @@ def data_entry_deviations_get_characteristic_deviations():
                     "deviation_type": deviation_type,
                     "employee_id": employee_id,
                     "employee": f"{last_name}, {first_name}"
-                })
-
-            deviation_types_lst = []
-            for id, name in deviation_type_list:
-                deviation_types_lst.append({
-                    "id": id,
-                    "name": name
-                })
-
-            employees_lst = []
-            for id, first_name, last_name in employee_list:
-                employees_lst.append({
-                    "id": id,
-                    "name": f"{last_name}, {first_name}"
                 })
 
             return {

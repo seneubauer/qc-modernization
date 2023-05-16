@@ -70,11 +70,12 @@ const ln_button_add = d3.select("#lot_numbers_add");
 const ln_ul_list = d3.select("#lot_numbers_list");
 
 // deviations
-const dv_button_save = d3.select("#deviations_save");
-const dv_button_add = d3.select("#deviations_add");
-const dv_button_remove = d3.select("#deviations_remove");
+const dv_button_save = d3.select("#deviations_save_deviation");
+const dv_button_add = d3.select("#deviations_add_deviation");
+const dv_label_current = d3.select("#deviations_current_characteristic");
 const dv_input_notes = d3.select("#deviations_notes");
 const dv_ul_list = d3.select("#deviations_list");
+const dv_ul_list_contextmenu = d3.select("#deviations_list_contextmenu");
 
 // enumerations
 var glist_employees = null;
@@ -220,7 +221,7 @@ function setup_context_menus()
                 toggle_options("deviations", "1000px");
             }
 
-            deviations_get_characteristic_deviations(row_data.characteristic_id);
+            deviations_get_characteristic_deviations(row_data.characteristic_id, row_data.inspection_id, row_data.item, row_data.drawing, row_data.revision, row_data.part_index, row_data.name);
             vw_characteristics_table_contextmenu.style("display", "none");
         });
 
@@ -343,9 +344,8 @@ function prepare_lot_numbers_panel()
 
 function prepare_deviations_panel()
 {
-    dv_button_save.on("click", deviations_save);
-    dv_button_add.on("click", deviations_add);
-    dv_button_remove.on("click", deviations_remove);
+    // button events
+    dv_button_save.on("click", deviations_save_deviation);
 }
 
 function populate_generic_selectors()
@@ -1240,7 +1240,7 @@ function characteristic_display_repopulate_table(data)
         .selectAll("tr")
         .data(data)
         .join("tr")
-        .on("click", (_, x) => deviations_get_characteristic_deviations(x.characteristic_id));
+        .on("click", (_, x) => deviations_get_characteristic_deviations(x.characteristic_id, x.inspection_id, x.item, x.drawing, x.revision, x.part_index, x.name));
 
     // create the cells
     let cells = rows.selectAll("td")
@@ -1259,7 +1259,9 @@ function characteristic_display_repopulate_table(data)
                         part_id: r.part_id,
                         inspection_id: r.inspection_id,
                         item: r.item,
-                        drawing: r.drawing
+                        drawing: r.drawing,
+                        revision: r.revision,
+                        name: r.name
                     }
                 };
             });
@@ -1300,6 +1302,7 @@ function characteristic_display_repopulate_table(data)
                     return "number";
             }
         })
+        .attr("step", "any")
         .property("value", (x) => {
             switch (x.row.value) {
                 case null:
@@ -2030,7 +2033,7 @@ function lot_numbers_repopulate_list(data)
 
 // #region deviations
 
-function deviations_save()
+function deviations_save_deviation()
 {
     // request confirmation
     if (!confirm("This action will write to the database and cannot be reverted. Continue?")) {
@@ -2077,21 +2080,108 @@ function deviations_save()
     });
 }
 
-function deviations_add()
+function deviations_add_deviation(characteristic_id, inspection_id, item, drawing)
 {
+    d3.json("/data_entry/deviations_add_deviation/", {
+        method: "POST",
+        body: JSON.stringify({
+            characteristic_id: characteristic_id,
+            employee_id: ir_select_new_employee.property("value"),
+            identity: {
+                inspection_id: inspection_id,
+                item: item,
+                drawing: drawing
+            },
+            content: {
+                part_index: cd_select_part_index.property("value"),
+                frequency_type_id: cd_select_frequency_type.property("value"),
+                revision: cd_select_revision.property("value"),
+                name: cd_input_name.property("value"),
+                has_deviations: cd_select_has_deviations.property("value"),
+                inspector_id: cd_select_inspector.property("value"),
+                gauge_id: cd_select_gauge.property("value"),
+                gauge_type_id: cd_select_gauge_type.property("value"),
+                specification_type_id: cd_select_specification_type.property("value"),
+                characteristic_type_id: cd_select_characteristic_type.property("value")
+            }
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
 
+            // repopulate the deviations list
+            deviations_repopulate_deviations_list(json.response.deviation_data, characteristic_id, inspection_id, item, drawing);
+
+            // repopulate the characteristic table
+            characteristic_display_repopulate_table(json.response.characteristic_data);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
 }
 
-function deviations_remove()
+function deviations_delete_deviation(deviation_id, characteristic_id, inspection_id, item, drawing)
 {
+    dv_ul_list.selectAll("li").remove();
+    d3.json("/data_entry/deviations_delete_deviation/", {
+        method: "POST",
+        body: JSON.stringify({
+            deviation_id: deviation_id,
+            characteristic_id: characteristic_id,
+            identity: {
+                inspection_id: inspection_id,
+                item: item,
+                drawing: drawing
+            },
+            content: {
+                part_index: cd_select_part_index.property("value"),
+                frequency_type_id: cd_select_frequency_type.property("value"),
+                revision: cd_select_revision.property("value"),
+                name: cd_input_name.property("value"),
+                has_deviations: cd_select_has_deviations.property("value"),
+                inspector_id: cd_select_inspector.property("value"),
+                gauge_id: cd_select_gauge.property("value"),
+                gauge_type_id: cd_select_gauge_type.property("value"),
+                specification_type_id: cd_select_specification_type.property("value"),
+                characteristic_type_id: cd_select_characteristic_type.property("value")
+            }
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
 
+            // repopulate the deviations list
+            deviations_repopulate_deviations_list(json.response, characteristic_id, inspection_id, item, drawing);
+
+            // repopulate the characteristic table
+            characteristic_display_repopulate_table(json.response.characteristic_data);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    })
 }
 
-function deviations_get_characteristic_deviations(characteristic_id)
+function deviations_get_characteristic_deviations(characteristic_id, inspection_id, item, drawing, revision, part_index, name)
 {
+    // update the label to show current characteristic
+    dv_label_current.text(`${part_index} // ${revision} // ${name}`);
+
     // reset the deviations display
     dv_ul_list.selectAll("li").remove();
     dv_input_notes.property("value", "");
+    dv_button_add.on("click", () => { deviations_add_deviation(characteristic_id, inspection_id, item, drawing); });
 
     // query the flask server
     d3.json("/data_entry/deviations_get_characteristic_deviations/", {
@@ -2106,7 +2196,7 @@ function deviations_get_characteristic_deviations(characteristic_id)
         if (json.status == "ok") {
 
             // repopulate the deviations list
-            deviations_repopulate_deviations_list(json.response);
+            deviations_repopulate_deviations_list(json.response, characteristic_id, inspection_id, item, drawing);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -2122,10 +2212,13 @@ function deviation_selected(data)
     dv_input_notes.property("value", data.notes);
 }
 
-function deviations_repopulate_deviations_list(data)
+function deviations_repopulate_deviations_list(data, characteristic_id, inspection_id, item, drawing)
 {
     // populate the notes section
     dv_input_notes.property("value", data[0].notes);
+
+    // clear the old entries
+    dv_ul_list.selectAll("li").remove();
 
     // repopulate the deviations list
     let items = dv_ul_list.selectAll("li")
@@ -2133,8 +2226,35 @@ function deviations_repopulate_deviations_list(data)
         .join("li")
         .append("div")
         .attr("class", "list-item-dark")
-        .style("--grid-template-columns", "2fr 2fr 2fr 1fr 2fr 2fr 2fr")
-        .on("click", (_, d) => deviation_selected(d));
+        .style("--grid-template-columns", "1fr 1fr 1fr 1fr 2fr 2fr 2fr")
+        .on("click", (_, d) => { 
+            deviation_selected(d);
+            if (dv_ul_list_contextmenu.style("display") == "block") {
+                dv_ul_list_contextmenu.style("display", "none");
+            }
+        }).on("contextmenu", (e) => {
+
+            // extract data
+            let row_data = e.target.__data__;
+
+            // position and show the context menu
+            dv_ul_list_contextmenu
+                .style("position", "absolute")
+                .style("left", `${e.pageX}px`)
+                .style("top", `${e.pageY}px`)
+                .style("display", "block");
+
+            // delete deviation
+            dv_ul_list_contextmenu.select("#context_menu_0").on("click", () => {
+
+                // delete the selected deviation
+                deviations_delete_deviation(row_data.id, characteristic_id, inspection_id, item, drawing);
+                dv_ul_list_contextmenu.style("display", "none");
+            });
+
+            // prevent default behavior
+            e.preventDefault();
+        });
     let nominal = items.append("input")
         .style("--grid-column", "1")
         .style("--grid-row", "1")
@@ -2145,6 +2265,7 @@ function deviations_repopulate_deviations_list(data)
         .property("value", (x) => x.nominal.toFixed(x.precision))
         .on("change", (e, x) => {
             x.nominal = parseFloat(e.srcElement.value);
+            e.srcElement.value = x.nominal.toFixed(x.precision);
         });
     let usl = items.append("input")
         .style("--grid-column", "2")
@@ -2155,6 +2276,7 @@ function deviations_repopulate_deviations_list(data)
         .property("value", (x) => x.usl.toFixed(x.precision))
         .on("change", (e, x) => {
             x.usl = parseFloat(e.srcElement.value);
+            e.srcElement.value = x.usl.toFixed(x.precision);
         });
     let lsl = items.append("input")
         .style("--grid-column", "3")
@@ -2165,6 +2287,7 @@ function deviations_repopulate_deviations_list(data)
         .property("value", (x) => x.lsl.toFixed(x.precision))
         .on("change", (e, x) => {
             x.lsl = parseFloat(e.srcElement.value);
+            e.srcElement.value = x.lsl.toFixed(x.precision);
         });
     items.append("input")
         .style("--grid-column", "4")
@@ -2225,11 +2348,6 @@ function deviations_repopulate_deviations_list(data)
         .on("change", (e, x) => {
             x.employee_id = parseInt(e.srcElement.value);
         });
-}
-
-function deviations_enforce_precision()
-{
-
 }
 
 // #endregion

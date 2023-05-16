@@ -531,19 +531,19 @@
         <div class="container" style="--grid-template-columns: repeat(1, minmax(0, 1fr));">
 
             <!-- row -->
-            <button class="button-dark" id="deviations_save" type="button" style="
+            <button class="button-dark" id="deviations_save_deviation" type="button" style="
                 --grid-column: 1;
                 --grid-row: 1;">Save Deviations</button>
 
             <!-- row -->
-            <button class="button-dark" id="deviations_add" type="button" style="
+            <button class="button-dark" id="deviations_add_deviation" type="button" style="
                 --grid-column: 1;
                 --grid-row: 2;">Add</button>
 
             <!-- row -->
-            <button class="button-dark" id="deviations_remove" type="button" style="
+            <label class="label-header-dark" id="deviations_current_characteristic" style="
                 --grid-column: 1;
-                --grid-row: 3;">Remove</button>
+                --grid-row: 3;">Selected Characteristic:</label>
 
             <!-- row -->
             <label class="label-dark" style="
@@ -562,7 +562,7 @@
                 --grid-column: 1;
                 --grid-row: 7;">
                 <li>
-                    <div class="list-item-header" style="--grid-template-columns: repeat(7, minmax(0, 1fr));">
+                    <div class="list-item-header" style="--grid-template-columns: 1fr 1fr 1fr 1fr 2fr 2fr 2fr;">
                         <label class="list-item-header-label-dark" style="--grid-column: 1;--grid-row: 1;">Nominal</label>
                         <label class="list-item-header-label-dark" style="--grid-column: 2;--grid-row: 1;">USL</label>
                         <label class="list-item-header-label-dark" style="--grid-column: 3;--grid-row: 1;">LSL</label>
@@ -582,6 +582,11 @@
         <button class="sidebar-button" type="button" onclick="toggle_options('deviations', '1000px')">
             Deviations
         </button>
+    </div>
+
+    <!-- filtered deviations list context menu -->
+    <div class="context-menu" id="deviations_list_contextmenu">
+        <button class="context-menu-button" id="context_menu_0">Delete Deviation</button>
     </div>
 
     <!-- import local js scripts -->
