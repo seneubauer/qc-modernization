@@ -79,6 +79,47 @@ def open_inspection_reports():
 
 #region get enumerations
 
+@app.route("/get_all_deviation_types/")
+def get_all_deviation_types():
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(deviation_types.id, deviation_types.name).order_by(deviation_types.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok",
+                "response": output_arr
+            }
+
+        else:
+            return {
+                "status": "log",
+                "response": "no records found in 'deviation_types'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
 @app.route("/get_all_gauges/")
 def get_all_gauges():
 
@@ -1391,19 +1432,18 @@ def data_entry_inspection_reports_create_new_report():
     part_id = form_data["part_id"]
     employee_id = form_data["employee_id"]
     schema_id = form_data["schema_id"]
+    filter_part_id = int(form_data["filter_part_id"])
+    filter_job_order_id = int(form_data["filter_job_order_id"])
+    started_after_str = form_data["started_after"]
+    finished_before_str = form_data["finished_before"]
 
-    # schema detail columns
-    schema_details_columns = [
-        characteristic_schema_details.name,
-        characteristic_schema_details.nominal,
-        characteristic_schema_details.usl,
-        characteristic_schema_details.lsl,
-        characteristic_schema_details.precision,
-        characteristic_schema_details.specification_type_id,
-        characteristic_schema_details.characteristic_type_id,
-        characteristic_schema_details.frequency_type_id,
-        gauges.id
-    ]
+    # convert date strings to datetime objects
+    started_after = datetime.date(1970, 1, 1)
+    finished_before = datetime.date(2100, 1, 1)
+    if started_after_str != "":
+        started_after = datetime.datetime.strptime(started_after_str, "%Y-%m-%d")
+    if finished_before_str != "":
+        finished_before = datetime.datetime.strptime(finished_before_str, "%Y-%m-%d")
 
     try:
 
@@ -1418,7 +1458,7 @@ def data_entry_inspection_reports_create_new_report():
                 "status": "log",
                 "response": f"the referenced part ({part_id}) does not exist"
             }
-        
+
         # make sure this part isn't already associated with an inspection report
         exists = session.query(parts.id, inspection_reports.id, checks.id)\
             .join(parts, (parts.id == checks.part_id))\
@@ -1430,80 +1470,14 @@ def data_entry_inspection_reports_create_new_report():
                 "response": f"the referenced part ({part_id}) already exists in an inspection report ({exists[1]})"
             }
 
-        # make sure the characteristic schema exists
-        exists = session.query(characteristic_schemas.id)\
-            .filter(characteristic_schemas.id == schema_id).first()
-        if exists is None:
-            return {
-                "status": "log",
-                "response": f"the referenced schema ({schema_id}) does not exist"
-            }
-
-        # create the inspection report record
-        inspection_report_query = inspection_reports(
-            material_type_id = 0,
-            employee_id = employee_id,
-            disposition_id = 2
-        )
-        session.add(inspection_report_query)
-        session.commit()
-        inspection_id = inspection_report_query.id
-
-        # create the new check set
-        check_query = checks(
-            part_index = 0,
-            datetime_measured = datetime.datetime.now(),
-            inspection_id = inspection_id,
-            part_id = part_id,
-            employee_id = employee_id
-        )
-        session.add(check_query)
-        session.commit()
-        check_id = check_query.id
-
-        # get the schema details
-        schema_details = session.query(*schema_details_columns)\
-            .join(gauges, (gauges.gauge_type_id == characteristic_schema_details.gauge_type_id), isouter = True)\
-            .filter(characteristic_schema_details.schema_id == schema_id)\
-            .order_by(characteristic_schema_details.name.asc()).all()
-        schema_details_list = []
-        for name, nominal, usl, lsl, precision, spectype, chartype, freqtype, gauge_id in schema_details:
-            schema_details_list.append({
-                "name": name,
-                "nominal": nominal,
-                "usl": usl,
-                "lsl": lsl,
-                "precision": precision,
-                "specification_type_id": spectype,
-                "characteristic_type_id": chartype,
-                "frequency_type_id": freqtype,
-                "gauge_id": gauge_id
-            })
-
-        # create the characteristic records
-        for obj in schema_details_list:
-            characteristics_query = characteristics(
-                name = obj["name"],
-                nominal = obj["nominal"],
-                usl = obj["usl"],
-                lsl = obj["lsl"],
-                precision = obj["precision"],
-                check_id = check_id,
-                specification_type_id = obj["specification_type_id"],
-                characteristic_type_id = obj["characteristic_type_id"],
-                frequency_type_id = obj["frequency_type_id"],
-                gauge_id = obj["gauge_id"]
-            )
-            session.add(characteristics_query)
-        session.commit()
-
         # close the database session
         session.close()
 
-        return {
-            "status": "ok",
-            "response": f"new inspection report (ID: {inspection_id}) added"
-        }
+        # create the new records
+        func_data_entry_inspection_reports_add_new_check_set(part_id, -1, schema_id, employee_id, 0)
+
+        # return the results
+        return func_data_entry_inspection_reports_get_filtered_reports(filter_part_id, filter_job_order_id, started_after, finished_before)
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
@@ -1515,12 +1489,122 @@ def data_entry_inspection_reports_create_new_report():
 @app.route("/data_entry/inspection_reports_add_check_set/", methods = ["POST"])
 def data_entry_inspection_reports_add_check_set():
 
-    return None
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_id = form_data["inspection_id"]
+    schema_id = form_data["schema_id"]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # get the part id
+        part_id = session.query(characteristic_schemas.part_id)\
+            .filter(characteristic_schemas.id == schema_id).first()[0]
+
+        # get the employee id
+        employee_id = session.query(inspection_reports.employee_id)\
+            .filter(inspection_reports.id == inspection_id).first()[0]
+
+        # close the database session
+        session.close()
+
+        # add the records
+        return func_data_entry_inspection_reports_add_new_check_set(part_id, inspection_id, schema_id, employee_id, -1)
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
 
 @app.route("/data_entry/inspection_reports_delete/", methods = ["POST"])
 def data_entry_inspection_reports_delete():
 
-    return None
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_id = form_data["inspection_id"]
+    part_id = int(form_data["part_id"])
+    job_order_id = int(form_data["job_order_id"])
+    started_after_str = form_data["started_after"]
+    finished_before_str = form_data["finished_before"]
+
+    # convert date strings to datetime objects
+    started_after = datetime.date(1970, 1, 1)
+    finished_before = datetime.date(2100, 1, 1)
+    if started_after_str != "":
+        started_after = datetime.datetime.strptime(started_after_str, "%Y-%m-%d")
+    if finished_before_str != "":
+        finished_before = datetime.datetime.strptime(finished_before_str, "%Y-%m-%d")
+
+    try:
+
+        # open the database connection
+        session = Session(engine)
+
+        # make sure the required records exist
+        inspection_exists = session.query(inspection_reports.id)\
+            .filter(inspection_reports.id == inspection_id).first()
+        if inspection_exists is None:
+            session.close()
+            return {
+                "status": "alert",
+                "response": f"the referenced inspection report ({inspection_id}) doesn't exist in the database"
+            }
+
+        # get the associated ids
+        check_ids_query = session.query(checks.id)\
+            .join(inspection_reports, (inspection_reports.id == checks.inspection_id))\
+            .filter(inspection_reports.id == inspection_id).all()
+        check_ids = [x[0] for x in check_ids_query]
+
+        characteristic_ids_query = session.query(characteristics.id)\
+            .join(checks, (checks.id == characteristics.check_id))\
+            .join(inspection_reports, (inspection_reports.id == checks.inspection_id))\
+            .filter(inspection_reports.id == inspection_id).all()
+        characteristic_ids = [x[0] for x in characteristic_ids_query]
+
+        deviation_ids_query = session.query(deviations.id)\
+            .join(characteristics, (characteristics.id == deviations.characteristic_id))\
+            .join(checks, (checks.id == characteristics.check_id))\
+            .join(inspection_reports, (inspection_reports.id == checks.inspection_id))\
+            .filter(inspection_reports.id == inspection_id).all()
+        deviation_ids = [x[0] for x in deviation_ids_query]
+
+        # delete the referenced records
+        deviations_deleted = session.query(deviations)\
+            .filter(deviations.id.in_(deviation_ids)).delete(synchronize_session = False)
+
+        characteristics_deleted = session.query(characteristics)\
+            .filter(characteristics.id.in_(characteristic_ids)).delete(synchronize_session = False)
+
+        checks_deleted = session.query(checks)\
+            .filter(checks.id.in_(check_ids)).delete(synchronize_session = False)
+
+        inspection_reports_query = session.query(inspection_reports)\
+            .filter(inspection_reports.id == inspection_id).delete(synchronize_session = False)
+
+        # commit the changes
+        session.commit()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        return func_data_entry_inspection_reports_get_filtered_reports(part_id, job_order_id, started_after, finished_before)
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
 
 @app.route("/data_entry/inspection_reports_get_filtered_reports/", methods = ["POST"])
 def data_entry_inspection_reports_get_filtered_reports():
@@ -1807,12 +1891,423 @@ def func_data_entry_inspection_reports_get_filtered_reports(part_id:int, job_ord
             "response": error_msg
         }
 
+def func_data_entry_inspection_reports_add_new_check_set(part_id:int, inspection_id:int, schema_id:int, employee_id:int, part_index:int):
+
+    # schema detail columns
+    schema_details_columns = [
+        characteristic_schema_details.name,
+        characteristic_schema_details.nominal,
+        characteristic_schema_details.usl,
+        characteristic_schema_details.lsl,
+        characteristic_schema_details.precision,
+        characteristic_schema_details.specification_type_id,
+        characteristic_schema_details.characteristic_type_id,
+        characteristic_schema_details.frequency_type_id,
+        characteristic_schema_details.gauge_type_id
+    ]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # check for schema
+        schema_query = session.query(parts.item, parts.drawing)\
+            .join(characteristic_schemas, (characteristic_schemas.part_id == parts.id))\
+            .filter(characteristic_schemas.id == schema_id).first()
+        if schema_query is None:
+            session.close()
+            return {
+                "status": "alert",
+                "response": f"the referenced characteristic schema ({schema_id}) does not exist in the database"
+            }
+        schema_item, schema_drawing = schema_query
+
+        # check for part
+        part_query = session.query(parts.item, parts.drawing)\
+            .filter(parts.id == part_id).first()
+        if part_query is None:
+            session.close()
+            return {
+                "status": "alert",
+                "response": f"the referenced part ({part_id}) does not exist in the database"
+            }
+        part_item, part_drawing = part_query
+
+        # check if schema and part match up
+        if schema_item != part_item and schema_drawing != part_drawing:
+            session.close()
+            return {
+                "status": "alert",
+                "response": "the provided schema does not match the provided part"
+            }
+
+        # create a new inspection report if the provided inspection_id is -1, or ensure it exists
+        if inspection_id == -1:
+
+            # create a new inspection report
+            inspection_report_query = inspection_reports(
+                material_type_id = 0,
+                employee_id = employee_id,
+                disposition_id = 2
+            )
+            session.add(inspection_report_query)
+            session.commit()
+            inspection_id = inspection_report_query.id
+        else:
+
+            # ensure the inspection report exists
+            inspection_query = session.query(parts.item, parts.drawing)\
+                .join(checks, (checks.part_id == parts.id))\
+                .join(inspection_reports, (inspection_reports.id == checks.inspection_id))\
+                .filter(inspection_reports.id == inspection_id).first()
+            if inspection_query is None:
+                session.close()
+                return {
+                    "status": "alert",
+                    "response": f"the referenced inspection report ({inspection_id}) does not exist in the database"
+                }
+            inspection_item, inspection_drawing = inspection_query
+
+            # check if the inspection and part match up
+            if inspection_item != part_item and inspection_drawing != part_drawing:
+                session.close()
+                return {
+                    "status": "alert",
+                    "response": "the provided inspection report does not match the provided part"
+                }
+
+        # calculate the part index if the provided part_index is -1
+        if part_index == -1:
+            part_index_arr = session.query(checks.part_index)\
+                .filter(checks.part_id == part_id)\
+                .filter(checks.inspection_id == inspection_id).all()
+            part_index = max([x[0] for x in part_index_arr]) + 1
+
+        # create a new check set
+        check_query = checks(
+            part_index = part_index,
+            datetime_measured = datetime.datetime.now(),
+            inspection_id = inspection_id,
+            part_id = part_id,
+            employee_id = employee_id
+        )
+        session.add(check_query)
+        session.commit()
+        check_id = check_query.id
+
+        # get the schema details
+        schema_details = session.query(*schema_details_columns)\
+            .filter(characteristic_schema_details.schema_id == schema_id)\
+            .order_by(characteristic_schema_details.name.asc()).all()
+        schema_details_list = []
+        for name, nominal, usl, lsl, precision, spectype, chartype, freqtype, gauge_type_id in schema_details:
+
+            new_gauge_id = session.query(gauges.id)\
+                .join(characteristic_schema_details, (characteristic_schema_details.gauge_type_id == gauges.gauge_type_id))\
+                .filter(characteristic_schema_details.gauge_type_id == gauge_type_id)\
+                .order_by(gauges.name.asc())\
+                .first()[0]
+
+            schema_details_list.append({
+                "name": name,
+                "nominal": nominal,
+                "usl": usl,
+                "lsl": lsl,
+                "precision": precision,
+                "specification_type_id": spectype,
+                "characteristic_type_id": chartype,
+                "frequency_type_id": freqtype,
+                "gauge_id": new_gauge_id
+            })
+
+        # create the characteristic records
+        for obj in schema_details_list:
+            characteristics_query = characteristics(
+                name = obj["name"],
+                nominal = obj["nominal"],
+                usl = obj["usl"],
+                lsl = obj["lsl"],
+                precision = obj["precision"],
+                check_id = check_id,
+                specification_type_id = obj["specification_type_id"],
+                characteristic_type_id = obj["characteristic_type_id"],
+                frequency_type_id = obj["frequency_type_id"],
+                gauge_id = obj["gauge_id"]
+            )
+            session.add(characteristics_query)
+        session.commit()
+
+        # close the database session
+        session.close()
+
+        # get the updated characteristics
+        return func_data_entry_characteristic_display_get_filtered_characteristics(
+            inspection_id,
+            schema_item,
+            schema_drawing,
+            -1,
+            -1,
+            "",
+            "",
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+        )
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
 #endregion
 
 #region inspection reports - characteristic display
 
-@app.route("/data_entry/get_filter_selector_lists/", methods = ["POST"])
-def data_entry_get_filter_selector_lists():
+@app.route("/data_entry/characteristic_display_get_filtered_characteristics/", methods = ["POST"])
+def data_entry_characteristic_display_get_filtered_characteristics():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_id = int(form_data["identity"]["inspection_id"])
+    item = form_data["identity"]["item"]
+    drawing = form_data["identity"]["drawing"]
+    part_index = int(form_data["content"]["part_index"])
+    frequency_type_id = int(form_data["content"]["frequency_type_id"])
+    revision = form_data["content"]["revision"]
+    name = form_data["content"]["name"]
+    has_deviations = int(form_data["content"]["has_deviations"])
+    inspector_id = int(form_data["content"]["inspector_id"])
+    gauge_id = int(form_data["content"]["gauge_id"])
+    gauge_type_id = int(form_data["content"]["gauge_type_id"])
+    specification_type_id = int(form_data["content"]["specification_type_id"])
+    characteristic_type_id = int(form_data["content"]["characteristic_type_id"])
+
+    # run the required function
+    return func_data_entry_characteristic_display_get_filtered_characteristics(
+        inspection_id,
+        item,
+        drawing,
+        part_index,
+        frequency_type_id,
+        revision,
+        name,
+        has_deviations,
+        inspector_id,
+        gauge_id,
+        gauge_type_id,
+        specification_type_id,
+        characteristic_type_id
+    )
+
+@app.route("/data_entry/characteristic_display_save_characteristics/", methods = ["POST"])
+def data_entry_characteristic_display_save_characteristics():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # proceed if the dictionary has contents
+    if len(form_data["checks"]) > 0 and len(form_data["characteristics"]) > 0:
+        try:
+
+            # open the database session
+            session = Session(engine)
+
+            # assign new check table values
+            check_rows_affected = 0
+            for obj in form_data["checks"]:
+
+                # narrow the database scope
+                results = session.query(checks)\
+                    .filter(checks.id == obj["check_id"])
+
+                is_affected = 0
+                for x in obj["contents"]:
+                    is_affected += results.update({ x["key"]: x["value"] })
+                if is_affected > 0:
+                    check_rows_affected += len(results.all())
+
+            # assign new characteristic table values
+            characteristic_rows_affected = 0
+            for obj in form_data["characteristics"]:
+
+                # narrow the database scope
+                results = session.query(characteristics)\
+                    .filter(characteristics.id == obj["characteristic_id"])
+
+                is_affected = 0
+                for x in obj["contents"]:
+                    is_affected += results.update({ x["key"]: x["value"] })
+                if is_affected > 0:
+                    characteristic_rows_affected += len(results.all())
+
+            # commit the changes
+            session.commit()
+
+            # close the database session
+            session.close()
+
+            # return the result
+            if check_rows_affected > 0 and characteristic_rows_affected > 0:
+                return {
+                    "status": "ok",
+                    "response": f"{check_rows_affected} 'check' table rows and {characteristic_rows_affected} 'characteristic' table rows were updated"
+                }
+            else:
+                return {
+                    "status": "alert",
+                    "response": "no rows affected"
+                }
+
+        except SQLAlchemyError as e:
+            error_msg = str(e.__dict__["orig"])
+            return {
+                "status": "log",
+                "response": error_msg
+            }
+
+    else:
+        return {
+            "status": "alert",
+            "response": "no data passed to flask server"
+        }
+
+@app.route("/data_entry/characteristic_display_tunnel_to_physical_part/", methods = ["POST"])
+def data_entry_characteristic_display_tunnel_to_physical_part():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_id = int(form_data["inspection_id"])
+    part_id = int(form_data["part_id"])
+
+    try:
+
+        # open the database connection
+        session = Session(engine)
+
+        # get the part details
+        part_query = session.query(parts.item, parts.drawing, parts.revision)\
+            .filter(parts.id == part_id).first()
+        if part_query is None:
+            session.close()
+            return {
+                "status": "alert",
+                "response": f"the specified part ({part_id}) does not exist in the database"
+            }
+        item, drawing, revision = part_query
+
+        # close the database connection
+        session.close()
+
+        # run the required function
+        return func_data_entry_characteristic_display_get_filtered_characteristics(
+            inspection_id,
+            item,
+            drawing,
+            -1,
+            -1,
+            revision,
+            "",
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+        )
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/characteristic_display_delete_check_set/", methods = ["POST"])
+def data_entry_characteristic_display_delete_check_set():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    check_id = int(form_data["identity"]["check_id"])
+    inspection_id = int(form_data["identity"]["inspection_id"])
+    item = form_data["identity"]["item"]
+    drawing = form_data["identity"]["drawing"]
+    part_index = int(form_data["content"]["part_index"])
+    frequency_type_id = int(form_data["content"]["frequency_type_id"])
+    revision = form_data["content"]["revision"]
+    name = form_data["content"]["name"]
+    has_deviations = int(form_data["content"]["has_deviations"])
+    inspector_id = int(form_data["content"]["inspector_id"])
+    gauge_id = int(form_data["content"]["gauge_id"])
+    gauge_type_id = int(form_data["content"]["gauge_type_id"])
+    specification_type_id = int(form_data["content"]["specification_type_id"])
+    characteristic_type_id = int(form_data["content"]["characteristic_type_id"])
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # assign characteristics for deletion
+        characteristics_deleted = session.query(characteristics)\
+            .filter(characteristics.check_id == check_id)\
+            .delete()
+
+        # assign checks for deletion
+        checks_deleted = session.query(checks)\
+            .filter(checks.id == check_id)\
+            .delete()
+
+        # commit the changes
+        session.commit()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if characteristics_deleted == 0 or checks_deleted == 0:
+            return {
+                "status": "alert",
+                "response": "records not found; none deleted"
+            }
+
+        # run the required function
+        return func_data_entry_characteristic_display_get_filtered_characteristics(
+            inspection_id,
+            item,
+            drawing,
+            part_index,
+            frequency_type_id,
+            revision,
+            name,
+            has_deviations,
+            inspector_id,
+            gauge_id,
+            gauge_type_id,
+            specification_type_id,
+            characteristic_type_id
+        )
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+@app.route("/data_entry/characteristic_display_get_filter_selector_lists/", methods = ["POST"])
+def data_entry_characteristic_display_get_filter_selector_lists():
     
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -1984,31 +2479,21 @@ def data_entry_get_filter_selector_lists():
             "response": error_msg
         }
 
-@app.route("/data_entry/get_filtered_inspection_report_part_characteristics/", methods = ["POST"])
-def data_entry_get_filtered_inspection_report_part_characteristics():
+# recycled functions
 
-    # interpret the posted data
-    form_data = json.loads(request.data)
+def func_data_entry_characteristic_display_get_filtered_characteristics(inspection_id:int, item:str, drawing:str, part_index:int, frequency_type_id:int, revision:str, name:str, has_deviations:int, inspector_id:int, gauge_id:int, gauge_type_id:int, specification_type_id:int, characteristic_type_id:int):
 
-    # get the required parameters
-    inspection_id = int(form_data["identity"]["inspection_id"])
-    item = form_data["identity"]["item"]
-    drawing = form_data["identity"]["drawing"]
-    part_index = int(form_data["content"]["part_index"])
-    frequency_type_id = int(form_data["content"]["frequency_type_id"])
-    revision = form_data["content"]["revision"]
-    name = form_data["content"]["name"]
-    has_deviations = int(form_data["content"]["has_deviations"])
-    inspector_id = int(form_data["content"]["inspector_id"])
-    gauge_id = int(form_data["content"]["gauge_id"])
-    gauge_type_id = int(form_data["content"]["gauge_type_id"])
-    specification_type_id = int(form_data["content"]["specification_type_id"])
-    characteristic_type_id = int(form_data["content"]["characteristic_type_id"])
+    # deviation prefix
+    deviation_prefix = {
+        True: "**",
+        False: ""
+    }
 
     # define the columns
     columns = [
         checks.id,
         checks.part_index,
+        parts.id,
         parts.revision,
         characteristics.name,
         characteristics.nominal,
@@ -2018,6 +2503,7 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
         characteristics.precision,
         checks.employee_id,
         gauges.id,
+        gauge_types.id,
         gauge_types.name,
         specification_types.name,
         characteristic_types.name,
@@ -2045,21 +2531,23 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
             .filter(characteristics.name.ilike(f"%{name}%"))\
             .filter(parts.revision.ilike(f"%{revision}%"))
 
-        if part_index > 0:
+        if part_index > -1:
             results = results.filter(checks.part_index == part_index)
-        if frequency_type_id > 0:
+        if frequency_type_id > -1:
             results = results.filter(characteristics.frequency_type_id == frequency_type_id)
-        if has_deviations > 0:
+        if has_deviations == 0:
+            results = results.filter(characteristics.id.notin_(session.query(deviations.characteristic_id)))
+        elif has_deviations == 1:
             results = results.filter(characteristics.id.in_(session.query(deviations.characteristic_id)))
-        if inspector_id > 0:
+        if inspector_id > -1:
             results = results.filter(checks.employee_id == inspector_id)
-        if gauge_id > 0:
+        if gauge_id > -1:
             results = results.filter(characteristics.gauge_id == gauge_id)
-        if gauge_type_id > 0:
+        if gauge_type_id > -1:
             results = results.filter(gauges.gauge_type_id == gauge_type_id)
-        if specification_type_id > 0:
+        if specification_type_id > -1:
             results = results.filter(characteristics.specification_type_id == specification_type_id)
-        if characteristic_type_id > 0:
+        if characteristic_type_id > -1:
             results = results.filter(characteristics.characteristic_type_id == characteristic_type_id)
 
         # convert to a list
@@ -2067,9 +2555,7 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
             .order_by(checks.id.asc(), checks.part_id.asc(), parts.revision.asc(), characteristics.id.asc(), characteristics.name.asc()).all()
 
         # get the list of characteristics that have deviations
-        deviations_list = []
-        for id in session.query(deviations.characteristic_id).all():
-            deviations_list.append(id[0])
+        deviations_list = [x[0] for x in session.query(deviations.characteristic_id).all()]
 
         # get the list of inspectors
         inspectors_list = session.query(employees.id, employees.first_name, employees.last_name).order_by(employees.last_name.asc(), employees.first_name.asc()).all()
@@ -2084,9 +2570,8 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
         if len(characteristic_list) > 0 and len(inspectors_list) > 0 and len(gauges_list) > 0:
 
             # assemble characteristics output
-            output_characteristics_list = []
-            check_id_list = []
-            for check_id, part_index, revision, name, nominal, usl, lsl, measured, precision, employee_id, gauge_id, gauge_type, specification_type, characteristic_type, frequency_type, characteristic_id in characteristic_list:
+            output_arr = []
+            for check_id, part_index, part_id, revision, name, nominal, usl, lsl, measured, precision, employee_id, gauge_id, gauge_type_id, gauge_type, specification_type, characteristic_type, frequency_type, characteristic_id in characteristic_list:
 
                 # parse to floats
                 nominal_flt = round(float(nominal), precision)
@@ -2105,14 +2590,20 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
                     else:
                         state = "fail"
 
-                check_id_list.append(check_id)
-                output_characteristics_list.append({
-                    "has_deviations": characteristic_id in deviations_list,
+                # check for deviation flag
+                has_deviations = characteristic_id in deviations_list
+
+                output_arr.append({
+                    "inspection_id": inspection_id,
+                    "part_id": part_id,
+                    "item": item,
+                    "drawing": drawing,
+                    "has_deviations": has_deviations,
                     "characteristic_id": characteristic_id,
                     "check_id": check_id,
                     "part_index": part_index,
                     "revision": revision.upper(),
-                    "name": name,
+                    "name": f"{deviation_prefix[has_deviations]}{name}",
                     "nominal": nominal_flt,
                     "usl": usl_flt,
                     "lsl": lsl_flt,
@@ -2120,6 +2611,7 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
                     "precision": precision,
                     "employee_id": employee_id,
                     "gauge_id": gauge_id,
+                    "gauge_type_id": gauge_type_id,
                     "gauge_type": gauge_type,
                     "specification_type": specification_type,
                     "characteristic_type": characteristic_type,
@@ -2127,31 +2619,10 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
                     "state": state
                 })
 
-            # assemble inspectors output
-            output_inspectors_list = []
-            for id, first_name, last_name in inspectors_list:
-                output_inspectors_list.append({
-                    "id": id,
-                    "name": f"{last_name}, {first_name}"
-                })
-
-            # assemble gauges output
-            output_gauges_list = []
-            for id, name in gauges_list:
-                output_gauges_list.append({
-                    "id": id,
-                    "name": name
-                })
-
             # return the data object
             return {
                 "status": "ok",
-                "response": {
-                    "characteristics": output_characteristics_list,
-                    "inspectors": output_inspectors_list,
-                    "gauges": output_gauges_list,
-                    "check_min": min(check_id_list)
-                }
+                "response": output_arr
             }
         else:
             return {
@@ -2164,78 +2635,6 @@ def data_entry_get_filtered_inspection_report_part_characteristics():
         return {
             "status": "log",
             "response": error_msg
-        }
-
-@app.route("/data_entry/commit_characteristic_values/", methods = ["POST"])
-def data_entry_save_inspection_report():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # proceed if the dictionary has contents
-    if len(form_data["checks"]) > 0 and len(form_data["characteristics"]) > 0:
-        try:
-
-            # open the database session
-            session = Session(engine)
-
-            # assign new check table values
-            check_rows_affected = 0
-            for obj in form_data["checks"]:
-
-                # narrow the database scope
-                results = session.query(checks)\
-                    .filter(checks.id == obj["check_id"])
-
-                is_affected = 0
-                for x in obj["contents"]:
-                    is_affected += results.update({ x["key"]: x["value"] })
-                if is_affected > 0:
-                    check_rows_affected += len(results.all())
-
-            # assign new characteristic table values
-            characteristic_rows_affected = 0
-            for obj in form_data["characteristics"]:
-
-                # narrow the database scope
-                results = session.query(characteristics)\
-                    .filter(characteristics.id == obj["characteristic_id"])
-
-                is_affected = 0
-                for x in obj["contents"]:
-                    is_affected += results.update({ x["key"]: x["value"] })
-                if is_affected > 0:
-                    characteristic_rows_affected += len(results.all())
-
-            # commit the changes
-            session.commit()
-
-            # close the database session
-            session.close()
-
-            # return the result
-            if check_rows_affected > 0 and characteristic_rows_affected > 0:
-                return {
-                    "status": "ok",
-                    "response": f"{check_rows_affected} 'check' table rows and {characteristic_rows_affected} 'characteristic' table rows were updated"
-                }
-            else:
-                return {
-                    "status": "alert",
-                    "response": "no rows affected"
-                }
-
-        except SQLAlchemyError as e:
-            error_msg = str(e.__dict__["orig"])
-            return {
-                "status": "log",
-                "response": error_msg
-            }
-
-    else:
-        return {
-            "status": "alert",
-            "response": "no data passed to flask server"
         }
 
 #endregion
@@ -2821,8 +3220,8 @@ def data_entry_save_deviations():
             "response": error_msg
         }
 
-@app.route("/data_entry/get_matching_deviations/", methods = ["POST"])
-def data_entry_get_matching_deviations():
+@app.route("/data_entry/deviations_get_characteristic_deviations/", methods = ["POST"])
+def data_entry_deviations_get_characteristic_deviations():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -2910,11 +3309,7 @@ def data_entry_get_matching_deviations():
 
             return {
                 "status": "ok",
-                "response": {
-                    "main": output_arr,
-                    "deviations": deviation_types_lst,
-                    "employees": employees_lst
-                }
+                "response": output_arr
             }
         else:
             return {
