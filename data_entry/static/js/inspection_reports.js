@@ -15,6 +15,7 @@ const ir_input_new_employee_filter = d3.select("#inspection_report_employee_filt
 const ir_select_new_employee = d3.select("#inspection_report_employee");
 const ir_input_char_schema_filter = d3.select("#inspection_report_char_schema_filter");
 const ir_select_char_schema = d3.select("#inspection_report_char_schema");
+const ir_button_refresh_reports = d3.select("#inspection_report_refresh");
 const ir_select_filter_part = d3.select("#inspection_report_filter_part");
 const ir_select_filter_job_order = d3.select("#inspection_report_filter_job_order");
 const ir_input_started_after = d3.select("#inspection_report_filter_start_after");
@@ -46,7 +47,7 @@ const md_select_material_type = d3.select("#metadata_material_type");
 const md_select_inspector = d3.select("#metadata_inspector");
 const md_select_job_order = d3.select("#metadata_job_order");
 const md_select_supplier = d3.select("#metadata_supplier");
-const md_ul_quantities = d3.select("#metadata_quantity_list");
+const md_ul_list = d3.select("#metadata_quantity_list");
 
 // receiver numbers
 const rn_input_selected_search_term = d3.select("#receiver_numbers_selected_search_term");
@@ -96,11 +97,13 @@ const col_gauge =       { display: "Gauge",               key: "gauge_id",      
 const col_gaugtype =    { display: "Gauge Type",          key: "gauge_type",            type: "label",  datatype: "integer" };
 const col_spectype =    { display: "Specification Type",  key: "specification_type",    type: "label",  datatype: "integer" };
 const col_chartype =    { display: "Characteristic Type", key: "characteristic_type",   type: "label",  datatype: "integer" };
+const col_timestamp =   { display: "Timestamp",           key: "timestamp",             type: "label",  datatype: "string"  };
 
 // main characteristic table columns
 const main_table_columns = [
     [
         { col: col_part_index,  width: "100px" },
+        { col: col_timestamp,   width: "150px" },
         { col: col_revision,    width: "100px" },
         { col: col_name,        width: "125px" },
         { col: col_nominal,     width: "125px" },
@@ -211,16 +214,14 @@ function setup_context_menus()
 
         // tunnel to physical part
         vw_characteristics_table_contextmenu.select("#context_menu_0").on("click", () => {
-            characteristic_display_tunnel_to_physical_part(row_data.inspection_id, row_data.part_id);
+            characteristic_display_tunnel_to_physical_part(row_data.inspection_id, row_data.part_id, row_data.part_index);
             vw_characteristics_table_contextmenu.style("display", "none");
         });
 
         // view deviations
         vw_characteristics_table_contextmenu.select("#context_menu_1").on("click", () => {
-            if (row_data.has_deviations) {
-                toggle_options("deviations", "1000px");
-            }
 
+            toggle_options("deviations", "1000px");
             deviations_get_characteristic_deviations(row_data.characteristic_id, row_data.inspection_id, row_data.item, row_data.drawing, row_data.revision, row_data.part_index, row_data.name);
             vw_characteristics_table_contextmenu.style("display", "none");
         });
@@ -254,11 +255,6 @@ function setup_context_menus()
         // prevent the default behavior
         e.preventDefault();
     });
-    vw_characteristics_table.on("click", () => {
-        if (vw_characteristics_table_contextmenu.style("display") == "block") {
-            vw_characteristics_table_contextmenu.style("display", "none");
-        }
-    });
 
     // open the inspection report list context menu
     ir_ul_list.on("contextmenu", (e) => {
@@ -284,9 +280,17 @@ function setup_context_menus()
         // prevent default behavior
         e.preventDefault();
     });
-    ir_ul_list.on("click", () => {
+
+    // close context menus
+    d3.select("body").on("click", () => {
         if (ir_ul_list_contextmenu.style("display") == "block") {
             ir_ul_list_contextmenu.style("display", "none");
+        }
+        if (vw_characteristics_table_contextmenu.style("display") == "block") {
+            vw_characteristics_table_contextmenu.style("display", "none");
+        }
+        if (dv_ul_list_contextmenu.style("display") == "block") {
+            dv_ul_list_contextmenu.style("display", "none");
         }
     });
 }
@@ -306,6 +310,7 @@ function prepare_inspection_reports_panel()
 
     // button events
     ir_button_create_new_report.on("click", inspection_reports_create_new_report);
+    ir_button_refresh_reports.on("click", inspection_reports_update_filtered_reports);
 
     // default values
     ir_input_started_after.property("value", "1970-01-01");
@@ -320,8 +325,7 @@ function prepare_characteristic_display_panel()
 
 function prepare_metadata_panel()
 {
-    // button events
-    md_button_save.on("click", metadata_save);
+    
 }
 
 function prepare_receiver_numbers_panel()
@@ -755,10 +759,17 @@ function inspection_reports_update_filtered_reports()
     });
 }
 
-async function inspection_reports_report_selected(data)
+async function inspection_reports_report_selected(event, data)
 {
     // update the main display
     navbar_info.text(`${data.item} // ${data.drawing}`);
+
+    // reset/set the class
+    for (let i = 0; i < ir_ul_list.node().childNodes.length; i++) {
+        let current_node = ir_ul_list.node().childNodes[i].children[0];
+        current_node.classList.remove("list-item-dark-selected");
+    }
+    event.srcElement.parentNode.classList.add("list-item-dark-selected");
 
     // inspection reports
     ir_button_add_check_set.on("click", () => { inspection_reports_add_check_set(data.inspection_id); });
@@ -771,6 +782,7 @@ async function inspection_reports_report_selected(data)
 
     // metadata
     metadata_repopulate_controls(data);
+    md_button_save.on("click", () => { metadata_save(data.inspection_id, data.item, data.drawing); });
 
     // receiver numbers
     rn_input_search_term.on("change", () => { receiver_numbers_update_filtered_list(data.inspection_id); });
@@ -898,7 +910,7 @@ function inspection_reports_repopulate_report_list(data)
         .append("div")
         .attr("class", "list-item-dark")
         .style("--grid-template-columns", "1fr 1fr 1fr")
-        .on("click", (_, d) => inspection_reports_report_selected(d));
+        .on("click", (e, d) => inspection_reports_report_selected(e, d));
     items.append("label")
         .style("--grid-column", "1")
         .style("--grid-row", "1")
@@ -1048,13 +1060,14 @@ function characteristic_display_save_characteristics()
     });
 }
 
-function characteristic_display_tunnel_to_physical_part(inspection_id, part_id)
+function characteristic_display_tunnel_to_physical_part(inspection_id, part_id, part_index)
 {
     d3.json("/data_entry/characteristic_display_tunnel_to_physical_part/", {
         method: "POST",
         body: JSON.stringify({
             inspection_id: inspection_id,
-            part_id: part_id
+            part_id: part_id,
+            part_index: part_index
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -1375,6 +1388,19 @@ function characteristic_display_repopulate_table(data)
         });
 }
 
+function characteristic_display_clear()
+{
+    cd_select_frequency_type.selectAll("option").remove();
+    cd_input_name.property("value", "");
+    cd_select_revision.selectAll("option").remove();
+    cd_select_part_index.selectAll("option").remove();
+    cd_select_inspector.selectAll("option").remove();
+    cd_select_gauge.selectAll("option").remove();
+    cd_select_gauge_type.selectAll("option").remove();
+    cd_select_specification_type.selectAll("option").remove();
+    cd_select_characteristic_type.selectAll("option").remove();
+}
+
 // #endregion
 
 // #region metadata
@@ -1383,10 +1409,6 @@ function metadata_repopulate_controls(data)
 {
     // populate the static values
     md_label_identity.text(`${data.item} // ${data.drawing}`);
-    md_label_identity.attr("data-item", data.item);
-    md_label_identity.attr("data-drawing", data.drawing);
-    md_label_identity.attr("data-part_id", data.part_id);
-    md_label_identity.attr("data-inspection_id", data.inspection_id);
     md_select_disposition.property("value", data.disposition_type_id);
     md_select_material_type.property("value", data.material_type_id);
     md_select_inspector.property("value", data.employee_id);
@@ -1394,7 +1416,7 @@ function metadata_repopulate_controls(data)
     md_select_supplier.property("value", data.supplier_id);
 
     // query the flask server
-    d3.json("/data_entry/get_matching_revisions/", {
+    d3.json("/data_entry/metadata_get_matching_revisions/", {
         method: "POST",
         body: JSON.stringify({
             item: data.item,
@@ -1404,18 +1426,25 @@ function metadata_repopulate_controls(data)
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
+        if (json.status == "ok") {
 
             // remove the old entries
-            md_ul_quantities.selectAll("li").remove();
+            md_ul_list.selectAll("li").remove();
 
             // repopulate the revisions list
-            let items = md_ul_quantities.selectAll("li")
+            let items = md_ul_list.selectAll("li")
                 .data(json.response)
                 .join("li")
                 .append("div")
                 .attr("class", "list-item-dark")
-                .style("--grid-template-columns", "1fr 2fr 2fr 2fr");
+                .style("--grid-template-columns", "1fr 2fr 2fr 2fr")
+                .on("click", (event, _) => {
+                    for (let i = 0; i < md_ul_list.node().childNodes.length; i++) {
+                        let current_node = md_ul_list.node().childNodes[i].children[0];
+                        current_node.classList.remove("list-item-dark-selected");
+                    }
+                    event.srcElement.parentNode.classList.add("list-item-dark-selected");
+                });
             items.append("label")
                 .style("--grid-column", "1")
                 .style("--grid-row", "1")
@@ -1451,96 +1480,66 @@ function metadata_repopulate_controls(data)
                     x.completed_qty = parseInt(e.srcElement.value);
                 });
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
 }
 
-function metadata_save()
+function metadata_save(inspection_id, item, drawing)
 {
-    // get the identifications
-    let item = md_label_identity.attr("data-item");
-    let drawing = md_label_identity.attr("data-drawing");
-    let inspection_id = md_label_identity.attr("data-inspection_id");
-
-    // logic gate
-    if (inspection_id == undefined || item == undefined || drawing == undefined) {
-        return;
-    }
-
+    // request confirmation
     if (!confirm("This will write to the database and cannot be reverted. Continue?")) {
         return;
     }
 
-    // get the input parameters
-    let disposition_id = md_select_disposition.property("value");
-    let material_type_id = md_select_material_type.property("value");
-    let inspector_id = md_select_inspector.property("value");
-    let job_order_id = md_select_job_order.property("value");
-    let supplier_id = md_select_supplier.property("value");
-
-    // handle possible nulls
-    if (supplier_id == -1) {
-        supplier_id = null;
-    }
-    if (job_order_id == -1) {
-        job_order_id = null;
-    }
-    if (inspector_id == -1) {
-        inspector_id = null;
-    }
-
-    // build the form data object
-    let data = {
-        identity: {
-            item: item,
-            drawing: drawing,
-            inspection_id: inspection_id
-        },
-        content: {
-            disposition_id: disposition_id,
-            material_type_id: material_type_id,
-            employee_id: inspector_id,
-            job_order_id: job_order_id,
-            supplier_id: supplier_id
-        },
-        sub_data: md_ul_quantities.selectAll("li").data()
-    }
-
     // query the flask server
-    d3.json("/data_entry/save_metadata/", {
+    d3.json("/data_entry/metadata_save/", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+            identity: {
+                item: item,
+                drawing: drawing,
+                inspection_id: inspection_id
+            },
+            content: {
+                disposition_id: md_select_disposition.property("value"),
+                material_type_id: md_select_material_type.property("value"),
+                employee_id: md_select_inspector.property("value"),
+                job_order_id: md_select_job_order.property("value"),
+                supplier_id: md_select_supplier.property("value")
+            },
+            sub_data: md_ul_list.selectAll("li").data()
+        }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-        if (json.status == "ok_func") {
-            alert(json.response);
+        if (json.status == "ok") {
+            
         }
-        else if (json.status == "ok_log") {
+        else if (json.status == "log") {
             console.log(json.response);
         }
-        else if (json.status == "ok_alert") {
-            alert(json.response);
-        }
-        else if (json.status == "err_log") {
-            console.log(json.response);
-        }
-        else if (json.status == "err_alert") {
+        else if (json.status == "alert") {
             alert(json.response);
         }
     });
+}
+
+function metadata_clear()
+{
+    md_label_identity.text("");
+    md_button_save.on("click", null);
+    md_select_disposition.selectAll("option").remove();
+    md_select_material_type.selectAll("option").remove();
+    md_select_inspector.selectAll("option").remove();
+    md_select_job_order.selectAll("option").remove();
+    md_select_supplier.selectAll("option").remove();
+    md_ul_list.selectAll("li").remove();
 }
 
 // #endregion
@@ -1705,6 +1704,13 @@ function receiver_numbers_repopulate_list(data)
         .on("click", (_, d) => reciever_numbers_remove_association(d));
 }
 
+function receiver_numbers_clear()
+{
+    rn_button_add.on("click", null);
+    rn_input_search_term.property("value", "");
+    rn_ul_list.selectAll("li").remove();
+}
+
 // #endregion
 
 // #region purchase orders
@@ -1865,6 +1871,13 @@ function purchase_orders_repopulate_list(data)
         .attr("class", "list-item-button-dark")
         .text("Delete")
         .on("click", (_, d) => purchase_orders_remove_association(d));
+}
+
+function purchase_orders_clear()
+{
+    po_button_add.on("click", null);
+    po_input_search_term.property("value", "");
+    po_ul_list.selectAll("li").remove();
 }
 
 // #endregion
@@ -2029,6 +2042,13 @@ function lot_numbers_repopulate_list(data)
         .on("click", (_, d) => lot_numbers_remove_association(d));
 }
 
+function lot_numbers_clear()
+{
+    ln_button_add.on("click", null);
+    ln_input_search_term.property("value", "");
+    ln_ul_list.selectAll("li").remove();
+}
+
 // #endregion
 
 // #region deviations
@@ -2159,7 +2179,12 @@ function deviations_delete_deviation(deviation_id, characteristic_id, inspection
         if (json.status == "ok") {
 
             // repopulate the deviations list
-            deviations_repopulate_deviations_list(json.response, characteristic_id, inspection_id, item, drawing);
+            if (json.response.deviation_data != null) {
+                deviations_repopulate_deviations_list(json.response.deviation_data, characteristic_id, inspection_id, item, drawing);
+            }
+
+            // clear the notes
+            dv_input_notes.property("value", "");
 
             // repopulate the characteristic table
             characteristic_display_repopulate_table(json.response.characteristic_data);
@@ -2207,9 +2232,15 @@ function deviations_get_characteristic_deviations(characteristic_id, inspection_
     });
 }
 
-function deviation_selected(data)
+function deviation_selected(event, data)
 {
     dv_input_notes.property("value", data.notes);
+
+    for (let i = 0; i < md_ul_list.node().childNodes.length; i++) {
+        let current_node = md_ul_list.node().childNodes[i].children[0];
+        current_node.classList.remove("list-item-dark-selected");
+    }
+    event.srcElement.parentNode.classList.add("list-item-dark-selected");
 }
 
 function deviations_repopulate_deviations_list(data, characteristic_id, inspection_id, item, drawing)
@@ -2227,12 +2258,7 @@ function deviations_repopulate_deviations_list(data, characteristic_id, inspecti
         .append("div")
         .attr("class", "list-item-dark")
         .style("--grid-template-columns", "1fr 1fr 1fr 1fr 2fr 2fr 2fr")
-        .on("click", (_, d) => { 
-            deviation_selected(d);
-            if (dv_ul_list_contextmenu.style("display") == "block") {
-                dv_ul_list_contextmenu.style("display", "none");
-            }
-        }).on("contextmenu", (e) => {
+        .on("contextmenu", (e) => {
 
             // extract data
             let row_data = e.target.__data__;
@@ -2254,7 +2280,8 @@ function deviations_repopulate_deviations_list(data, characteristic_id, inspecti
 
             // prevent default behavior
             e.preventDefault();
-        });
+        })
+        .on("click", (e, d) => deviation_selected(e, d));
     let nominal = items.append("input")
         .style("--grid-column", "1")
         .style("--grid-row", "1")
@@ -2350,6 +2377,14 @@ function deviations_repopulate_deviations_list(data, characteristic_id, inspecti
         });
 }
 
+function deviations_clear()
+{
+    dv_button_save.on("click", null);
+    dv_button_add.on("click", null);
+    dv_input_notes.property("value", "");
+    dv_ul_list.selectAll("option").remove();
+}
+
 // #endregion
 
 // #region sidebar control
@@ -2365,7 +2400,6 @@ function toggle_options(destination_arg, open_width)
         else {
             document.getElementById("inspection_reports_sidebar").style.width = open_width;
             document.getElementById("inspection_reports_btn").style.marginRight = open_width;
-            inspection_reports_update_filtered_reports();
         }
     }
     else if (destination_arg == "characteristic_display") {

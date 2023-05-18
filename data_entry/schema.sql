@@ -21,6 +21,7 @@ drop table purchase_orders;
 drop table job_orders;
 drop table suppliers;
 drop table lot_numbers;
+drop table measurement_types;
 drop table frequency_types;
 drop table material_types;
 drop table project_types;
@@ -133,6 +134,16 @@ create table frequency_types
     -- primary key and unique constraints
     constraint pk_frequency_types primary key (id),
     constraint uc_frequency_types unique (id)
+);
+
+create table measurement_types
+(
+    id integer not null,
+    name varchar(32) not null,
+
+    -- primary key and unique constraints
+    constraint pk_measurement_types primary key (id),
+    constraint uc_measurement_types unique (id)
 );
 
 -- record tables
@@ -399,6 +410,10 @@ create table characteristics
     -- many characteristics relate to one frequency type
     frequency_type_id integer not null,
     constraint fk_frequency_type_id foreign key (frequency_type_id) references frequency_types(id),
+
+    -- many characteristics relate to one measurement type
+    measurement_type_id integer not null,
+    constraint fk_measurement_type_id foreign key (measurement_type_id) references measurement_types(id),
 
     -- many characteristics relate to one gauge
     gauge_id integer not null,

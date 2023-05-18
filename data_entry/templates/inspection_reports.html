@@ -23,7 +23,7 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 
-<body>
+<body style="height: 100vh;">
 
     <!-- navigation bar -->
     <div class="nav_bar">
@@ -90,7 +90,7 @@
             <!-- row -->
             <label class="label-header-dark" style="
                 --grid-column: 1 / 3;
-                --grid-row: 3;">New Inspection Report</label>
+                --grid-row: 3;">New Inspection Report/Check Set</label>
 
             <!-- row -->
             <label class="label-dark" style="
@@ -143,37 +143,42 @@
                 --grid-row: 10;">Existing Inspection Reports</label>
 
             <!-- row -->
-            <label class="label-dark" style="
-                --grid-column: 1;
-                --grid-row: 11;">Part ID</label>
-            <select class="select-dark" id="inspection_report_filter_part" style="
-                --grid-column: 1;
-                --grid-row: 12;"></select>
-            <label class="label-dark" style="
-                --grid-column: 2;
-                --grid-row: 11;">Job Order</label>
-            <select class="select-dark" id="inspection_report_filter_job_order" style="
-                --grid-column: 2;
-                --grid-row: 12;"></select>
+            <button class="button-dark" id="inspection_report_refresh" type="button" style="
+                --grid-column: 1 / 3;
+                --grid-row: 11;">Refresh List</button>
 
             <!-- row -->
             <label class="label-dark" style="
                 --grid-column: 1;
-                --grid-row: 13;">Started After</label>
-            <input class="input-dark" id="inspection_report_filter_start_after" type="date" style="
+                --grid-row: 12;">Part ID</label>
+            <select class="select-dark" id="inspection_report_filter_part" style="
                 --grid-column: 1;
-                --grid-row: 14">
+                --grid-row: 13;"></select>
             <label class="label-dark" style="
                 --grid-column: 2;
-                --grid-row: 13;">Finished Before</label>
+                --grid-row: 12;">Job Order</label>
+            <select class="select-dark" id="inspection_report_filter_job_order" style="
+                --grid-column: 2;
+                --grid-row: 13;"></select>
+
+            <!-- row -->
+            <label class="label-dark" style="
+                --grid-column: 1;
+                --grid-row: 14;">Started After</label>
+            <input class="input-dark" id="inspection_report_filter_start_after" type="date" style="
+                --grid-column: 1;
+                --grid-row: 15">
+            <label class="label-dark" style="
+                --grid-column: 2;
+                --grid-row: 14;">Finished Before</label>
             <input class="input-dark" id="inspection_report_filter_finished_before" type="date" style="
                 --grid-column: 2;
-                --grid-row: 14">
+                --grid-row: 15">
 
             <!-- row -->
             <ul class="item-list" style="
                 --grid-column: 1 / 3;
-                --grid-row: 15;">
+                --grid-row: 16;">
                 <li>
                     <div class="list-item-header" style="--grid-template-columns: repeat(3, minmax(0, 1fr));">
                         <label class="list-item-header-label-dark" style="--grid-column: 1;--grid-row: 1;">Item</label>
@@ -184,7 +189,7 @@
             </ul>
             <ul class="item-list" id="inspection_report_filtered_list" style="
                 --grid-column: 1 / 3;
-                --grid-row: 16;"></ul>
+                --grid-row: 17;"></ul>
         </div>
     </div>
     <div class="sidebar-toggle" id="inspection_reports_btn" style="top: calc(0 * (12px + 42px) + 12px + 54px);">

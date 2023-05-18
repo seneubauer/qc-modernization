@@ -8,6 +8,7 @@ const vw_characteristics_table_contextmenu = d3.select("#schema_view_characteris
 
 // schemas panel
 const sc_button_create = d3.select("#schemas_create_new_btn");
+const sc_button_save = d3.select("#schemas_save_btn");
 const sc_button_add_row = d3.select("#schemas_add_row_btn");
 const sc_button_remove_row = d3.select("#schemas_remove_row_btn");
 const sc_input_new_part_filter = d3.select("#schemas_part_filter");
@@ -25,15 +26,15 @@ var gauge_types = null;
 
 // main schema table columns
 const table_columns = [
-    { display: "Name",                  key: "name",                    type: "input",  datatype: "string"},
-    { display: "Nominal",               key: "nominal",                 type: "input",  datatype: "decimal"},
-    { display: "USL",                   key: "usl",                     type: "input",  datatype: "decimal"},
-    { display: "LSL",                   key: "lsl",                     type: "input",  datatype: "decimal"},
-    { display: "Precision",             key: "precision",               type: "input",  datatype: "integer"},
-    { display: "Specification Type",    key: "specification_type_id",   type: "select", datatype: "integer"},
-    { display: "Characteristic Type",   key: "characteristic_type_id",  type: "select", datatype: "integer"},
-    { display: "Frequency Type",        key: "frequency_type_id",       type: "select", datatype: "integer"},
-    { display: "Gauge Type",            key: "gauge_type_id",           type: "select", datatype: "integer"}
+    { display: "Name",                  key: "name",                    type: "input",  datatype: "string",     width: "125px" },
+    { display: "Nominal",               key: "nominal",                 type: "input",  datatype: "decimal",    width: "125px" },
+    { display: "USL",                   key: "usl",                     type: "input",  datatype: "decimal",    width: "125px" },
+    { display: "LSL",                   key: "lsl",                     type: "input",  datatype: "decimal",    width: "125px" },
+    { display: "Precision",             key: "precision",               type: "input",  datatype: "integer",    width: "100px" },
+    { display: "Specification Type",    key: "specification_type_id",   type: "select", datatype: "integer",    width: "25%" },
+    { display: "Characteristic Type",   key: "characteristic_type_id",  type: "select", datatype: "integer",    width: "25%" },
+    { display: "Frequency Type",        key: "frequency_type_id",       type: "select", datatype: "integer",    width: "25%" },
+    { display: "Gauge Type",            key: "gauge_type_id",           type: "select", datatype: "integer",    width: "25%" }
 ];
 
 init();
@@ -148,11 +149,6 @@ function setup_context_menus()
         // prevent the default behavior
         e.preventDefault();
     });
-    vw_characteristics_table.on("click", () => {
-        if (vw_characteristics_table_contextmenu.style("display") == "block") {
-            vw_characteristics_table_contextmenu.style("display", "none");
-        }
-    });
 
     // open the schema list context menu
     sc_ul_list.on("contextmenu", (e) => {
@@ -172,12 +168,6 @@ function setup_context_menus()
             sc_ul_list_contextmenu.style("display", "none");
         });
 
-        // save schema
-        sc_ul_list_contextmenu.select("#context_menu_1").on("click", () => {
-            schemas_save(row_data.schema_id);
-            sc_ul_list_contextmenu.style("display", "none");
-        });
-
         // delete schema
         sc_ul_list_contextmenu.select("#context_menu_2").on("click", () => {
             schemas_delete(row_data.schema_id);
@@ -187,7 +177,12 @@ function setup_context_menus()
         // prevent the default behavior
         e.preventDefault();
     });
-    sc_ul_list.on("click", () => {
+
+    // close the context menus
+    d3.select("body").on("click", () => {
+        if (vw_characteristics_table_contextmenu.style("display") == "block") {
+            vw_characteristics_table_contextmenu.style("display", "none");
+        }
         if (sc_ul_list_contextmenu.style("display") == "block") {
             sc_ul_list_contextmenu.style("display", "none");
         }
@@ -199,6 +194,11 @@ function prepare_schema_panel()
     // input events
     sc_input_new_part_filter.on("change", schemas_update_part_id_selector);
     sc_input_schema_filter.on("change", schemas_update_filtered_schemas);
+    sc_input_schema_filter.on("keydown", (e) => {
+        if (e.keyCode == 13) {
+            schemas_update_filtered_schemas();
+        }
+    });
 
     // select events
     sc_select_is_locked.on("change", schemas_update_filtered_schemas);
@@ -496,10 +496,20 @@ function schemas_update_filtered_schemas()
     });
 }
 
-function schemas_schema_selected(data)
+function schemas_schema_selected(event, data)
 {
     // update the main display
     navbar_info.text(`${data.item} // ${data.drawing} // ${data.revision}`);
+
+    // reset/set the selected class
+    for (let i = 0; i < sc_ul_list.node().childNodes.length; i++) {
+        let current_node = sc_ul_list.node().childNodes[i].children[0];
+        current_node.classList.remove("list-item-dark-selected");
+    }
+    event.srcElement.parentNode.classList.add("list-item-dark-selected");
+
+    // set the save event
+    sc_button_save.on("click", () => { schemas_save(data.schema_id); });
 
     // characteristic display
     view_get_schema_characteristics(data.schema_id);
@@ -551,7 +561,8 @@ function schemas_repopulate_schema_list(data)
         .append("li")
         .append("div")
         .attr("class", "list-item-dark")
-        .style("--grid-template-columns", "1fr 1fr 1fr");
+        .style("--grid-template-columns", "1fr 1fr 1fr")
+        .on("click", (e, d) => schemas_schema_selected(e, d));
     items.append("label")
         .style("--grid-column", "1")
         .style("--grid-row", "1")
@@ -564,20 +575,17 @@ function schemas_repopulate_schema_list(data)
             else {
                 return x.item;
             }
-        })
-        .on("click", (_, d) => schemas_schema_selected(d));
+        });
     items.append("label")
         .style("--grid-column", "2")
         .style("--grid-row", "1")
         .attr("class", "list-item-label-dark")
-        .text((x) => x.drawing)
-        .on("click", (_, d) => schemas_schema_selected(d));
+        .text((x) => x.drawing);
     items.append("label")
         .style("--grid-column", "3")
         .style("--grid-row", "1")
         .attr("class", "list-item-label-dark")
-        .text((x) => x.revision)
-        .on("click", (_, d) => schemas_schema_selected(d));
+        .text((x) => x.revision);
 }
 
 // #endregion
@@ -621,6 +629,7 @@ function view_repopulate_schema_characteristics_table(data)
         .data(table_columns)
         .join("th")
         .attr("scope", "col")
+        .style("width", (x) => x.width)
         .text((x) => x.display);
 
     // clear the old rows
@@ -667,6 +676,7 @@ function view_repopulate_schema_characteristics_table(data)
                 return "number";
             }
         })
+        .attr("step", "any")
         .property("value", (x) => {
             if (x.column.datatype == "decimal") {
                 return x.row.value.toFixed(x.row.precision);
@@ -677,9 +687,12 @@ function view_repopulate_schema_characteristics_table(data)
         })
         .property("disabled", (x) => x.row.is_locked)
         .on("change", (e, x) => {
-            x.row.value = parseFloat(e.srcElement.value);
             if (x.column.datatype == "decimal") {
-                e.srcElement.value = x.row.value.toFixed(x.row.precision);
+                x.row.value = parseFloat(e.srcElement.value);
+                e.srcElement.value = x.row.value;
+            }
+            else {
+                x.row.value = e.srcElement.value;
             }
             if (x.column.key == "precision") {
                 enforce_precision(x.row.value, x.row.detail_id);
@@ -792,6 +805,7 @@ function enforce_precision(precision, detail_id)
     vw_characteristics_table.select("tbody").selectAll("td").selectAll("input")
         .property("value", (x) => {
             if (x.column.datatype == "decimal" && x.row.detail_id == detail_id) {
+                x.row.precision = precision;
                 return x.row.value.toFixed(precision);
             }
         });
@@ -812,7 +826,6 @@ function toggle_options(destination_arg, open_width)
         else {
             document.getElementById("schemas_sidebar").style.width = open_width;
             document.getElementById("schemas_btn").style.marginRight = open_width;
-            schemas_update_filtered_schemas();
         }
     }
 }

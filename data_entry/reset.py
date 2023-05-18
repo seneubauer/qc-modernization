@@ -54,6 +54,7 @@ purchase_orders = base.classes.purchase_orders
 job_orders = base.classes.job_orders
 suppliers = base.classes.suppliers
 lot_numbers = base.classes.lot_numbers
+measurement_types = base.classes.measurement_types
 frequency_types = base.classes.frequency_types
 material_types = base.classes.material_types
 project_types = base.classes.project_types
@@ -69,6 +70,7 @@ deviation_types = base.classes.deviation_types
 session = Session(engine)
 
 # retrieve type data
+measurement_types_df = pd.read_csv(join("data", "measurement_types.csv"))
 frequency_types_df = pd.read_csv(join("data", "frequency_types.csv"))
 material_types_df = pd.read_csv(join("data", "material_types.csv"))
 project_types_df = pd.read_csv(join("data", "project_types.csv"))
@@ -81,6 +83,12 @@ disposition_types_df = pd.read_csv(join("data", "disposition_types.csv"))
 deviation_types_df = pd.read_csv(join("data", "deviation_types.csv"))
 
 # populate type data
+for i, r in measurement_types_df.iterrows():
+    session.add(measurement_types(
+        id = r["id"],
+        name = r["name"]))
+session.commit()
+
 for i, r in frequency_types_df.iterrows():
     session.add(frequency_types(
         id = r["id"],
@@ -302,6 +310,7 @@ for i, r in characteristics_df.iterrows():
         specification_type_id = r["specification_type_id"],
         characteristic_type_id = r["characteristic_type_id"],
         frequency_type_id = r["frequency_type_id"],
+        measurement_type_id = r["measurement_type_id"],
         gauge_id = r["gauge_id"]))
 session.commit()
 

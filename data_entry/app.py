@@ -2003,10 +2003,8 @@ def func_data_entry_inspection_reports_add_new_check_set(part_id:int, inspection
         schema_details_list = []
         for name, nominal, usl, lsl, precision, spectype, chartype, freqtype, gauge_type_id in schema_details:
 
-            new_gauge_id = session.query(gauges.id)\
-                .join(characteristic_schema_details, (characteristic_schema_details.gauge_type_id == gauges.gauge_type_id))\
-                .filter(characteristic_schema_details.gauge_type_id == gauge_type_id)\
-                .order_by(gauges.name.asc())\
+            gauge_id = session.query(gauges.id)\
+                .filter(gauges.gauge_type_id == gauge_type_id)\
                 .first()[0]
 
             schema_details_list.append({
@@ -2018,7 +2016,7 @@ def func_data_entry_inspection_reports_add_new_check_set(part_id:int, inspection
                 "specification_type_id": spectype,
                 "characteristic_type_id": chartype,
                 "frequency_type_id": freqtype,
-                "gauge_id": new_gauge_id
+                "gauge_id": gauge_id
             })
 
         # create the characteristic records
@@ -2188,6 +2186,7 @@ def data_entry_characteristic_display_tunnel_to_physical_part():
     # get the required parameters
     inspection_id = int(form_data["inspection_id"])
     part_id = int(form_data["part_id"])
+    part_index = int(form_data["part_index"])
 
     try:
 
@@ -2213,7 +2212,7 @@ def data_entry_characteristic_display_tunnel_to_physical_part():
             inspection_id,
             item,
             drawing,
-            -1,
+            part_index,
             -1,
             revision,
             "",
@@ -2493,6 +2492,7 @@ def func_data_entry_characteristic_display_get_filtered_characteristics(inspecti
     columns = [
         checks.id,
         checks.part_index,
+        checks.datetime_measured,
         parts.id,
         parts.revision,
         characteristics.name,
@@ -2565,7 +2565,7 @@ def func_data_entry_characteristic_display_get_filtered_characteristics(inspecti
 
             # assemble characteristics output
             output_arr = []
-            for check_id, part_index, part_id, revision, name, nominal, usl, lsl, measured, precision, employee_id, gauge_id, gauge_type_id, gauge_type, specification_type, characteristic_type, frequency_type, characteristic_id in characteristic_list:
+            for check_id, part_index, timestamp, part_id, revision, name, nominal, usl, lsl, measured, precision, employee_id, gauge_id, gauge_type_id, gauge_type, specification_type, characteristic_type, frequency_type, characteristic_id in characteristic_list:
 
                 # parse to floats
                 nominal_flt = round(float(nominal), precision)
@@ -2592,6 +2592,7 @@ def func_data_entry_characteristic_display_get_filtered_characteristics(inspecti
                     "part_id": part_id,
                     "item": item,
                     "drawing": drawing,
+                    "timestamp": timestamp.strftime("%Y-%m-%d, %H:%M"),
                     "has_deviations": has_deviations,
                     "characteristic_id": characteristic_id,
                     "check_id": check_id,
@@ -2635,8 +2636,8 @@ def func_data_entry_characteristic_display_get_filtered_characteristics(inspecti
 
 #region inspection reports - metadata
 
-@app.route("/data_entry/get_matching_revisions/", methods = ["POST"])
-def data_entry_get_matching_revisions():
+@app.route("/data_entry/metadata_get_matching_revisions/", methods = ["POST"])
+def data_entry_metadata_get_matching_revisions():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -2685,8 +2686,8 @@ def data_entry_get_matching_revisions():
             "response": error_msg
         }
 
-@app.route("/data_entry/save_metadata/", methods = ["POST"])
-def data_entry_save_metadata():
+@app.route("/data_entry/metadata_save/", methods = ["POST"])
+def data_entry_metadata_save():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -2716,7 +2717,10 @@ def data_entry_save_metadata():
         results = session.query(inspection_reports).filter(inspection_reports.id == inspection_id)
         ir_is_affected = 0
         for k, v in form_data["content"].items():
-            ir_is_affected = results.update({ k: v })
+            if v == "-1":
+                ir_is_affected = results.update({ k: None })
+            else:
+                ir_is_affected = results.update({ k: v })
 
         # commit to then close the session
         session.commit()
@@ -2743,7 +2747,7 @@ def data_entry_save_metadata():
         # return the response
         if ir_is_affected > 0 and pa_is_affected > 0:
             return {
-                "status": "ok",
+                "status": "alert",
                 "response": "tables 'inspection_reports' and 'parts' successfully updated"
             }
         else:
@@ -3348,10 +3352,14 @@ def data_entry_deviations_delete_deviation():
         session.close()
 
         # get the new deviation data
-        deviation_results = func_data_entry_deviations_get_characteristic_deviations(characteristic_id)
+        deviation_results = None
+        deviation_obj = func_data_entry_deviations_get_characteristic_deviations(characteristic_id)
+        if deviation_obj["status"] == "ok":
+            deviation_results = deviation_obj["response"]
 
         # get the updated characteristic data
-        characteristic_results = func_data_entry_characteristic_display_get_filtered_characteristics(
+        characteristic_results = None
+        characteristic_obj = func_data_entry_characteristic_display_get_filtered_characteristics(
             inspection_id,
             item,
             drawing,
@@ -3366,20 +3374,22 @@ def data_entry_deviations_delete_deviation():
             specification_type_id,
             characteristic_type_id
         )
+        if characteristic_obj["status"] == "ok":
+            characteristic_results = characteristic_obj["response"]
 
         # return the results
-        if deviation_results["status"] == "ok" and characteristic_results["status"] == "ok":
+        if characteristic_obj["status"] == "ok":
             return {
                 "status": "ok",
                 "response": {
-                    "deviation_data": deviation_results["response"],
-                    "characteristic_data": characteristic_results["response"]
+                    "deviation_data": deviation_results,
+                    "characteristic_data": characteristic_results
                 }
             }
         else:
             return {
                 "status": "log",
-                "response": deviation_results["response"] + " || " + characteristic_results["response"]
+                "response": "no characteristics found"
             }
 
     except SQLAlchemyError as e:

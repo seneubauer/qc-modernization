@@ -484,6 +484,11 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     grid-template-columns: var(--grid-template-columns);
 }
 
+.list-item-dark-selected {
+    background-color: var(--dark-list-bg-hover);
+    color: var(--dark-list-fg-hover);
+}
+
 .list-item-dark:hover {
     background-color: var(--dark-list-bg-hover);
     color: var(--dark-list-fg-hover);
@@ -492,11 +497,6 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 .list-item-dark:active {
     background-color: var(--dark-list-bg-active);
     color: var(--dark-list-fg-active);
-}
-
-.list-item-dark:focus-within {
-    background-color: var(--dark-list-bg-focus);
-    color: var(--dark-list-fg-focus);
 }
 
 .list-item-label-dark {
@@ -534,7 +534,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     color: var(--dark-list-fg-hover);
 }
 
-.list-item-input-dark:focus, .list-item-select-dark:focus {
+.list-item-input-dark:focus-within, .list-item-select-dark:focus-within {
     background-color: var(--dark-list-bg-focus);
     color: var(--dark-list-fg-focus);
 }
@@ -668,11 +668,6 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 .data-table-cell-dark:active {
     background-color: var(--dark-table-bg-active);
     color: var(--dark-table-fg-active);
-}
-
-.data-table-cell-dark:focus-within {
-    background-color: var(--dark-table-bg-focus);
-    color: var(--dark-table-fg-focus);
 }
 
 .data-table-cell-dark::selection {
