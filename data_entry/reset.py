@@ -36,11 +36,11 @@ inspection_lot_numbers = base.classes.inspection_lot_numbers
 inspection_receiver_numbers = base.classes.inspection_receiver_numbers
 inspection_purchase_orders = base.classes.inspection_purchase_orders
 employee_projects = base.classes.employee_projects
-characteristic_schema_details = base.classes.characteristic_schema_details
-characteristic_schemas = base.classes.characteristic_schemas
+measurement_set_schema_details = base.classes.measurement_set_schema_details
+measurement_set_schemas = base.classes.measurement_set_schemas
 deviations = base.classes.deviations
-characteristics = base.classes.characteristics
-checks = base.classes.checks
+measurements = base.classes.measurements
+measurement_sets = base.classes.measurement_sets
 gauges = base.classes.gauges
 parts = base.classes.parts
 inspection_reports = base.classes.inspection_reports
@@ -54,12 +54,12 @@ purchase_orders = base.classes.purchase_orders
 job_orders = base.classes.job_orders
 suppliers = base.classes.suppliers
 lot_numbers = base.classes.lot_numbers
-measurement_types = base.classes.measurement_types
+dimension_types = base.classes.dimension_types
 frequency_types = base.classes.frequency_types
 material_types = base.classes.material_types
 project_types = base.classes.project_types
 specification_types = base.classes.specification_types
-characteristic_types = base.classes.characteristic_types
+measurement_types = base.classes.measurement_types
 gauge_types = base.classes.gauge_types
 machine_types = base.classes.machine_types
 location_types = base.classes.location_types
@@ -75,7 +75,7 @@ frequency_types_df = pd.read_csv(join("data", "frequency_types.csv"))
 material_types_df = pd.read_csv(join("data", "material_types.csv"))
 project_types_df = pd.read_csv(join("data", "project_types.csv"))
 specification_types_df = pd.read_csv(join("data", "specification_types.csv"))
-characteristic_types_df = pd.read_csv(join("data", "characteristic_types.csv"))
+dimension_types_df = pd.read_csv(join("data", "dimension_types.csv"))
 gauge_types_df = pd.read_csv(join("data", "gauge_types.csv"))
 machine_types_df = pd.read_csv(join("data", "machine_types.csv"))
 location_types_df = pd.read_csv(join("data", "location_types.csv"))
@@ -113,8 +113,8 @@ for i, r in specification_types_df.iterrows():
         name = r["name"]))
 session.commit()
 
-for i, r in characteristic_types_df.iterrows():
-    session.add(characteristic_types(
+for i, r in dimension_types_df.iterrows():
+    session.add(dimension_types(
         id = r["id"],
         name = r["name"],
         is_gdt = r["is_gdt"]))
@@ -158,17 +158,17 @@ purchase_orders_df = pd.read_csv(join("data", "purchase_orders.csv"))
 reciever_numbers_df = pd.read_csv(join("data", "receiver_numbers.csv"))
 projects_df = pd.read_csv(join("data", "projects.csv"))
 departments_df = pd.read_csv(join("data", "departments.csv"))
-locations_df = pd.read_csv(join("Data", "locations.csv"))
+locations_df = pd.read_csv(join("data", "locations.csv"))
 employees_df = pd.read_csv(join("data", "employees.csv"))
 machines_df = pd.read_csv(join("data", "machines.csv"))
 inspection_reports_df = pd.read_csv(join("data", "inspection_reports.csv"))
 parts_df = pd.read_csv(join("data", "parts.csv"))
 gauges_df = pd.read_csv(join("data", "gauges.csv"))
-checks_df = pd.read_csv(join("data", "checks.csv"))
-characteristics_df = pd.read_csv(join("data", "characteristics.csv"))
+measurement_sets_df = pd.read_csv(join("data", "measurement_sets.csv"))
+measurements_df = pd.read_csv(join("data", "measurements.csv"))
 deviations_df = pd.read_csv(join("data", "deviations.csv"))
-characteristic_schemas_df = pd.read_csv(join("data", "characteristic_schemas.csv"))
-characteristic_schema_details_df = pd.read_csv(join("data", "characteristic_schema_details.csv"))
+measurement_set_schemas_df = pd.read_csv(join("data", "measurement_set_schemas.csv"))
+measurement_set_schema_details_df = pd.read_csv(join("data", "measurement_set_schema_details.csv"))
 
 # populate record data
 for i, r in lot_numbers_df.iterrows():
@@ -284,8 +284,8 @@ for i, r in gauges_df.iterrows():
         location_id = location_id_val))
 session.commit()
 
-for i, r in checks_df.iterrows():
-    session.add(checks(
+for i, r in measurement_sets_df.iterrows():
+    session.add(measurement_sets(
         part_index = r["part_index"],
         datetime_measured = r["datetime_measured"],
         inspection_id = r["inspection_id"],
@@ -293,22 +293,22 @@ for i, r in checks_df.iterrows():
         employee_id = r["employee_id"]))
 session.commit()
 
-for i, r in characteristics_df.iterrows():
+for i, r in measurements_df.iterrows():
 
     measured_val = r["measured"]
     if isnan(measured_val):
         measured_val = None
 
-    session.add(characteristics(
+    session.add(measurements(
         name = r["name"],
         nominal = r["nominal"],
         usl = r["usl"],
         lsl = r["lsl"],
         measured = measured_val,
         precision = r["precision"],
-        check_id = r["check_id"],
+        measurement_set_id = r["measurement_set_id"],
         specification_type_id = r["specification_type_id"],
-        characteristic_type_id = r["characteristic_type_id"],
+        dimension_type_id = r["dimension_type_id"],
         frequency_type_id = r["frequency_type_id"],
         measurement_type_id = r["measurement_type_id"],
         gauge_id = r["gauge_id"]))
@@ -324,24 +324,24 @@ for i, r in deviations_df.iterrows():
         notes = r["notes"],
         deviation_type_id = r["deviation_type_id"],
         employee_id = r["employee_id"],
-        characteristic_id = r["characteristic_id"]))
+        measurement_id = r["measurement_id"]))
 session.commit()
 
-for i, r in characteristic_schemas_df.iterrows():
-    session.add(characteristic_schemas(
+for i, r in measurement_set_schemas_df.iterrows():
+    session.add(measurement_set_schemas(
         is_locked = r["is_locked"],
         part_id = r["part_id"]))
 session.commit()
 
-for i, r in characteristic_schema_details_df.iterrows():
-    session.add(characteristic_schema_details(
+for i, r in measurement_set_schema_details_df.iterrows():
+    session.add(measurement_set_schema_details(
         name = r["name"],
         nominal = r["nominal"],
         usl = r["usl"],
         lsl = r["lsl"],
         precision = r["precision"],
         specification_type_id = r["specification_type_id"],
-        characteristic_type_id = r["characteristic_type_id"],
+        measurement_type_id = r["measurement_type_id"],
         frequency_type_id = r["frequency_type_id"],
         gauge_type_id = r["gauge_type_id"],
         schema_id = r["schema_id"]))

@@ -1,4 +1,4 @@
-nominal,usl,lsl,precision,notes,employee_id,date_implemented,deviation_type_id,characteristic_id
+nominal,usl,lsl,precision,notes,employee_id,date_implemented,deviation_type_id,measurement_id
 8.5,8.75,8.25,2,some elaborate reason here,5137,1/2/2023,0,13
 8.45,8.75,8.25,2,some elaborate reason here with more details,6752,8/5/2023,0,13
 7,7.005,6.995,3,some other elaborate reason here with notes and a link,5397,12/2/2023,1,50

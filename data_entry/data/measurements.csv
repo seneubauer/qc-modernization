@@ -1,4 +1,4 @@
-name,nominal,usl,lsl,measured,precision,check_id,specification_type_id,characteristic_type_id,frequency_type_id,measurement_type_id,gauge_id
+name,nominal,usl,lsl,measured,precision,measurement_set_id,specification_type_id,dimension_type_id,frequency_type_id,measurement_type_id,gauge_id
 DIM 1,8.314,8.319,8.309,8.996757667,3,1,1,17,10,0,3
 DIM 2,5.427,5.432,5.422,6.289119909,3,1,1,12,10,0,1
 DIM 3,4.862,4.867,4.857,5.250262141,3,1,2,0,5,0,4

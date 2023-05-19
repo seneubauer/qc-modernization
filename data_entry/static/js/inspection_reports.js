@@ -8,20 +8,27 @@ const vw_characteristics_table_contextmenu = d3.select("#characteristics_view_ch
 
 // inspection_reports
 const ir_button_create_new_report = d3.select("#inspection_report_create_new_report_btn");
-const ir_button_add_check_set = d3.select("#inspection_report_add_check_set_btn")
+const ir_button_refresh_reports = d3.select("#inspection_report_refresh");
 const ir_input_new_part_filter = d3.select("#inspection_report_part_filter");
 const ir_select_new_part = d3.select("#inspection_report_part");
 const ir_input_new_employee_filter = d3.select("#inspection_report_employee_filter");
 const ir_select_new_employee = d3.select("#inspection_report_employee");
-const ir_input_char_schema_filter = d3.select("#inspection_report_char_schema_filter");
-const ir_select_char_schema = d3.select("#inspection_report_char_schema");
-const ir_button_refresh_reports = d3.select("#inspection_report_refresh");
 const ir_select_filter_part = d3.select("#inspection_report_filter_part");
 const ir_select_filter_job_order = d3.select("#inspection_report_filter_job_order");
 const ir_input_started_after = d3.select("#inspection_report_filter_start_after");
 const ir_input_finished_before = d3.select("#inspection_report_filter_finished_before");
 const ir_ul_list = d3.select("#inspection_report_filtered_list");
 const ir_ul_list_contextmenu = d3.select("#inspection_reports_list_contextmenu");
+
+// measurement sets
+const ms_button_create_new_set = d3.select("#measurement_sets_add");
+const ms_input_schema_filter = d3.select("#measurement_sets_schema_filter");
+const ms_select_schema = d3.select("#measurement_sets_schema");
+const ms_input_employee_filter = d3.select("#measurement_sets_employee_filter");
+const ms_select_employee = d3.select("#measurement_sets_employee");
+const ms_input_display_filter = d3.select("#measurement_sets_display_filter");
+const ms_ul_list = d3.select("#measurement_sets_list");
+const ms_ul_list_contextmenu = d3.select("#measurement_sets_list_contextmenu");
 
 // characteristic display
 const cd_button_update_display = d3.select("#characteristic_display_apply");
@@ -128,25 +135,32 @@ init();
 
 // #region page initialization
 
-function init()
+async function init()
 {
     // retrieve lists
     retrieve_global_enumerations();
 
     // populate selectors
-    populate_generic_selectors();
+    // populate_generic_selectors();
+
+    set_disabled_state(true);
 
     // panels
-    prepare_inspection_reports_panel();
-    prepare_characteristic_display_panel();
-    prepare_metadata_panel();
-    prepare_receiver_numbers_panel();
-    prepare_purchase_orders_panel();
-    prepare_lot_numbers_panel();
-    prepare_deviations_panel();
+    await inspection_reports_prepare_panel();
 
     // context menus
-    setup_context_menus();
+    // setup_context_menus();
+}
+
+function set_disabled_state(state)
+{
+    document.getElementById("measurement_sets_button").disabled = state;
+    document.getElementById("measurements_button").disabled = state;
+    document.getElementById("metadata_button").disabled = state;
+    document.getElementById("receiver_numbers_button").disabled = state;
+    document.getElementById("purchase_orders_button").disabled = state;
+    document.getElementById("lot_numbers_button").disabled = state;
+    document.getElementById("deviations_button").disabled = state;
 }
 
 function retrieve_global_enumerations()
@@ -300,7 +314,7 @@ function prepare_inspection_reports_panel()
     // input events
     ir_input_new_part_filter.on("change", inspection_reports_update_part_id_selector);
     ir_input_new_employee_filter.on("change", inspection_reports_update_employee_selector);
-    ir_input_char_schema_filter.on("change", inspection_reports_update_characteristic_schemas);
+    ir_input_new_char_schema_filter.on("change", inspection_reports_update_measurement_set_schemas);
     ir_input_started_after.on("change", inspection_reports_update_filtered_reports);
     ir_input_finished_before.on("change", inspection_reports_update_filtered_reports);
 
@@ -354,77 +368,7 @@ function prepare_deviations_panel()
 
 function populate_generic_selectors()
 {
-    // inspection reports
-    inspection_reports_update_part_id_selector();
-    inspection_reports_update_employee_selector();
-    inspection_reports_update_characteristic_schemas();
-    d3.json("/get_all_parts/", {
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-
-            // clear the old entries
-            ir_select_filter_part.selectAll("option").remove();
-
-            // add to the dataset
-            json.response.unshift({ id: -1 });
-
-            // populate the item numbers
-            ir_select_filter_part.selectAll("option")
-                .data(json.response)
-                .join("option")
-                .attr("value", (x) => x.id)
-                .text((x) => {
-                    if (x.id > 0) {
-                        return `${x.item}, ${x.drawing}`;
-                    }
-                    else {
-                        return "n/a";
-                    }});
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-    d3.json("/get_all_job_orders/", {
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-
-            // clear the old entries
-            ir_select_filter_job_order.selectAll("option").remove();
-
-            // add to the dataset
-            json.response.unshift({ id: -1 });
-
-            // populate the item numbers
-            ir_select_filter_job_order.selectAll("option")
-                .data(json.response)
-                .join("option")
-                .attr("value", (x) => x.id)
-                .text((x) => {
-                    if (x.id > 0) {
-                        return x.name;
-                    }
-                    else {
-                        return "n/a";
-                    }
-                });
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
+    
 
     // metadata
     d3.json("/get_all_disposition_types/", {
@@ -635,14 +579,14 @@ function populate_generic_selectors()
 
 // #region inspection reports
 
-function inspection_reports_create_new_report()
+async function inspection_reports_create_new_report()
 {
-    d3.json("/data_entry/inspection_reports_create_new_report/", {
+    await d3.json("/inspection_reports/inspection_reports_create_new_report/", {
         method: "POST",
         body: JSON.stringify({
             part_id: ir_select_new_part.property("value"),
             employee_id: ir_select_new_employee.property("value"),
-            schema_id: ir_select_char_schema.property("value"),
+            schema_id: ir_select_new_char_schema.property("value"),
             filter_part_id: ir_select_filter_part.property("value"),
             filter_job_order_id: ir_select_filter_job_order.property("value"),
             started_after: ir_input_started_after.property("value"),
@@ -666,33 +610,7 @@ function inspection_reports_create_new_report()
     });
 }
 
-function inspection_reports_add_check_set(inspection_id)
-{
-    d3.json("/data_entry/inspection_reports_add_check_set/", {
-        method: "POST",
-        body: JSON.stringify({
-            inspection_id: inspection_id,
-            schema_id: ir_select_char_schema.property("value"),
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-
-            // repopulate the characteristic table
-            characteristic_display_repopulate_table(json.response);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-}
-
-function inspection_reports_delete(inspection_id)
+async function inspection_reports_delete(inspection_id)
 {
     // request confirmation
     if (!confirm("This action will remove records from the database. Continue?")) {
@@ -700,7 +618,7 @@ function inspection_reports_delete(inspection_id)
     }
 
     // query the flask server
-    d3.json("/data_entry/inspection_reports_delete/", {
+    await d3.json("/inspection_reports/inspection_reports_delete/", {
         method: "POST",
         body: JSON.stringify({
             part_id: ir_select_filter_part.property("value"),
@@ -731,9 +649,9 @@ function inspection_reports_delete(inspection_id)
     });
 }
 
-function inspection_reports_update_filtered_reports()
+async function inspection_reports_update_filtered_reports()
 {
-    d3.json("/data_entry/inspection_reports_get_filtered_reports/", {
+    await d3.json("/inspection_reports/inspection_reports_get_filtered_reports/", {
         method: "POST",
         body: JSON.stringify({
             part_id: ir_select_filter_part.property("value"),
@@ -749,6 +667,12 @@ function inspection_reports_update_filtered_reports()
 
             // repopulate the inspection report list
             inspection_reports_repopulate_report_list(json.response);
+
+            // set the unselected status
+            navbar_info.text("");
+
+            // lock the panels
+            set_disabled_state(true);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -761,48 +685,52 @@ function inspection_reports_update_filtered_reports()
 
 async function inspection_reports_report_selected(event, data)
 {
-    // update the main display
-    navbar_info.text(`${data.item} // ${data.drawing}`);
+    // check if the item is already selected
+    let is_selected = event.srcElement.parentNode.classList.contains("list-item-dark-selected");
 
-    // reset/set the class
+    // reset/set the selected class
     for (let i = 0; i < ir_ul_list.node().childNodes.length; i++) {
         let current_node = ir_ul_list.node().childNodes[i].children[0];
         current_node.classList.remove("list-item-dark-selected");
     }
-    event.srcElement.parentNode.classList.add("list-item-dark-selected");
 
-    // inspection reports
-    ir_button_add_check_set.on("click", () => { inspection_reports_add_check_set(data.inspection_id); });
+    // filter actions
+    if (!is_selected) {     // an inspection report is selected
 
-    // characteristic display
-    cd_button_update_display.on("click", () => { characteristic_display_retrieve_characteristics(data.inspection_id, data.item, data.drawing); });
-    cd_button_save_characteristics.on("click", () => { characteristic_display_save_characteristics(data.inspection_id); });
-    await characteristic_display_update_filter_selectors(data.inspection_id, data.item, data.drawing);
-    characteristic_display_retrieve_characteristics(data.inspection_id, data.item, data.drawing);
+        // set the visual flags
+        event.srcElement.parentNode.classList.add("list-item-dark-selected");
+        navbar_info.text(`${data.item} // ${data.drawing}`);
 
-    // metadata
-    metadata_repopulate_controls(data);
-    md_button_save.on("click", () => { metadata_save(data.inspection_id, data.item, data.drawing); });
+        // unlock the panels
+        set_disabled_state(false);
 
-    // receiver numbers
-    rn_input_search_term.on("change", () => { receiver_numbers_update_filtered_list(data.inspection_id); });
-    rn_button_add.on("click", () => { reciever_numbers_assign_association(data.inspection_id); });
-    receiver_numbers_update_filtered_list(data.inspection_id);
+        // populate the measurement sets
+        measurement_sets_update_filtered_measurement_sets(data.inspection_id);
 
-    // purchase orders
-    po_input_search_term.on("change", () => { purchase_orders_update_filtered_list(data.inspection_id); });
-    po_button_add.on("click", () => { purchase_orders_assign_association(data.inspection_id); });
-    purchase_orders_update_filtered_list(data.inspection_id);
+        // populate the measurements
 
-    // lot numbers
-    ln_input_search_term.on("change", () => { lot_numbers_update_filtered_list(data.inspection_id); });
-    ln_button_add.on("click", () => { lot_numbers_assign_association(data.inspection_id); });
-    lot_numbers_update_filtered_list(data.inspection_id);
+        // populate the metadata
+
+        // populate the receiver numbers
+
+        // populate the purchase orders
+
+        // populate the lot numbers
+
+    }
+    else {                  // an inspection report is unselected
+
+        // set the visual flags
+        navbar_info.text("");
+
+        // lock the panels
+        set_disabled_state(true);
+    }
 }
 
-function inspection_reports_update_part_id_selector()
+async function inspection_reports_update_part_id_selector()
 {
-    d3.json("/data_entry/get_filtered_parts/", {
+    await d3.json("/inspection_reports/inspection_reports_get_filtered_parts/", {
         method: "POST",
         body: JSON.stringify({
             search_term: ir_input_new_part_filter.property("value"),
@@ -822,7 +750,6 @@ function inspection_reports_update_part_id_selector()
                 .join("option")
                 .attr("value", (x) => x.id)
                 .text((x) => x.part_name);
-            ir_select_new_part.property("value", json.response[0].id)
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -833,9 +760,9 @@ function inspection_reports_update_part_id_selector()
     });
 }
 
-function inspection_reports_update_employee_selector()
+async function inspection_reports_update_employee_selector()
 {
-    d3.json("/data_entry/get_filtered_employees/", {
+    await d3.json("/inspection_reports/inspection_reports_get_filtered_employees/", {
         method: "POST",
         body: JSON.stringify({
             search_term: ir_input_new_employee_filter.property("value"),
@@ -856,38 +783,6 @@ function inspection_reports_update_employee_selector()
                 .attr("value", (x) => x.id)
                 .text((x) => x.name);
                 ir_select_new_employee.property("value", json.response[0].id)
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-}
-
-function inspection_reports_update_characteristic_schemas()
-{
-    d3.json("/data_entry/get_filtered_characteristic_schemas/", {
-        method: "POST",
-        body: JSON.stringify({
-            search_term: ir_input_char_schema_filter.property("value")
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-
-            // clear the old entries
-            ir_select_char_schema.selectAll("option").remove();
-
-            // populate the characteristic schema
-            ir_select_char_schema.selectAll("option")
-                .data(json.response)
-                .join("option")
-                .attr("value", (x) => x.schema_id)
-                .text((x) => x.name);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -937,13 +832,231 @@ function inspection_reports_repopulate_report_list(data)
         });
 }
 
+async function inspection_reports_prepare_panel()
+{
+    // clear out the filters
+    ir_input_new_part_filter.property("value", "");
+    ir_input_new_employee_filter.property("value", "");
+
+    // populate the selectors
+    await inspection_reports_update_part_id_selector();
+    await inspection_reports_update_employee_selector();
+    await d3.json("/get_all_parts/", {
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            // clear the old entries
+            ir_select_filter_part.selectAll("option").remove();
+
+            // add to the dataset
+            json.response.unshift({ id: -1 });
+
+            // populate the item numbers
+            ir_select_filter_part.selectAll("option")
+                .data(json.response)
+                .join("option")
+                .attr("value", (x) => x.id)
+                .text((x) => {
+                    if (x.id > 0) {
+                        return `${x.item}, ${x.drawing}`;
+                    }
+                    else {
+                        return "n/a";
+                    }});
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+    await d3.json("/get_all_job_orders/", {
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            // clear the old entries
+            ir_select_filter_job_order.selectAll("option").remove();
+
+            // add to the dataset
+            json.response.unshift({ id: -1 });
+
+            // populate the item numbers
+            ir_select_filter_job_order.selectAll("option")
+                .data(json.response)
+                .join("option")
+                .attr("value", (x) => x.id)
+                .text((x) => {
+                    if (x.id > 0) {
+                        return x.name;
+                    }
+                    else {
+                        return "n/a";
+                    }
+                });
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+
+    // set default values
+    ir_input_started_after.property("value", "1970-01-01");
+    ir_input_finished_before.property("value", "2100-01-01");
+
+    // populate the inspection report list
+    await inspection_reports_update_filtered_reports();
+
+    // set events
+    ir_button_create_new_report.on("click", inspection_reports_create_new_report);
+    ir_button_refresh_reports.on("click", inspection_reports_update_filtered_reports);
+}
+
+function inspection_reports_reset_panel()
+{
+    // clear out the filters
+    ir_input_new_part_filter.property("value", "");
+    ir_input_new_employee_filter.property("value", "");
+    ir_input_new_char_schema_filter.property("value", "");
+
+    // reset the selectors
+    ir_select_new_part.selectAll("option").remove();
+    ir_select_new_employee.selectAll("option").remove();
+    ir_select_new_char_schema.selectAll("option").remove();
+    ir_select_filter_part.selectAll("option").remove();
+    ir_select_filter_job_order.selectAll("option").remove();
+
+    // set default values
+    ir_input_started_after.property("value", "1970-01-01");
+    ir_input_finished_before.property("value", "2100-01-01");
+
+    // populate the inspection report list
+    ir_ul_list.selectAll("li").remove();
+
+    // reset events
+    ir_button_create_new_report.on("click", null);
+    ir_button_refresh_reports.on("click", null);
+}
+
+// #endregion
+
+// #region measurement sets
+
+async function measurement_sets_update_filtered_measurement_sets(inspection_id)
+{
+    await d3.json("/inspection_reports/measurement_set_sets_get_filtered_measurement_sets/", {
+        method: "POST",
+        body: JSON.stringify({
+            inspection_id: inspection_id,
+            search_term: ms_input_display_filter.property("value")
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            measurement_sets_repopulate_measurement_set_list(json.response);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+async function measurement_sets_display_state_changed()
+{
+
+}
+
+function measurement_sets_repopulate_measurement_set_list(data)
+{
+    // define datetime format options
+    let is_displayed_options = [
+        {
+            id: 0,
+            text: "False"
+        },
+        {
+            id: 1,
+            text: "True"
+        }
+    ];
+
+    // clear the old entries
+    ms_ul_list.selectAll("li").remove();
+
+    // populate the inspection reports list
+    let items = ms_ul_list.selectAll("li")
+        .data(data)
+        .join("li")
+        .append("div")
+        .attr("class", "list-item-dark")
+        .style("--grid-template-columns", "repeat(2, minmax(0, 3fr)) repeat(3, minmax(0, 2fr))");
+    items.append("input")
+        .style("--grid-column", "1")
+        .style("--grid-row", "1")
+        .attr("type", "datetime-local")
+        .attr("class", "list-item-label-dark")
+        .property("value", (x) => new Date(x.timestamp).toISOString().slice(0, 19));
+    let employee_select = items.append("select")
+        .style("--grid-column", "2")
+        .style("--grid-row", "1")
+        .attr("class", "list-item-select-dark");
+    employee_select.selectAll("select")
+        .data(glist_employees)
+        .join("option")
+        .attr("value", (x) => x.id)
+        .text((x) => x.name);
+    employee_select.selectAll("select")
+        .property("value", (x) => x.employee_id);
+    items.append("input")
+        .style("--grid-column", "3")
+        .style("--grid-row", "1")
+        .attr("type", "number")
+        .attr("step", "1")
+        .attr("class", "list-item-label-dark")
+        .property("value", (x) => x.part_index);
+    items.append("input")
+        .style("--grid-column", "4")
+        .style("--grid-row", "1")
+        .attr("type", "text")
+        .attr("disabled", true)
+        .attr("class", "list-item-label-dark")
+        .property("value", (x) => x.revision);
+    let is_displayed = items.append("select")
+        .style("--grid-column", "5")
+        .style("--grid-row", "1")
+        .style("border-radius", "0px 6px 6px 0px")
+        .attr("class", "list-item-select-dark");
+    is_displayed.selectAll("select")
+        .data(is_displayed_options)
+        .join("option")
+        .attr("value", (x) => x.id)
+        .text((x) => x.text);
+    is_displayed.selectAll("select")
+        .property("value", 0);
+}
+
 // #endregion
 
 // #region characteristic display
 
 function characteristic_display_retrieve_characteristics(inspection_id, item, drawing)
 {
-    d3.json("/data_entry/characteristic_display_get_filtered_characteristics/", {
+    d3.json("/inspection_reports/characteristic_display_get_filtered_characteristics/", {
         method: "POST",
         body: JSON.stringify({
             identity: {
@@ -1038,7 +1151,7 @@ function characteristic_display_save_characteristics()
     });
 
     // query the flask server
-    d3.json("/data_entry/characteristic_display_save_characteristics/", {
+    d3.json("/inspection_reports/characteristic_display_save_characteristics/", {
         method: "POST",
         body: JSON.stringify({
             checks: checks_data,
@@ -1062,7 +1175,7 @@ function characteristic_display_save_characteristics()
 
 function characteristic_display_tunnel_to_physical_part(inspection_id, part_id, part_index)
 {
-    d3.json("/data_entry/characteristic_display_tunnel_to_physical_part/", {
+    d3.json("/inspection_reports/characteristic_display_tunnel_to_physical_part/", {
         method: "POST",
         body: JSON.stringify({
             inspection_id: inspection_id,
@@ -1089,7 +1202,7 @@ function characteristic_display_tunnel_to_physical_part(inspection_id, part_id, 
 
 function characteristic_display_delete_check_set(check_id, inspection_id, item, drawing)
 {
-    d3.json("/data_entry/characteristic_display_delete_check_set/", {
+    d3.json("/inspection_reports/characteristic_display_delete_check_set/", {
         method: "POST",
         body: JSON.stringify({
             identity: {
@@ -1131,7 +1244,7 @@ function characteristic_display_delete_check_set(check_id, inspection_id, item, 
 
 async function characteristic_display_update_filter_selectors(inspection_id, item, drawing)
 {
-    await d3.json("/data_entry/characteristic_display_get_filter_selector_lists/", {
+    await d3.json("/inspection_reports/characteristic_display_get_filter_selector_lists/", {
         method: "POST",
         body: JSON.stringify({
             inspection_id: inspection_id,
@@ -1416,7 +1529,7 @@ function metadata_repopulate_controls(data)
     md_select_supplier.property("value", data.supplier_id);
 
     // query the flask server
-    d3.json("/data_entry/metadata_get_matching_revisions/", {
+    d3.json("/inspection_reports/metadata_get_matching_revisions/", {
         method: "POST",
         body: JSON.stringify({
             item: data.item,
@@ -1497,7 +1610,7 @@ function metadata_save(inspection_id, item, drawing)
     }
 
     // query the flask server
-    d3.json("/data_entry/metadata_save/", {
+    d3.json("/inspection_reports/metadata_save/", {
         method: "POST",
         body: JSON.stringify({
             identity: {
@@ -1554,7 +1667,7 @@ function reciever_numbers_assign_association(inspection_id)
     }
 
     // query the flask server
-    d3.json("/data_entry/reciever_numbers_assign_association/", {
+    d3.json("/inspection_reports/reciever_numbers_assign_association/", {
         method: "POST",
         body: JSON.stringify({
             search_term: rn_input_search_term.property("value"),
@@ -1587,7 +1700,7 @@ function reciever_numbers_remove_association(data)
     }
 
     // query the flask server
-    d3.json("/data_entry/reciever_numbers_remove_association/", {
+    d3.json("/inspection_reports/reciever_numbers_remove_association/", {
         method: "POST",
         body: JSON.stringify({
             search_term: rn_input_search_term.property("value"),
@@ -1614,7 +1727,7 @@ function reciever_numbers_remove_association(data)
 
 function reciever_numbers_update_filtered_selector()
 {
-    d3.json("/data_entry/receiver_numbers_get_filtered_options/", {
+    d3.json("/inspection_reports/receiver_numbers_get_filtered_options/", {
         method: "POST",
         body: JSON.stringify({
             search_term: rn_input_selected_search_term.property("value")
@@ -1646,7 +1759,7 @@ function reciever_numbers_update_filtered_selector()
 
 function receiver_numbers_update_filtered_list(inspection_id)
 {
-    d3.json("/data_entry/receiver_numbers_get_filtered_associations/", {
+    d3.json("/inspection_reports/receiver_numbers_get_filtered_associations/", {
         method: "POST",
         body: JSON.stringify({
             inspection_id: inspection_id,
@@ -1723,7 +1836,7 @@ function purchase_orders_assign_association(inspection_id)
     }
 
     // query the flask server
-    d3.json("/data_entry/purchase_orders_assign_association/", {
+    d3.json("/inspection_reports/purchase_orders_assign_association/", {
         method: "POST",
         body: JSON.stringify({
             search_term: po_input_search_term.property("value"),
@@ -1756,7 +1869,7 @@ function purchase_orders_remove_association(data)
     }
 
     // query the flask server
-    d3.json("/data_entry/purchase_orders_remove_association/", {
+    d3.json("/inspection_reports/purchase_orders_remove_association/", {
         method: "POST",
         body: JSON.stringify({
             search_term: po_input_search_term.property("value"),
@@ -1783,7 +1896,7 @@ function purchase_orders_remove_association(data)
 
 function purchase_orders_update_filtered_selector()
 {
-    d3.json("/data_entry/purchase_orders_get_filtered_options/", {
+    d3.json("/inspection_reports/purchase_orders_get_filtered_options/", {
         method: "POST",
         body: JSON.stringify({
             search_term: po_input_selected_search_term.property("value")
@@ -1815,7 +1928,7 @@ function purchase_orders_update_filtered_selector()
 
 function purchase_orders_update_filtered_list(inspection_id)
 {
-    d3.json("/data_entry/purchase_orders_get_filtered_associations/", {
+    d3.json("/inspection_reports/purchase_orders_get_filtered_associations/", {
         method: "POST",
         body: JSON.stringify({
             inspection_id: inspection_id,
@@ -1892,7 +2005,7 @@ function lot_numbers_assign_association(inspection_id)
     }
 
     // query the flask server
-    d3.json("/data_entry/lot_numbers_assign_association/", {
+    d3.json("/inspection_reports/lot_numbers_assign_association/", {
         method: "POST",
         body: JSON.stringify({
             search_term: ln_input_search_term.property("value"),
@@ -1925,7 +2038,7 @@ function lot_numbers_remove_association(data)
     }
 
     // query the flask server
-    d3.json("/data_entry/lot_numbers_remove_association/", {
+    d3.json("/inspection_reports/lot_numbers_remove_association/", {
         method: "POST",
         body: JSON.stringify({
             search_term: ln_input_search_term.property("value"),
@@ -1952,7 +2065,7 @@ function lot_numbers_remove_association(data)
 
 function lot_numbers_update_filtered_selector()
 {
-    d3.json("/data_entry/lot_numbers_get_filtered_options/", {
+    d3.json("/inspection_reports/lot_numbers_get_filtered_options/", {
         method: "POST",
         body: JSON.stringify({
             search_term: ln_input_selected_search_term.property("value")
@@ -1984,7 +2097,7 @@ function lot_numbers_update_filtered_selector()
 
 function lot_numbers_update_filtered_list(inspection_id)
 {
-    d3.json("/data_entry/lot_numbers_get_filtered_associations/", {
+    d3.json("/inspection_reports/lot_numbers_get_filtered_associations/", {
         method: "POST",
         body: JSON.stringify({
             inspection_id: inspection_id,
@@ -2079,7 +2192,7 @@ function deviations_save_deviation()
     });
 
     // query the flask server
-    d3.json("/data_entry/save_deviations/", {
+    d3.json("/inspection_reports/save_deviations/", {
         method: "POST",
         body: JSON.stringify({
             data: data
@@ -2102,7 +2215,7 @@ function deviations_save_deviation()
 
 function deviations_add_deviation(characteristic_id, inspection_id, item, drawing)
 {
-    d3.json("/data_entry/deviations_add_deviation/", {
+    d3.json("/inspection_reports/deviations_add_deviation/", {
         method: "POST",
         body: JSON.stringify({
             characteristic_id: characteristic_id,
@@ -2149,7 +2262,7 @@ function deviations_add_deviation(characteristic_id, inspection_id, item, drawin
 function deviations_delete_deviation(deviation_id, characteristic_id, inspection_id, item, drawing)
 {
     dv_ul_list.selectAll("li").remove();
-    d3.json("/data_entry/deviations_delete_deviation/", {
+    d3.json("/inspection_reports/deviations_delete_deviation/", {
         method: "POST",
         body: JSON.stringify({
             deviation_id: deviation_id,
@@ -2209,7 +2322,7 @@ function deviations_get_characteristic_deviations(characteristic_id, inspection_
     dv_button_add.on("click", () => { deviations_add_deviation(characteristic_id, inspection_id, item, drawing); });
 
     // query the flask server
-    d3.json("/data_entry/deviations_get_characteristic_deviations/", {
+    d3.json("/inspection_reports/deviations_get_characteristic_deviations/", {
         method: "POST",
         body: JSON.stringify({
             characteristic_id: characteristic_id
@@ -2402,14 +2515,24 @@ function toggle_options(destination_arg, open_width)
             document.getElementById("inspection_reports_btn").style.marginRight = open_width;
         }
     }
-    else if (destination_arg == "characteristic_display") {
-        if (document.getElementById("characteristic_display_sidebar").style.width == open_width) {
-            document.getElementById("characteristic_display_sidebar").style.width = close_width;
-            document.getElementById("characteristic_display_btn").style.marginRight = close_width;
+    else if (destination_arg == "measurement_sets") {
+        if (document.getElementById("measurement_sets_sidebar").style.width == open_width) {
+            document.getElementById("measurement_sets_sidebar").style.width = close_width;
+            document.getElementById("measurement_sets_btn").style.marginRight = close_width;
         }
         else {
-            document.getElementById("characteristic_display_sidebar").style.width = open_width;
-            document.getElementById("characteristic_display_btn").style.marginRight = open_width;
+            document.getElementById("measurement_sets_sidebar").style.width = open_width;
+            document.getElementById("measurement_sets_btn").style.marginRight = open_width;
+        }
+    }
+    else if (destination_arg == "measurements") {
+        if (document.getElementById("measurements_sidebar").style.width == open_width) {
+            document.getElementById("measurements_sidebar").style.width = close_width;
+            document.getElementById("measurements_btn").style.marginRight = close_width;
+        }
+        else {
+            document.getElementById("measurements_sidebar").style.width = open_width;
+            document.getElementById("measurements_btn").style.marginRight = open_width;
         }
     }
     else if (destination_arg == "metadata") {

@@ -3,11 +3,11 @@ drop table inspection_lot_numbers;
 drop table inspection_receiver_numbers;
 drop table inspection_purchase_orders;
 drop table employee_projects;
-drop table characteristic_schema_details;
-drop table characteristic_schemas;
+drop table measurement_set_schema_details;
+drop table measurement_set_schemas;
 drop table deviations;
-drop table characteristics;
-drop table checks;
+drop table measurements;
+drop table measurement_sets;
 drop table gauges;
 drop table parts;
 drop table inspection_reports;
@@ -26,7 +26,7 @@ drop table frequency_types;
 drop table material_types;
 drop table project_types;
 drop table specification_types;
-drop table characteristic_types;
+drop table dimension_types;
 drop table gauge_types;
 drop table machine_types;
 drop table location_types;
@@ -85,15 +85,15 @@ create table gauge_types
     constraint uc_gauge_types unique (id)
 );
 
-create table characteristic_types
+create table dimension_types
 (
     id integer not null,
     name varchar(32) not null,
     is_gdt boolean not null,
 
     -- primary key and unique constraints
-    constraint pk_characteristic_types primary key (id),
-    constraint uc_characteristic_types unique (id)
+    constraint pk_dimension_types primary key (id),
+    constraint uc_dimension_types unique (id)
 );
 
 create table specification_types
@@ -355,33 +355,33 @@ create table gauges
     constraint fk_location_gauge foreign key (location_id) references locations(id)
 );
 
-create table checks
+create table measurement_sets
 (
     id serial not null,
     part_index integer not null,
     datetime_measured timestamp not null,
 
-    -- many checks relate to one inspection report
+    -- many measurement sets relate to one inspection report
     inspection_id integer not null,
-    constraint fk_check_inspection foreign key (inspection_id) references inspection_reports(id),
+    constraint fk_measurement_set_inspection foreign key (inspection_id) references inspection_reports(id),
 
-    -- many checks relate to one part
+    -- many measurement sets relate to one part
     part_id integer not null,
-    constraint fk_check_part foreign key (part_id) references parts(id),
+    constraint fk_measurement_set_part foreign key (part_id) references parts(id),
 
-    -- many checks can relate to one employee
+    -- many measurement sets can relate to one employee
     employee_id integer not null,
     constraint fk_employee_char foreign key (employee_id) references employees(id),
 
     -- primary key and unique constraints
-    constraint pk_checks primary key (id),
-    constraint uc_checks unique (id),
+    constraint pk_measurement_sets primary key (id),
+    constraint uc_measurement_sets unique (id),
 
     -- part index doesn't repeat within the same inspection report
-    constraint uc_ins_checks unique (part_index, part_id)
+    constraint uc_ins_measurement_sets unique (part_index, part_id)
 );
 
-create table characteristics
+create table measurements
 (
     id serial not null,
     name varchar(32) not null,
@@ -392,30 +392,30 @@ create table characteristics
     precision integer not null,
 
     -- primary key and unique constraints
-    constraint pk_characteristics primary key (id),
-    constraint uc_characteristics unique (id),
+    constraint pk_measurements primary key (id),
+    constraint uc_measurements unique (id),
 
-    -- many characteristics relate to one check
-    check_id integer not null,
-    constraint fk_check_id foreign key (check_id) references checks(id),
+    -- many measurements relate to one measurement_set
+    measurement_set_id integer not null,
+    constraint fk_measurement_set_id foreign key (measurement_set_id) references measurement_sets(id),
 
-    -- many characteristics relate to one specification type
+    -- many measurements relate to one specification type
     specification_type_id integer not null,
     constraint fk_specification_type_id foreign key (specification_type_id) references specification_types(id),
 
-    -- many characteristics relate to one characteristic type
-    characteristic_type_id integer not null,
-    constraint fk_characteristic_type_id foreign key (characteristic_type_id) references characteristic_types(id),
+    -- many measurements relate to one measurement type
+    dimension_type_id integer not null,
+    constraint fk_dimension_type_id foreign key (dimension_type_id) references dimension_types(id),
 
-    -- many characteristics relate to one frequency type
+    -- many measurements relate to one frequency type
     frequency_type_id integer not null,
     constraint fk_frequency_type_id foreign key (frequency_type_id) references frequency_types(id),
 
-    -- many characteristics relate to one measurement type
+    -- many measurements relate to one measurement type
     measurement_type_id integer not null,
     constraint fk_measurement_type_id foreign key (measurement_type_id) references measurement_types(id),
 
-    -- many characteristics relate to one gauge
+    -- many measurements relate to one gauge
     gauge_id integer not null,
     constraint fk_gauge_id foreign key (gauge_id) references gauges(id)
 );
@@ -438,30 +438,30 @@ create table deviations
     employee_id integer not null,
     constraint fk_deviation_employee_id foreign key (employee_id) references employees(id),
 
-    -- many deviations relate to one characteristic
-    characteristic_id integer not null,
-    constraint fk_char_deviation foreign key (characteristic_id) references characteristics(id),
+    -- many deviations relate to one measurement
+    measurement_id integer not null,
+    constraint fk_char_deviation foreign key (measurement_id) references measurements(id),
 
     -- primary key and unique constraints
     constraint pk_deviations primary key (id),
     constraint uc_deviations unique (id)
 );
 
-create table characteristic_schemas
+create table measurement_set_schemas
 (
     id serial not null,
     is_locked boolean not null,
 
-    -- one characteristic schema relates to one part
+    -- one measurement set schema relates to one part
     part_id integer unique not null,
     constraint fk_schema_part foreign key (part_id) references parts(id),
 
     -- primary key and unique constraints
-    constraint pk_characteristic_schemas primary key (id),
-    constraint uc_characteristic_schemas unique (id)
+    constraint pk_measurement_set_schemas primary key (id),
+    constraint uc_measurement_set_schemas unique (id)
 );
 
-create table characteristic_schema_details
+create table measurement_set_schema_details
 (
     id serial not null,
     name varchar(32) not null,
@@ -470,25 +470,25 @@ create table characteristic_schema_details
     lsl decimal not null,
     precision integer not null,
 
-    -- many characteristic schema details relate to one specification type
+    -- many measurement set schema details relate to one specification type
     specification_type_id integer not null,
     constraint fk_spectype_id_schema foreign key (specification_type_id) references specification_types(id),
 
-    -- many characteristic schema details relate to one characteristic type
-    characteristic_type_id integer not null,
-    constraint fk_chartype_id_schema foreign key (characteristic_type_id) references characteristic_types(id),
+    -- many measurement set schema details relate to one measurement type
+    measurement_type_id integer not null,
+    constraint fk_chartype_id_schema foreign key (measurement_type_id) references dimension_types(id),
 
-    -- many characteristic schema details relate to one frequency type
+    -- many measurement set schema details relate to one frequency type
     frequency_type_id integer not null,
     constraint fk_freqtype_id_schema foreign key (frequency_type_id) references frequency_types(id),
 
-    -- many characteristic schema details relate to one gauge type
+    -- many measurement set schema details relate to one gauge type
     gauge_type_id integer not null,
     constraint fk_gaugtype_id_schema foreign key (gauge_type_id) references gauge_types(id),
 
-    -- many characteristic schema details relate to one characteristic schema
+    -- many measurement set schema details relate to one measurement set schema
     schema_id integer not null,
-    constraint fk_schema_id foreign key (schema_id) references characteristic_schemas(id),
+    constraint fk_schema_id foreign key (schema_id) references measurement_set_schemas(id),
 
     -- primary key and unique constraints
     constraint pk_schema_details primary key (id),
