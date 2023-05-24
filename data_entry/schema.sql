@@ -373,6 +373,10 @@ create table measurement_sets
     employee_id integer not null,
     constraint fk_employee_char foreign key (employee_id) references employees(id),
 
+    -- many measurement sets relate to one measurement type
+    measurement_type_id integer not null,
+    constraint fk_measurement_type_id foreign key (measurement_type_id) references measurement_types(id),
+
     -- primary key and unique constraints
     constraint pk_measurement_sets primary key (id),
     constraint uc_measurement_sets unique (id),
@@ -403,17 +407,13 @@ create table measurements
     specification_type_id integer not null,
     constraint fk_specification_type_id foreign key (specification_type_id) references specification_types(id),
 
-    -- many measurements relate to one measurement type
+    -- many measurements relate to one dimension type
     dimension_type_id integer not null,
     constraint fk_dimension_type_id foreign key (dimension_type_id) references dimension_types(id),
 
     -- many measurements relate to one frequency type
     frequency_type_id integer not null,
     constraint fk_frequency_type_id foreign key (frequency_type_id) references frequency_types(id),
-
-    -- many measurements relate to one measurement type
-    measurement_type_id integer not null,
-    constraint fk_measurement_type_id foreign key (measurement_type_id) references measurement_types(id),
 
     -- many measurements relate to one gauge
     gauge_id integer not null,
@@ -474,9 +474,9 @@ create table measurement_set_schema_details
     specification_type_id integer not null,
     constraint fk_spectype_id_schema foreign key (specification_type_id) references specification_types(id),
 
-    -- many measurement set schema details relate to one measurement type
-    measurement_type_id integer not null,
-    constraint fk_chartype_id_schema foreign key (measurement_type_id) references dimension_types(id),
+    -- many measurement set schema details relate to one dimension type
+    dimension_type_id integer not null,
+    constraint fk_dimetype_id foreign key (dimension_type_id) references dimension_types(id),
 
     -- many measurement set schema details relate to one frequency type
     frequency_type_id integer not null,

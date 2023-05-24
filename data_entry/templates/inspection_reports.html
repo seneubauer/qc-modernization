@@ -32,7 +32,7 @@
                 Data Entry
             </button>
             <div class="navbar-dropdown-content">
-                <a href="/characteristic_schemas">Characteristic Schemas</a>
+                <a href="/measurement_set_schemas">Measurement Schemas</a>
                 <a href="/inspection_reports">Inspection Reports</a>
             </div>
         </div>
@@ -78,12 +78,12 @@
         <div class="container" style="--grid-template-columns: repeat(2, minmax(0, 1fr));">
 
             <!-- row -->
-            <button class="button-dark" id="inspection_report_create_new_report_btn" type="button" style="
+            <button class="button-dark" id="inspection_reports_new" type="button" style="
                 --grid-column: 1 / 3;
                 --grid-row: 1;">New Inspection Report</button>
 
             <!-- row -->
-            <button class="button-dark" id="inspection_report_refresh" type="button" style="
+            <button class="button-dark" id="inspection_reports_refresh" type="button" style="
                 --grid-column: 1 / 3;
                 --grid-row: 2;">Refresh List</button>
 
@@ -93,72 +93,89 @@
                 --grid-row: 3;">New Inspection Report</label>
 
             <!-- row -->
-            <label class="label-dark" style="
+            <label class="label-dark" for="inspection_reports_part_filter" style="
                 --grid-column: 1;
                 --grid-row: 4;">Filter</label>
-            <input class="input-dark" id="inspection_report_part_filter" type="text" style="
+            <input class="input-dark" id="inspection_reports_part_filter" type="text" style="
                 --grid-column: 1;
                 --grid-row: 5;
                 text-align: left;">
-            <label class="label-dark" style="
+            <label class="label-dark" for="inspection_reports_part" style="
                 --grid-column: 2;
                 --grid-row: 4;">Part ID</label>
-            <select class="select-dark" id="inspection_report_part" style="
+            <select class="select-dark" id="inspection_reports_part" style="
                 --grid-column: 2;
                 --grid-row: 5;"></select>
 
             <!-- row -->
-            <label class="label-dark" style="
+            <label class="label-dark" for="inspection_reports_schema_filter" style="
                 --grid-column: 1;
                 --grid-row: 6;">Filter</label>
-            <input class="input-dark" id="inspection_report_employee_filter" type="text" style="
+            <input class="input-dark" id="inspection_reports_schema_filter" type="text" style="
                 --grid-column: 1;
                 --grid-row: 7;
                 text-align: left;">
-            <label class="label-dark" style="
+            <label class="label-dark" for="inspection_reports_schema" style="
                 --grid-column: 2;
-                --grid-row: 6;">Employee</label>
-            <select class="select-dark" id="inspection_report_employee" style="
+                --grid-row: 6;">Schema ID</label>
+            <select class="select-dark" id="inspection_reports_schema" style="
                 --grid-column: 2;
                 --grid-row: 7;"></select>
 
             <!-- row -->
+            <label class="label-dark" for="inspection_reports_employee_filter" style="
+                --grid-column: 1;
+                --grid-row: 8;">Filter</label>
+            <input class="input-dark" id="inspection_reports_employee_filter" type="text" style="
+                --grid-column: 1;
+                --grid-row: 9;
+                text-align: left;">
+            <label class="label-dark" for="inspection_reports_employee" style="
+                --grid-column: 2;
+                --grid-row: 8;">Employee</label>
+            <select class="select-dark" id="inspection_reports_employee" style="
+                --grid-column: 2;
+                --grid-row: 9;"></select>
+
+            <!-- row -->
             <label class="label-header-dark" style="
                 --grid-column: 1 / 3;
-                --grid-row: 8;">Existing Inspection Reports</label>
+                --grid-row: 10;">Existing Inspection Reports</label>
 
             <!-- row -->
-            <label class="label-dark" style="
+            <label class="label-dark" for="inspection_reports_list_filter_part" style="
                 --grid-column: 1;
-                --grid-row: 9;">Part ID</label>
-            <select class="select-dark" id="inspection_report_filter_part" style="
+                --grid-row: 11;">Part ID</label>
+            <input class="input-dark" id="inspection_reports_list_filter_part" type="text" style="
                 --grid-column: 1;
-                --grid-row: 10;"></select>
-            <label class="label-dark" style="
+                --grid-row: 12;
+                text-align: left;">
+            <label class="label-dark" for="inspection_reports_list_filter_job_order" style="
                 --grid-column: 2;
-                --grid-row: 9;">Job Order</label>
-            <select class="select-dark" id="inspection_report_filter_job_order" style="
+                --grid-row: 11;">Job Order</label>
+            <input class="input-dark" id="inspection_reports_list_filter_job_order" style="
                 --grid-column: 2;
-                --grid-row: 10;"></select>
+                --grid-row: 12;
+                text-align: left;">
 
             <!-- row -->
-            <label class="label-dark" style="
+            <label class="label-dark" for="inspection_reports_list_filter_start_after" style="
                 --grid-column: 1;
-                --grid-row: 11;">Started After</label>
-            <input class="input-dark" id="inspection_report_filter_start_after" type="date" style="
+                --grid-row: 13;">Started After</label>
+            <input class="input-dark" id="inspection_reports_list_filter_start_after" type="date" style="
                 --grid-column: 1;
-                --grid-row: 12">
-            <label class="label-dark" style="
+                --grid-row: 14">
+            <label class="label-dark" for="inspection_reports_list_filter_finished_before" style="
                 --grid-column: 2;
-                --grid-row: 11;">Finished Before</label>
-            <input class="input-dark" id="inspection_report_filter_finished_before" type="date" style="
+                --grid-row: 13;">Finished Before</label>
+            <input class="input-dark" id="inspection_reports_list_filter_finished_before" type="date" style="
                 --grid-column: 2;
-                --grid-row: 12">
+                --grid-row: 14">
 
             <!-- row -->
             <ul class="item-list" style="
                 --grid-column: 1 / 3;
-                --grid-row: 13;">
+                --grid-row: 15;">
                 <li>
                     <div class="list-item-header" style="--grid-template-columns: repeat(3, minmax(0, 1fr));">
                         <label class="list-item-header-label-dark" style="--grid-column: 1;--grid-row: 1;">Item</label>
@@ -167,9 +184,9 @@
                     </div>
                 </li>
             </ul>
-            <ul class="item-list" id="inspection_report_filtered_list" style="
+            <ul class="item-list" id="inspection_reports_filtered_list" style="
                 --grid-column: 1 / 3;
-                --grid-row: 14;"></ul>
+                --grid-row: 16;"></ul>
         </div>
     </div>
     <div class="sidebar-toggle" id="inspection_reports_btn" style="top: calc(0 * (12px + 42px) + 12px + 54px);">
@@ -183,7 +200,7 @@
         <button class="context-menu-button" id="context_menu_0">Delete Report</button>
     </div>
 
-    <!-- view/edit the inspection report measurement sets -->
+    <!-- view/edit the measurement sets -->
     <div class="sidebar" id="measurement_sets_sidebar">
         <div class="container" style="--grid-template-columns: repeat(2, minmax(0, 1fr));">
 
@@ -193,75 +210,86 @@
                 --grid-row: 1;">Add Measurement Set</button>
 
             <!-- row -->
-            <label class="label-dark" style="
-                --grid-column: 1;
-                --grid-row: 2;">Filter</label>
-            <input class="input-dark" type="text" id="measurement_sets_schema_filter" style="
-                --grid-column: 1;
-                --grid-row: 3;
-                text-align: left;">
-            <label class="label-dark" style="
-                --grid-column: 2;
-                --grid-row: 2;">Measurement Schema</label>
-            <select class="select-dark" id="measurement_sets_schema" style="
-                --grid-column: 2;
-                --grid-row: 3;"></select>
+            <button class="button-dark" id="measurement_sets_refresh_list" type="button" style="
+                --grid-column: 1 / 3;
+                --grid-row: 2;">Refresh List</button>
 
             <!-- row -->
-            <label class="label-dark" style="
+            <button class="button-dark" id="measurement_sets_save" type="button" style="
+                --grid-column: 1 / 3;
+                --grid-row: 3;">Save Set Edits</button>
+
+            <!-- row -->
+            <label class="label-dark" for="measurement_sets_schema_filter" style="
                 --grid-column: 1;
                 --grid-row: 4;">Filter</label>
-            <input class="input-dark" type="text" id="measurement_sets_employee_filter" style="
+            <input class="input-dark" type="text" id="measurement_sets_schema_filter" style="
                 --grid-column: 1;
                 --grid-row: 5;
                 text-align: left;">
-            <label class="label-dark" style="
+            <label class="label-dark" for="measurement_sets_schema" style="
                 --grid-column: 2;
-                --grid-row: 4;">Employee</label>
-            <select class="select-dark" id="measurement_sets_employee" style="
+                --grid-row: 4;">Measurement Schema</label>
+            <select class="select-dark" id="measurement_sets_schema" style="
                 --grid-column: 2;
                 --grid-row: 5;"></select>
 
             <!-- row -->
-            <label class="label-dark" style="
+            <label class="label-dark" for="measurement_sets_employee_filter" style="
+                --grid-column: 1;
+                --grid-row: 6;">Filter</label>
+            <input class="input-dark" type="text" id="measurement_sets_employee_filter" style="
+                --grid-column: 1;
+                --grid-row: 7;
+                text-align: left;">
+            <label class="label-dark" for="measurement_sets_employee" style="
+                --grid-column: 2;
+                --grid-row: 6;">Employee</label>
+            <select class="select-dark" id="measurement_sets_employee" style="
+                --grid-column: 2;
+                --grid-row: 7;"></select>
+
+            <!-- row -->
+            <label class="label-dark" for="measurement_sets_display_filter" style="
                 --grid-column: 1 / 3;
-                --grid-row: 6;">Display Filter</label>
+                --grid-row: 8;">Display Filter</label>
             <input class="input-dark" type="text" id="measurement_sets_display_filter" style="
                 --grid-column: 1 / 3;
-                --grid-row: 7;
+                --grid-row: 9;
                 text-align: left;">
 
             <!-- row -->
             <label class="label-dark" style="
                 --grid-column: 1 / 3;
-                --grid-row: 8;">Associated Measurement Sets</label>
+                --grid-row: 10;">Associated Measurement Sets</label>
             <ul class="item-list" style="
                 --grid-column: 1 / 3;
-                --grid-row: 9;">
+                --grid-row: 11;">
                 <li>
-                    <div class="list-item-header" style="--grid-template-columns: repeat(2, minmax(0, 3fr)) repeat(3, minmax(0, 2fr));">
+                    <div class="list-item-header" style="--grid-template-columns: repeat(2, minmax(0, 5fr)) repeat(2, minmax(0, 3fr)) repeat(2, minmax(0, 4fr));">
                         <label class="list-item-header-label-dark" style="--grid-column: 1;--grid-row: 1;">Timestamp</label>
                         <label class="list-item-header-label-dark" style="--grid-column: 2;--grid-row: 1;">Employee</label>
                         <label class="list-item-header-label-dark" style="--grid-column: 3;--grid-row: 1;">Part Index</label>
                         <label class="list-item-header-label-dark" style="--grid-column: 4;--grid-row: 1;">Revision</label>
-                        <label class="list-item-header-label-dark" style="--grid-column: 5;--grid-row: 1;">Display State</label>
+                        <label class="list-item-header-label-dark" style="--grid-column: 5;--grid-row: 1;">Measurement Type</label>
+                        <label class="list-item-header-label-dark" style="--grid-column: 6;--grid-row: 1;">Display State</label>
                     </div>
                 </li>
             </ul>
             <ul class="item-list" id="measurement_sets_list" style="
                 --grid-column: 1 / 3;
-                --grid-row: 10;"></ul>
+                --grid-row: 12;"></ul>
         </div>
     </div>
     <div class="sidebar-toggle" id="measurement_sets_btn" style="top: calc(1 * (12px + 42px) + 12px + 54px);">
-        <button class="sidebar-button" id="measurement_sets_button" type="button" onclick="toggle_options('measurement_sets', '750px')">
+        <button class="sidebar-button" id="measurement_sets_button" type="button" onclick="toggle_options('measurement_sets', '1000px')">
             Measurement Sets
         </button>
     </div>
 
-    <!-- filtered inspection report list context menu -->
+    <!-- filtered measurement sets list context menu -->
     <div class="context-menu" id="measurement_sets_list_contextmenu">
-        <button class="context-menu-button" id="context_menu_0">Delete Report</button>
+        <button class="context-menu-button" id="context_menu_0">Delete Set</button>
     </div>
 
     <!-- set/apply a filter for the measurements -->
@@ -269,98 +297,106 @@
         <div class="container" style="--grid-template-columns: repeat(2, minmax(0, 1fr));">
 
             <!-- row -->
-            <button class="button-dark" id="characteristic_display_apply" type="button" style="
+            <button class="button-dark" id="measurements_apply_filter" type="button" style="
                 --grid-column: 1 / 3;
-                --grid-row: 1;">Update Display</button>
+                --grid-row: 1;">Apply Filter</button>
 
             <!-- row -->
-            <button class="button-dark" id="characteristic_display_save" type="button" style="
+            <button class="button-dark" id="measurements_save_changes" type="button" style="
                 --grid-column: 1 / 3;
-                --grid-row: 2;">Save Edits</button>
+                --grid-row: 2;">Save Changes</button>
 
             <!-- row -->
-            <label class="label-dark" style="
-                --grid-column: 1 / 3;
+            <label class="label-dark" for="measurements_display_type" style="
+                --grid-column: 1;
                 --grid-row: 3;">Display Type</label>
-            <select class="select-dark" id="characteristic_display_type" style="
-                --grid-column: 1 / 3;
+            <select class="select-dark" id="measurements_display_type" style="
+                --grid-column: 1;
                 --grid-row: 4;">
                 <option value="0">Data Entry</option>
                 <option value="1">Metadata</option>
+                <option value="2">Data Entry with Set Info</option>
+                <option value="3">Metadata with Set Info</option>
             </select>
-
-            <!-- row -->
-            <label class="label-dark" style="
-                --grid-column: 1;
-                --grid-row: 5;">Frequency Type</label>
-            <select class="select-dark" id="characteristic_display_frequency_type" style="
-                --grid-column: 1;
-                --grid-row: 6;"></select>
-            <label class="label-dark" style="
+            <label class="label-dark" for="measurements_has_deviations" style="
                 --grid-column: 2;
-                --grid-row: 5;">Name</label>
-            <input class="input-dark" id="characteristic_display_name" type="text" style="
+                --grid-row: 3;">Has Deviations</label>
+            <select class="select-dark" id="measurements_has_deviations" style="
                 --grid-column: 2;
-                --grid-row: 6;
-                text-align: left;">
-
-            <!-- row -->
-            <label class="label-dark" style="
-                --grid-column: 1;
-                --grid-row: 7;">Revision</label>
-            <select class="select-dark" id="characteristic_display_revision" style="
-                --grid-column: 1;
-                --grid-row: 8;"></select>
-            <label class="label-dark" style="
-                --grid-column: 2;
-                --grid-row: 7;">Part Index</label>
-            <select class="select-dark" id="characteristic_display_part_index" style="
-                --grid-column: 2;
-                --grid-row: 8;"></select>
-
-            <!-- row -->
-            <label class="label-dark" style="
-                --grid-column: 1;
-                --grid-row: 9;">Has Deviations</label>
-            <select class="select-dark" id="characteristic_display_has_deviations" style="
-                --grid-column: 1;
-                --grid-row: 10;">
+                --grid-row: 4;">
                 <option value="-1">n/a</option>
                 <option value="0">False</option>
                 <option value="1">True</option>
             </select>
-            <label class="label-dark" style="
+
+            <!-- row -->
+            <label class="label-dark" for="measurements_measurement_type" style="
+                --grid-column: 1;
+                --grid-row: 5;">Measurement Type</label>
+            <select class="select-dark" id="measurements_measurement_type" style="
+                --grid-column: 1;
+                --grid-row: 6;"></select>
+            <label class="label-dark" for="measurements_inspector" style="
                 --grid-column: 2;
-                --grid-row: 9;">Inspector</label>
-            <select class="select-dark" id="characteristic_display_inspector" style="
+                --grid-row: 5;">Employee</label>
+            <select class="select-dark" id="measurements_inspector" style="
+                --grid-column: 2;
+                --grid-row: 6;"></select>
+
+            <!-- row -->
+            <label class="label-dark" for="measurements_part_index" style="
+                --grid-column: 1;
+                --grid-row: 7;">Part Index</label>
+            <select class="select-dark" id="measurements_part_index" style="
+                --grid-column: 1;
+                --grid-row: 8;"></select>
+            <label class="label-dark" for="measurements_revision" style="
+                --grid-column: 2;
+                --grid-row: 7;">Revision</label>
+            <select class="select-dark" id="measurements_revision" style="
+                --grid-column: 2;
+                --grid-row: 8;"></select>
+
+            <!-- row -->
+            <label class="label-dark" for="measurements_dimension_name" style="
+                --grid-column: 1;
+                --grid-row: 9;">Dimension Name</label>
+            <input class="input-dark" id="measurements_dimension_name" type="text" style="
+                --grid-column: 1;
+                --grid-row: 10;
+                text-align: left;">
+            <label class="label-dark" for="measurements_frequency_type" style="
+                --grid-column: 2;
+                --grid-row: 9;">Frequency Type</label>
+            <select class="select-dark" id="measurements_frequency_type" style="
                 --grid-column: 2;
                 --grid-row: 10;"></select>
 
             <!-- row -->
-            <label class="label-dark" style="
+            <label class="label-dark" for="measurements_gauge" style="
                 --grid-column: 1;
                 --grid-row: 11;">Gauge</label>
-            <select class="select-dark" id="characteristic_display_gauge" style="
+            <select class="select-dark" id="measurements_gauge" style="
                 --grid-column: 1;
                 --grid-row: 12;"></select>
-            <label class="label-dark" style="
+            <label class="label-dark" for="measurements_gauge_type" style="
                 --grid-column: 2;
                 --grid-row: 11;">Gauge Type</label>
-            <select class="select-dark" id="characteristic_display_gauge_type" style="
+            <select class="select-dark" id="measurements_gauge_type" style="
                 --grid-column: 2;
                 --grid-row: 12;"></select>
 
             <!-- row -->
-            <label class="label-dark" style="
+            <label class="label-dark" for="measurements_specification_type" style="
                 --grid-column: 1;
                 --grid-row: 13;">Specification Type</label>
-            <select class="select-dark" id="characteristic_display_specification_type" style="
+            <select class="select-dark" id="measurements_specification_type" style="
                 --grid-column: 1;
                 --grid-row: 14;"></select>
-            <label class="label-dark" style="
+            <label class="label-dark" for="measurements_dimension_type" style="
                 --grid-column: 2;
-                --grid-row: 13;">Characteristic Type</label>
-            <select class="select-dark" id="characteristic_display_characteristic_type" style="
+                --grid-row: 13;">Dimension Type</label>
+            <select class="select-dark" id="measurements_dimension_type" style="
                 --grid-column: 2;
                 --grid-row: 14;"></select>
         </div>

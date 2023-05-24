@@ -290,7 +290,8 @@ for i, r in measurement_sets_df.iterrows():
         datetime_measured = r["datetime_measured"],
         inspection_id = r["inspection_id"],
         part_id = r["part_id"],
-        employee_id = r["employee_id"]))
+        employee_id = r["employee_id"],
+        measurement_type_id = r["measurement_type_id"]))
 session.commit()
 
 for i, r in measurements_df.iterrows():
@@ -310,7 +311,6 @@ for i, r in measurements_df.iterrows():
         specification_type_id = r["specification_type_id"],
         dimension_type_id = r["dimension_type_id"],
         frequency_type_id = r["frequency_type_id"],
-        measurement_type_id = r["measurement_type_id"],
         gauge_id = r["gauge_id"]))
 session.commit()
 
@@ -341,7 +341,7 @@ for i, r in measurement_set_schema_details_df.iterrows():
         lsl = r["lsl"],
         precision = r["precision"],
         specification_type_id = r["specification_type_id"],
-        measurement_type_id = r["measurement_type_id"],
+        dimension_type_id = r["dimension_type_id"],
         frequency_type_id = r["frequency_type_id"],
         gauge_type_id = r["gauge_type_id"],
         schema_id = r["schema_id"]))
