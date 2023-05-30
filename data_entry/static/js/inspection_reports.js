@@ -3,8 +3,8 @@
 const navbar_info = d3.select("#navbar_info");
 
 // characteristics
-const vw_characteristics_table = d3.select("#characteristics_view_characteristics_table");
-const vw_characteristics_table_contextmenu = d3.select("#characteristics_view_characteristics_table_contextmenu");
+const vw_measurements_table = d3.select("#measurements_table");
+const vw_measurements_table_contextmenu = d3.select("#measurements_table_contextmenu");
 
 // inspection_reports
 const ir_button_new = d3.select("#inspection_reports_new");
@@ -95,8 +95,11 @@ var glist_gauge_ids = null;
 var glist_deviations = null;
 var glist_measurement_types = null;
 
+// open panel
+var open_panel = null;
+
 // individual columns
-const col_part_index =  { display: "Part Index",            key: "part_index",          type: "input",  datatype: "integer" };
+const col_part_index =  { display: "Part Index",            key: "part_index",          type: "label",  datatype: "integer" };
 const col_freqtype =    { display: "Frequency",             key: "frequency_type",      type: "label",  datatype: "integer" };
 const col_revision =    { display: "Revision",              key: "revision",            type: "label",  datatype: "string" };
 const col_name =        { display: "Name",                  key: "name",                type: "label",  datatype: "string" };
@@ -180,8 +183,8 @@ async function init()
         if (ms_ul_list_contextmenu.style("display") == "block") {
             ms_ul_list_contextmenu.style("display", "none");
         }
-        if (vw_characteristics_table_contextmenu.style("display") == "block") {
-            vw_characteristics_table_contextmenu.style("display", "none");
+        if (vw_measurements_table_contextmenu.style("display") == "block") {
+            vw_measurements_table_contextmenu.style("display", "none");
         }
         if (dv_ul_list_contextmenu.style("display") == "block") {
             dv_ul_list_contextmenu.style("display", "none");
@@ -263,74 +266,10 @@ function retrieve_global_enumerations()
     });
 }
 
-function setup_context_menus()
-{
-    // open the characteristic table context menu
-    vw_characteristics_table.on("contextmenu", (e) => {
-
-        // extract data
-        let row_data = e.target.__data__.row;
-
-        // position and show the context menu
-        vw_characteristics_table_contextmenu
-            .style("position", "absolute")
-            .style("left", `${e.pageX}px`)
-            .style("top", `${e.pageY}px`)
-            .style("display", "block");
-
-        // tunnel to physical part
-        vw_characteristics_table_contextmenu.select("#context_menu_0").on("click", () => {
-            characteristic_display_tunnel_to_physical_part(row_data.inspection_id, row_data.part_id, row_data.part_index);
-            vw_characteristics_table_contextmenu.style("display", "none");
-        });
-
-        // view deviations
-        vw_characteristics_table_contextmenu.select("#context_menu_1").on("click", () => {
-
-            toggle_options("deviations", "1000px");
-            deviations_get_characteristic_deviations(row_data.characteristic_id, row_data.inspection_id, row_data.item, row_data.drawing, row_data.revision, row_data.part_index, row_data.name);
-            vw_characteristics_table_contextmenu.style("display", "none");
-        });
-
-        // reload characteristics
-        vw_characteristics_table_contextmenu.select("#context_menu_2").on("click", () => {
-
-            // request confirmation
-            if (!confirm("This action will erase any unsaved progress. Continue?")) {
-                vw_characteristics_table_contextmenu.style("display", "none");
-                return;
-            }
-
-            characteristic_display_retrieve_characteristics(row_data.inspection_id, row_data.item, row_data.drawing);
-            vw_characteristics_table_contextmenu.style("display", "none");
-        });
-
-        // delete check set
-        vw_characteristics_table_contextmenu.select("#context_menu_3").on("click", () => {
-
-            // request confirmation
-            if (!confirm("This action will remove records from the database and cannot be reverted. Continue?")) {
-                vw_characteristics_table_contextmenu.style("display", "none");
-                return;
-            }
-
-            characteristic_display_delete_check_set(row_data.check_id, row_data.inspection_id, row_data.item, row_data.drawing);
-            vw_characteristics_table_contextmenu.style("display", "none");
-        });
-
-        // prevent the default behavior
-        e.preventDefault();
-    });
-
-
-
-
-}
-
 function prepare_characteristic_display_panel()
 {
     // button events
-    mt_button_save_characteristics.on("click", characteristic_display_save_characteristics);
+    mt_button_save_characteristics.on("click", measurements_save_edits);
 }
 
 function prepare_metadata_panel()
@@ -610,29 +549,6 @@ async function inspection_reports_prepare_panel()
     ir_button_new.on("click", inspection_reports_create_new_report);
     ir_button_refresh.on("click", inspection_reports_refresh_list);
 
-    // set up the inspection report context menu
-    ir_ul_list.on("contextmenu", (e) => {
-
-        // extract data
-        let row_data = e.target.__data__;
-
-        // position and show the context menu
-        ir_ul_list_contextmenu
-            .style("position", "absolute")
-            .style("left", `${e.pageX}px`)
-            .style("top", `${e.pageY}px`)
-            .style("display", "block");
-
-        // delete inspection report
-        ir_ul_list_contextmenu.select("#context_menu_0").on("click", async () => {
-            await inspection_reports_delete(row_data.inspection_id);
-            ir_ul_list_contextmenu.style("display", "none");
-        });
-
-        // prevent default behavior
-        e.preventDefault();
-    });
-
     // populate the inspection report list
     await inspection_reports_update_filtered_reports();
 }
@@ -699,8 +615,8 @@ async function inspection_reports_delete(inspection_id)
         if (json.status == "ok") {
 
             // clear the characteristic table
-            vw_characteristics_table.select("thead").selectAll("th").remove();
-            vw_characteristics_table.select("tbody").selectAll("td").remove();
+            vw_measurements_table.select("thead").selectAll("th").remove();
+            vw_measurements_table.select("tbody").selectAll("td").remove();
 
             // repopulate the inspection report list
             inspection_reports_repopulate_report_list(json.response);
@@ -760,7 +676,25 @@ async function inspection_reports_repopulate_report_list(data)
         .append("div")
         .attr("class", "list-item-dark")
         .style("--grid-template-columns", "1fr 1fr 1fr")
-        .on("click", (e, d) => inspection_reports_report_clicked(e, d));
+        .on("click", (e, x) => inspection_reports_report_clicked(e, x))
+        .on("contextmenu", (e, x) => {
+
+            // position and show the context menu
+            ir_ul_list_contextmenu
+                .style("position", "absolute")
+                .style("left", `${e.pageX}px`)
+                .style("top", `${e.pageY}px`)
+                .style("display", "block");
+
+            // delete inspection report
+            ir_ul_list_contextmenu.select("#context_menu_0").on("click", async () => {
+                await inspection_reports_delete(x.inspection_id);
+                ir_ul_list_contextmenu.style("display", "none");
+            });
+
+            // prevent default behavior
+            e.preventDefault();
+        });
     items.append("label")
         .style("--grid-column", "1")
         .style("--grid-row", "1")
@@ -820,9 +754,7 @@ async function inspection_reports_report_selected(event, data)
     await measurement_sets_prepare_panel(data.inspection_id, data.item, data.drawing);
 
     // populate the measurements
-    mt_button_update_display.on("click", () => measurements_get_filtered_measurements(data.inspection_id, data.item, data.drawing));
-    await measurements_get_filter_parameter_data(data.inspection_id, data.item, data.drawing);
-    await measurements_get_filtered_measurements(data.inspection_id, data.item, data.drawing);
+    await measurements_prepare_panel(data.inspection_id, data.item, data.drawing);    
 
     // populate the metadata
 
@@ -854,8 +786,8 @@ async function inspection_reports_report_unselected()
     ms_ul_list.selectAll("li").remove();
 
     // depopulate the measurements
-    vw_characteristics_table.selectAll("thead").remove();
-    vw_characteristics_table.selectAll("tbody").remove();
+    vw_measurements_table.selectAll("thead").remove();
+    vw_measurements_table.selectAll("tbody").remove();
 }
 
 async function inspection_reports_update_part_selector()
@@ -985,29 +917,6 @@ async function measurement_sets_prepare_panel(inspection_id, item, drawing)
     ms_button_create_new_set.on("click", () => measurement_sets_create_new_set(inspection_id, item, drawing));
     ms_button_refresh_list.on("click", () => measurement_sets_refresh_list(inspection_id, item, drawing));
     ms_button_save_edits.on("click", measurement_sets_save_edits);
-
-    // open the measurement sets list context menu
-    ms_ul_list.on("contextmenu", (e) => {
-
-        // extract data
-        let row_data = e.target.__data__;
-
-        // position and show the context menu
-        ms_ul_list_contextmenu
-            .style("position", "absolute")
-            .style("left", `${e.pageX}px`)
-            .style("top", `${e.pageY}px`)
-            .style("display", "block");
-
-        // delete the set
-        ms_ul_list_contextmenu.select("#context_menu_0").on("click", () => {
-            measurement_sets_delete_set(row_data.measurement_set_id, row_data.inspection_id, row_data.item, row_data.drawing);
-            ms_ul_list_contextmenu.style("display", "none");
-        });
-
-        // prevent the default behavior
-        e.preventDefault();
-    });
 
     // populate the measurement set list
     await measurement_sets_update_filtered_sets(inspection_id);
@@ -1154,9 +1063,27 @@ async function measurement_sets_repopulate_set_list(data)
         .attr("type", "datetime-local")
         .attr("step", "any")
         .attr("class", "list-item-label-dark")
-        .property("value", (x) => new Date(x.timestamp).toISOString().slice(0, 19))
+        .property("value", (x) => x.timestamp)
         .on("change", (e, x) => {
             x.timestamp = e.srcElement.value;
+        })
+        .on("contextmenu", (e, x) => {
+
+            // position and show the context menu
+            ms_ul_list_contextmenu
+                .style("position", "absolute")
+                .style("left", `${e.pageX}px`)
+                .style("top", `${e.pageY}px`)
+                .style("display", "block");
+
+            // delete the set
+            ms_ul_list_contextmenu.select("#context_menu_0").on("click", () => {
+                measurement_sets_delete_set(x.measurement_set_id, x.inspection_id, x.item, x.drawing);
+                ms_ul_list_contextmenu.style("display", "none");
+            });
+
+            // prevent the default behavior
+            e.preventDefault();
         });
     let employee_select = items.append("select");
     employee_select.selectAll("option")
@@ -1284,6 +1211,23 @@ async function measurement_sets_update_employees()
 
 // #region measurements
 
+async function measurements_prepare_panel(inspection_id, item, drawing)
+{
+    // clear out filters
+    ms_input_schema_filter.property("value", "");
+    ms_input_employee_filter.property("value", "");
+
+    // populate the selectors
+    await measurements_get_filter_parameter_data(inspection_id, item, drawing);
+
+    // set up static button events
+    mt_button_update_display.on("click", () => measurements_get_filtered_measurements(inspection_id, item, drawing));
+    mt_button_save_characteristics.on("click", measurements_save_edits);
+
+    // populate the measurements table
+    await measurements_get_filtered_measurements(inspection_id, item, drawing);
+}
+
 async function measurements_get_filtered_measurements(inspection_id, item, drawing)
 {
     // get the list of measurement sets
@@ -1330,13 +1274,13 @@ async function measurements_get_filtered_measurements(inspection_id, item, drawi
     }).then((json) => {
 
         // the table must always be reset
-        vw_characteristics_table.selectAll("thead").remove();
-        vw_characteristics_table.selectAll("tbody").remove();
+        vw_measurements_table.selectAll("thead").remove();
+        vw_measurements_table.selectAll("tbody").remove();
 
         if (json.status == "ok") {
 
             // repopulate the characteristic table
-            characteristic_display_repopulate_table(json.response);
+            measurements_repopulate_table(json.response);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -1347,152 +1291,77 @@ async function measurements_get_filtered_measurements(inspection_id, item, drawi
     });
 }
 
-// function characteristic_display_save_characteristics()
-// {
-//     // request confirmation
-//     if (!confirm("This action will write to the database and cannot be reversed. Continue?")) {
-//         return;
-//     }
+async function measurements_save_edits()
+{
+    // request confirmation
+    if (!confirm("This action will write to the database and cannot be reversed. Continue?")) {
+        return;
+    }
 
-//     // extract the modified data
-//     let checks_data = [];
-//     let characteristics_data = [];
-//     vw_characteristics_table.selectAll("tbody").selectAll("td").data().forEach(element => {
-//         switch (element.column.key) {
-//             case "part_index" || "employee_id":
-//                 if (element.column.type == "input" || element.column.type == "select") {
-//                     if (checks_data.some((e) => e.check_id == element.row.check_id)) {
-//                         checks_data.filter((e) => e.check_id == element.row.check_id)[0]
-//                             .contents.push({
-//                                 key: element.column.key,
-//                                 value: element.row.value
-//                             });
-//                     }
-//                     else {
-//                         checks_data.push({
-//                             check_id: element.row.check_id,
-//                             contents: [{
-//                                 key: element.column.key,
-//                                 value: element.row.value
-//                             }]
-//                         });
-//                     }
-//                 }
-//                 break;
-//             case "measured" || "gauge_id":
-//                 if (element.column.type == "input" || element.column.type == "select") {
-//                     if (characteristics_data.some((e) => e.characteristic_id == element.row.characteristic_id)) {
-//                         characteristics_data.filter((e) => e.characteristic_id == element.row.characteristic_id)[0]
-//                             .contents.push({
-//                                 key: element.column.key,
-//                                 value: element.row.value
-//                             });
-//                     }
-//                     else {
-//                         characteristics_data.push({
-//                             characteristic_id: element.row.characteristic_id,
-//                             contents: [{
-//                                 key: element.column.key,
-//                                 value: element.row.value
-//                             }]
-//                         });
-//                     }
-//                 }
-//                 break;
-//         }
-//     });
-
-//     // query the flask server
-//     d3.json("/inspection_reports/characteristic_display_save_characteristics/", {
-//         method: "POST",
-//         body: JSON.stringify({
-//             checks: checks_data,
-//             characteristics: characteristics_data
-//         }),
-//         headers: {
-//             "Content-type": "application/json; charset=UTF-8"
-//         }
-//     }).then((json) => {
-//         if (json.status == "ok") {
+    // query the flask server
+    d3.json("/inspection_reports/measurements_save_measurements/", {
+        method: "POST",
+        body: JSON.stringify({
+            data: vw_measurements_table.select("tbody").selectAll("td").data()
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
             
-//         }
-//         else if (json.status == "alert") {
-//             alert(json.response);
-//         }
-//         else if (json.status == "log") {
-//             console.log(json.response);
-//         }
-//     });
-// }
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+    });
+}
 
-// function characteristic_display_tunnel_to_physical_part(inspection_id, part_id, part_index)
-// {
-//     d3.json("/inspection_reports/characteristic_display_tunnel_to_physical_part/", {
-//         method: "POST",
-//         body: JSON.stringify({
-//             inspection_id: inspection_id,
-//             part_id: part_id,
-//             part_index: part_index
-//         }),
-//         headers: {
-//             "Content-type": "application/json; charset=UTF-8"
-//         }
-//     }).then((json) => {
-//         if (json.status == "ok") {
+async function measurements_tunnel_to_physical_part(inspection_id, part_id, part_index)
+{
+    await d3.json("/inspection_reports/measurements_tunnel_to_physical_part/", {
+        method: "POST",
+        body: JSON.stringify({
+            inspection_id: inspection_id,
+            part_id: part_id,
+            part_index: part_index
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
 
-//             // repopulate the characteristic table
-//             characteristic_display_repopulate_table(json.response);
-//         }
-//         else if (json.status == "log") {
-//             console.log(json.response);
-//         }
-//         else if (json.status == "alert") {
-//             alert(json.response);
-//         }
-//     });
-// }
+        // the table must always be reset
+        vw_measurements_table.selectAll("thead").remove();
+        vw_measurements_table.selectAll("tbody").remove();
 
-// function characteristic_display_delete_check_set(check_id, inspection_id, item, drawing)
-// {
-//     d3.json("/inspection_reports/characteristic_display_delete_check_set/", {
-//         method: "POST",
-//         body: JSON.stringify({
-//             identity: {
-//                 inspection_id: inspection_id,
-//                 item: item,
-//                 drawing: drawing,
-//                 check_id: check_id
-//             },
-//             content: {
-//                 part_index: cd_select_part_index.property("value"),
-//                 frequency_type_id: mt_select_frequency_type.property("value"),
-//                 revision: cd_select_revision.property("value"),
-//                 name: mt_input_name.property("value"),
-//                 has_deviations: mt_select_has_deviations.property("value"),
-//                 inspector_id: mt_select_inspector.property("value"),
-//                 gauge_id: mt_select_gauge.property("value"),
-//                 gauge_type_id: mt_select_gauge_type.property("value"),
-//                 specification_type_id: mt_select_specification_type.property("value"),
-//                 characteristic_type_id: mt_select_characteristic_type.property("value")
-//             }
-//         }),
-//         headers: {
-//             "Content-type": "application/json; charset=UTF-8"
-//         }
-//     }).then((json) => {
-//         if (json.status == "ok") {
+        if (json.status == "ok") {
 
-//             // repopulate the characteristic table
-//             characteristic_display_repopulate_table(json.response);
-//         }
-//         else if (json.status == "log") {
-//             console.log(json.response);
-//         }
-//         else if (json.status == "alert") {
-//             alert(json.response);
-//         }
-//     });
-// }
+            // repopulate the characteristic table
+            measurements_repopulate_table(json.response);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+async function measurements_view_deviations(measurement_id)
+{
+    // close any panel that is already open
+    if (open_panel != null) {
+        await toggle_options(open_panel, "0px");
+    }
+
+    // toggle the panel visibility
+    await toggle_options("deviations", "1000px");
+}
 
 async function measurements_get_filter_parameter_data(inspection_id, item, drawing)
 {
@@ -1599,7 +1468,7 @@ async function measurements_get_filter_parameter_data(inspection_id, item, drawi
     });
 }
 
-function characteristic_display_repopulate_table(data)
+async function measurements_repopulate_table(data)
 {
     // get the current display type
     let display_type = mt_select_display_type.property("value");
@@ -1608,10 +1477,10 @@ function characteristic_display_repopulate_table(data)
     let table_schema = main_table_columns[display_type];
 
     // clear the old columns
-    vw_characteristics_table.selectAll("thead").remove();
+    vw_measurements_table.selectAll("thead").remove();
 
     // add the columns
-    vw_characteristics_table.append("thead")
+    vw_measurements_table.append("thead")
         .selectAll("tr")
         .data(table_schema)
         .join("th")
@@ -1620,14 +1489,38 @@ function characteristic_display_repopulate_table(data)
         .text((x) => x.col.display);
 
     // clear the old rows
-    vw_characteristics_table.selectAll("tbody").remove();
+    vw_measurements_table.selectAll("tbody").remove();
 
     // add the rows
-    let rows = vw_characteristics_table.append("tbody")
+    let rows = vw_measurements_table.append("tbody")
         .selectAll("tr")
         .data(data)
         .join("tr")
-        .on("click", (_, x) => deviations_get_characteristic_deviations(x.characteristic_id, x.inspection_id, x.item, x.drawing, x.revision, x.part_index, x.name));
+        .on("click", (_, x) => deviations_get_characteristic_deviations(x.characteristic_id, x.inspection_id, x.item, x.drawing, x.revision, x.part_index, x.name))
+        .on("contextmenu", (e, x) => {
+
+            // position and show the context menu
+            vw_measurements_table_contextmenu
+                .style("position", "absolute")
+                .style("left", `${e.pageX}px`)
+                .style("top", `${e.pageY}px`)
+                .style("display", "block");
+
+            // tunnel to physical part
+            vw_measurements_table_contextmenu.select("#context_menu_0").on("click", () => {
+                measurements_tunnel_to_physical_part(x.inspection_id, x.part_id, x.part_index);
+                vw_measurements_table_contextmenu.style("display", "none");
+            });
+
+            // view deviations
+            vw_measurements_table_contextmenu.select("#context_menu_1").on("click", () => {
+                measurements_view_deviations(x.measurement_id);
+                vw_measurements_table_contextmenu.style("display", "none");
+            });
+
+            // prevent the default behavior
+            e.preventDefault();
+        });
 
     // create the cells
     let cells = rows.selectAll("td")
@@ -1639,9 +1532,9 @@ function characteristic_display_repopulate_table(data)
                         value: r[c.col.key],
                         has_deviations: r.has_deviations,
                         precision: r.precision,
-                        characteristic_id: r.characteristic_id,
+                        measurement_id: r.measurement_id,
                         part_index: r.part_index,
-                        check_id: r.check_id,
+                        measurement_set_id: r.measurement_set_id,
                         gauge_type_id: r.gauge_type_id,
                         part_id: r.part_id,
                         inspection_id: r.inspection_id,
@@ -1761,19 +1654,6 @@ function characteristic_display_repopulate_table(data)
             x.row.value = parseInt(e.srcElement.value);
         });
 }
-
-// function characteristic_display_clear()
-// {
-//     mt_select_frequency_type.selectAll("option").remove();
-//     mt_input_name.property("value", "");
-//     cd_select_revision.selectAll("option").remove();
-//     cd_select_part_index.selectAll("option").remove();
-//     mt_select_inspector.selectAll("option").remove();
-//     mt_select_gauge.selectAll("option").remove();
-//     mt_select_gauge_type.selectAll("option").remove();
-//     mt_select_specification_type.selectAll("option").remove();
-//     mt_select_characteristic_type.selectAll("option").remove();
-// }
 
 // #endregion
 
@@ -2763,87 +2643,103 @@ function characteristic_display_repopulate_table(data)
 
 // #region sidebar control
 
-function toggle_options(destination_arg, open_width)
+async function toggle_options(destination_arg, open_width)
 {
     let close_width = "0px";
     if (destination_arg == "inspection_reports") {
         if (document.getElementById("inspection_reports_sidebar").style.width == open_width) {
             document.getElementById("inspection_reports_sidebar").style.width = close_width;
             document.getElementById("inspection_reports_btn").style.marginRight = close_width;
+            open_panel = null;
         }
         else {
             document.getElementById("inspection_reports_sidebar").style.width = open_width;
             document.getElementById("inspection_reports_btn").style.marginRight = open_width;
+            open_panel = destination_arg;
         }
     }
     else if (destination_arg == "measurement_sets") {
         if (document.getElementById("measurement_sets_sidebar").style.width == open_width) {
             document.getElementById("measurement_sets_sidebar").style.width = close_width;
             document.getElementById("measurement_sets_btn").style.marginRight = close_width;
+            open_panel = null;
         }
         else {
             document.getElementById("measurement_sets_sidebar").style.width = open_width;
             document.getElementById("measurement_sets_btn").style.marginRight = open_width;
+            open_panel = destination_arg;
         }
     }
     else if (destination_arg == "measurements") {
         if (document.getElementById("measurements_sidebar").style.width == open_width) {
             document.getElementById("measurements_sidebar").style.width = close_width;
             document.getElementById("measurements_btn").style.marginRight = close_width;
+            open_panel = null;
         }
         else {
             document.getElementById("measurements_sidebar").style.width = open_width;
             document.getElementById("measurements_btn").style.marginRight = open_width;
+            open_panel = destination_arg;
         }
     }
     else if (destination_arg == "metadata") {
         if (document.getElementById("metadata_sidebar").style.width == open_width) {
             document.getElementById("metadata_sidebar").style.width = close_width;
             document.getElementById("metadata_btn").style.marginRight = close_width;
+            open_panel = null;
         }
         else {
             document.getElementById("metadata_sidebar").style.width = open_width;
             document.getElementById("metadata_btn").style.marginRight = open_width;
+            open_panel = destination_arg;
         }
     }
     else if (destination_arg == "receiver_numbers") {
         if (document.getElementById("receiver_numbers_sidebar").style.width == open_width) {
             document.getElementById("receiver_numbers_sidebar").style.width = close_width;
             document.getElementById("receiver_numbers_btn").style.marginRight = close_width;
+            open_panel = null;
         }
         else {
             document.getElementById("receiver_numbers_sidebar").style.width = open_width;
             document.getElementById("receiver_numbers_btn").style.marginRight = open_width;
+            open_panel = destination_arg;
         }
     }
     else if (destination_arg == "purchase_orders") {
         if (document.getElementById("purchase_orders_sidebar").style.width == open_width) {
             document.getElementById("purchase_orders_sidebar").style.width = close_width;
             document.getElementById("purchase_orders_btn").style.marginRight = close_width;
+            open_panel = null;
         }
         else {
             document.getElementById("purchase_orders_sidebar").style.width = open_width;
             document.getElementById("purchase_orders_btn").style.marginRight = open_width;
+            open_panel = destination_arg;
         }
     }
     else if (destination_arg == "lot_numbers") {
         if (document.getElementById("lot_numbers_sidebar").style.width == open_width) {
             document.getElementById("lot_numbers_sidebar").style.width = close_width;
             document.getElementById("lot_numbers_btn").style.marginRight = close_width;
+            open_panel = null;
         }
         else {
             document.getElementById("lot_numbers_sidebar").style.width = open_width;
             document.getElementById("lot_numbers_btn").style.marginRight = open_width;
+            open_panel = destination_arg;
         }
     }
     else if (destination_arg == "deviations") {
         if (document.getElementById("deviations_sidebar").style.width == open_width) {
             document.getElementById("deviations_sidebar").style.width = close_width;
             document.getElementById("deviations_btn").style.marginRight = close_width;
+            open_panel = null;
         }
         else {
             document.getElementById("deviations_sidebar").style.width = open_width;
             document.getElementById("deviations_btn").style.marginRight = open_width;
+            open_panel = destination_arg;
         }
     }
 }

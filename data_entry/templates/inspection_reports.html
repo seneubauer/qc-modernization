@@ -55,14 +55,20 @@
         <label id="navbar_info"></label>
     </div>
 
-    <!-- characteristics -->
+    <!-- measurements table -->
     <div class="container" style="margin: 60px 250px 30px 250px; --grid-template-columns: repeat(0, minmax(0, 1fr));">
 
-        <!-- characteristic table -->
-        <table class="data-table data-table-highlight-all" id="characteristics_view_characteristics_table" style="
+        <!-- table -->
+        <table class="data-table data-table-highlight-all" id="measurements_table" style="
             --grid-column: 1;
             --grid-row: 1;
             margin-top: 18px;"></table>
+    </div>
+
+    <!-- measurements table context menu -->
+    <div class="context-menu" id="measurements_table_contextmenu">
+        <button class="context-menu-button" id="context_menu_0">Tunnel to Physical Part</button>
+        <button class="context-menu-button" id="context_menu_1">View Deviations</button>
     </div>
 
     <!-- characteristic table context menu -->
@@ -287,7 +293,7 @@
         </button>
     </div>
 
-    <!-- filtered measurement sets list context menu -->
+    <!-- measurement sets list context menu -->
     <div class="context-menu" id="measurement_sets_list_contextmenu">
         <button class="context-menu-button" id="context_menu_0">Delete Set</button>
     </div>
@@ -299,12 +305,12 @@
             <!-- row -->
             <button class="button-dark" id="measurements_apply_filter" type="button" style="
                 --grid-column: 1 / 3;
-                --grid-row: 1;">Apply Filter</button>
+                --grid-row: 1;">Update View</button>
 
             <!-- row -->
             <button class="button-dark" id="measurements_save_changes" type="button" style="
                 --grid-column: 1 / 3;
-                --grid-row: 2;">Save Changes</button>
+                --grid-row: 2;">Save Edits</button>
 
             <!-- row -->
             <label class="label-dark" for="measurements_display_type" style="

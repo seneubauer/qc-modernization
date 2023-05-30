@@ -2047,7 +2047,7 @@ def inspection_reports_measurement_sets_save_edits():
 
     # get the required parameters
     data_list = list(form_data["data"])
-    
+
     # parse data object
     data_object = []
     for x in data_list:
@@ -2056,7 +2056,7 @@ def inspection_reports_measurement_sets_save_edits():
             "data": {
                 "part_index": int(x["part_index"]),
                 "measurement_type_id": int(x["measurement_type_id"]),
-                "datetime_measured": datetime.datetime.strptime(x["timestamp"], "%a, %d %b %Y %H:%M:%S %Z"),
+                "datetime_measured": datetime.datetime.strptime(x["timestamp"], "%Y-%m-%dT%H:%M"),
                 "employee_id": int(x["employee_id"])
             }
         })
@@ -2070,7 +2070,7 @@ def inspection_reports_measurement_sets_save_edits():
         for x in data_object:
             measurement_set_query = session.query(measurement_sets)\
                 .filter(measurement_sets.id == x["measurement_set_id"])
-            
+
             for k, v in x["data"].items():
                 measurement_set_query.update({ k: v })
 
@@ -2379,7 +2379,7 @@ def func_measurement_sets_get_filtered_sets(inspection_id:int, search_term:str):
             for measurement_set_id, timestamp, part_index, employee_id, inspection_id, measurement_type_id, item, drawing, revision in sets_query:
                 output_arr.append({
                     "measurement_set_id": measurement_set_id,
-                    "timestamp": timestamp,
+                    "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M"),
                     "part_index": part_index,
                     "employee_id": employee_id,
                     "inspection_id": inspection_id,
@@ -2456,79 +2456,70 @@ def inspection_reports_measurements_get_filtered_measurements():
         measurement_set_ids
     )
 
-@app.route("/inspection_reports/measurement_display_save_measurements/", methods = ["POST"])
+@app.route("/inspection_reports/measurements_save_measurements/", methods = ["POST"])
 def inspection_reports_measurements_save_measurements():
 
     # interpret the posted data
     form_data = json.loads(request.data)
 
-    # proceed if the dictionary has contents
-    if len(form_data["measurement_sets"]) > 0 and len(form_data["measurements"]) > 0:
-        try:
+    # extract the required information
+    data = form_data["data"]
 
-            # open the database session
-            session = Session(engine)
+    if len(data) > 0:
 
-            # assign new measurement_set table values
-            measurement_set_rows_affected = 0
-            for obj in form_data["measurement_sets"]:
+        # convert the raw data
+        my_data = {}
+        for row in data:
 
-                # narrow the database scope
-                results = session.query(measurement_sets)\
-                    .filter(measurement_sets.id == obj["measurement_set_id"])
+            # make sure we're only pulling info we want
+            if row["column"]["key"] == "measured" or row["column"]["key"] == "gauge_id":
 
-                is_affected = 0
-                for x in obj["contents"]:
-                    is_affected += results.update({ x["key"]: x["value"] })
-                if is_affected > 0:
-                    measurement_set_rows_affected += len(results.all())
+                # get the measurement id
+                meas_id = row["row"]["measurement_id"]
 
-            # assign new measurement table values
-            measurement_rows_affected = 0
-            for obj in form_data["measurements"]:
+                # check if the measurement id already exists in our dictionary
+                if meas_id in my_data:
+                    my_data[meas_id].append({ row["column"]["key"]: row["row"]["value"] })
+                else:
+                    my_data[meas_id] = [{ row["column"]["key"]: row["row"]["value"] }]
 
-                # narrow the database scope
-                results = session.query(measurements)\
-                    .filter(measurements.id == obj["measurement_id"])
+        # open the database session
+        session = Session(engine)
 
-                is_affected = 0
-                for x in obj["contents"]:
-                    is_affected += results.update({ x["key"]: x["value"] })
-                if is_affected > 0:
-                    measurement_rows_affected += len(results.all())
+        # iterate through the data object
+        rows_affected = 0
+        for k, v in my_data.items():
+            results = session.query(measurements).filter(measurements.id == k)
+            is_affected = 0
+            for obj in v:
+                is_affected = results.update(obj)
+            if is_affected > 0:
+                rows_affected += 1
 
-            # commit the changes
-            session.commit()
+        # commit the changes
+        session.commit()
 
-            # close the database session
-            session.close()
+        # close the database session
+        session.close()
 
-            # return the result
-            if measurement_set_rows_affected > 0 and measurement_rows_affected > 0:
-                return {
-                    "status": "ok",
-                    "response": f"{measurement_set_rows_affected} 'measurement_set' table rows and {measurement_rows_affected} 'measurement' table rows were updated"
-                }
-            else:
-                return {
-                    "status": "alert",
-                    "response": "no rows affected"
-                }
-
-        except SQLAlchemyError as e:
-            error_msg = str(e.__dict__["orig"])
+        # return the results
+        if rows_affected > 0:
             return {
-                "status": "log",
-                "response": error_msg
+                "status": "alert",
+                "response": f"{rows_affected} rows updated in 'measurements'"
             }
-
+        else:
+            return {
+                "status": "alert",
+                "response": "no records affected"
+            }
     else:
         return {
             "status": "alert",
             "response": "no data passed to flask server"
         }
 
-@app.route("/inspection_reports/measurement_display_tunnel_to_physical_part/", methods = ["POST"])
+@app.route("/inspection_reports/measurements_tunnel_to_physical_part/", methods = ["POST"])
 def inspection_reports_measurements_tunnel_to_physical_part():
 
     # interpret the posted data
@@ -2563,90 +2554,18 @@ def inspection_reports_measurements_tunnel_to_physical_part():
             inspection_id,
             item,
             drawing,
-            part_index,
             -1,
-            revision,
             "",
             -1,
             -1,
             -1,
             -1,
             -1,
-            -1
-        )
-
-    except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
-        return {
-            "status": "log",
-            "response": error_msg
-        }
-
-@app.route("/inspection_reports/measurement_display_delete_measurement_set_set/", methods = ["POST"])
-def inspection_reports_measurements_delete_measurement_set_set():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    measurement_set_id = int(form_data["identity"]["measurement_set_id"])
-    inspection_id = int(form_data["identity"]["inspection_id"])
-    item = form_data["identity"]["item"]
-    drawing = form_data["identity"]["drawing"]
-    part_index = int(form_data["content"]["part_index"])
-    frequency_type_id = int(form_data["content"]["frequency_type_id"])
-    revision = form_data["content"]["revision"]
-    name = form_data["content"]["name"]
-    has_deviations = int(form_data["content"]["has_deviations"])
-    inspector_id = int(form_data["content"]["inspector_id"])
-    gauge_id = int(form_data["content"]["gauge_id"])
-    gauge_type_id = int(form_data["content"]["gauge_type_id"])
-    specification_type_id = int(form_data["content"]["specification_type_id"])
-    measurement_type_id = int(form_data["content"]["measurement_type_id"])
-
-    try:
-
-        # open the database session
-        session = Session(engine)
-
-        # assign measurements for deletion
-        measurements_deleted = session.query(measurements)\
-            .filter(measurements.measurement_set_id == measurement_set_id)\
-            .delete()
-
-        # assign measurement_sets for deletion
-        measurement_sets_deleted = session.query(measurement_sets)\
-            .filter(measurement_sets.id == measurement_set_id)\
-            .delete()
-
-        # commit the changes
-        session.commit()
-
-        # close the database session
-        session.close()
-
-        # return the results
-        if measurements_deleted == 0 or measurement_sets_deleted == 0:
-            return {
-                "status": "alert",
-                "response": "records not found; none deleted"
-            }
-
-        # run the required function
-        return func_measurements_get_filtered_measurements(
-            inspection_id,
-            item,
-            drawing,
-            part_index,
-            frequency_type_id,
+            -1,
+            -1,
             revision,
-            name,
-            has_deviations,
-            inspector_id,
-            gauge_id,
-            gauge_type_id,
-            specification_type_id,
-            measurement_type_id
+            part_index,
+            None
         )
 
     except SQLAlchemyError as e:
@@ -2891,7 +2810,6 @@ def func_measurements_get_filtered_measurements(inspection_id:int, item:str, dra
             .filter(inspection_reports.id == inspection_id)\
             .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"%{drawing}%")))\
             .filter(measurements.name.ilike(f"%{name}%"))\
-            .filter(measurements.measurement_set_id.in_(measurement_set_ids))\
             .filter(parts.revision.ilike(f"%{revision}%"))
 
         if part_index > -1:
@@ -2914,6 +2832,8 @@ def func_measurements_get_filtered_measurements(inspection_id:int, item:str, dra
             results = results.filter(measurements.specification_type_id == specification_type_id)
         if measurement_type_id > -1:
             results = results.filter(measurement_sets.measurement_type_id == measurement_type_id)
+        if measurement_set_ids is not None:
+            results = results.filter(measurements.measurement_set_id.in_(measurement_set_ids))
 
         # convert to a list
         measurement_list = results\
