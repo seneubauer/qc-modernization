@@ -859,6 +859,8 @@ async function measurement_sets_repopulate_set_list(data)
         .attr("step", "1")
         .attr("class", "list-item-label-dark")
         .property("value", (x) => x.part_index)
+        .on("drag", (e, _) => e.preventDefault)
+        .on("drop", (e, _) => e.preventDefault)
         .on("change", (e, x) => {
             x.part_index = e.srcElement.value;
         });
@@ -1105,15 +1107,19 @@ async function measurements_tunnel_to_physical_part(inspection_id, part_id, part
     });
 }
 
-async function measurements_view_deviations(measurement_id)
+async function measurements_view_deviations(measurement_id, part_index, revision, name, inspection_id, item, drawing)
 {
     // close any panel that is already open
-    if (open_panel != null) {
+    if (open_panel != null && open_panel != "deviations") {
         await toggle_options(open_panel, "0px");
     }
 
-    // toggle the panel visibility
-    await toggle_options("deviations", "1000px");
+    // prepare the deviations panel
+    await deviations_prepare_panel(measurement_id, part_index, revision, name, inspection_id, item, drawing);
+
+    // open the deviations panel
+    if (open_panel != "deviations")
+        await toggle_options("deviations", "1000px");
 }
 
 async function measurements_get_filter_parameter_data(inspection_id, item, drawing)
@@ -1249,6 +1255,7 @@ async function measurements_repopulate_table(data)
         .selectAll("tr")
         .data(data)
         .join("tr")
+        .on("click", (_, x) => deviations_prepare_panel(x.measurement_id, x.part_index, x.revision, x.name, x.inspection_id, x.item, x.drawing))
         .on("contextmenu", (e, x) => {
 
             // position and show the context menu
@@ -1266,7 +1273,7 @@ async function measurements_repopulate_table(data)
 
             // view deviations
             vw_measurements_table_contextmenu.select("#context_menu_1").on("click", () => {
-                measurements_view_deviations(x.measurement_id);
+                measurements_view_deviations(x.measurement_id, x.part_index, x.revision, x.name, x.inspection_id, x.item, x.drawing);
                 vw_measurements_table_contextmenu.style("display", "none");
             });
 
@@ -1665,7 +1672,7 @@ async function metadata_repopulate_revision_list(data)
         .append("div")
         .attr("class", "list-item-dark")
         .style("--grid-template-columns", "repeat(4, minmax(0, 1fr))")
-        .on("click", (e, x) => metadata_revision_clicked(e, x));
+        .on("click", (e, x) => metadata_revision_clicked(e));
     items.append("label")
         .style("--grid-column", "1")
         .style("--grid-row", "1")
@@ -1678,6 +1685,8 @@ async function metadata_repopulate_revision_list(data)
         .attr("type", "number")
         .attr("class", "list-item-input-dark")
         .property("value", (x) => x.full_inspect_interval)
+        .on("drag", (e, _) => e.preventDefault)
+        .on("drop", (e, _) => e.preventDefault)
         .on("change", (e, x) => {
             x.full_inspect_interval = parseInt(e.srcElement.value);
         });
@@ -1687,6 +1696,8 @@ async function metadata_repopulate_revision_list(data)
         .attr("type", "number")
         .attr("class", "list-item-input-dark")
         .property("value", (x) => x.released_qty)
+        .on("drag", (e, _) => e.preventDefault)
+        .on("drop", (e, _) => e.preventDefault)
         .on("change", (e, x) => {
             x.released_qty = parseInt(e.srcElement.value);
         });
@@ -1697,12 +1708,14 @@ async function metadata_repopulate_revision_list(data)
         .attr("type", "number")
         .attr("class", "list-item-input-dark")
         .property("value", (x) => x.completed_qty)
+        .on("drag", (e, _) => e.preventDefault)
+        .on("drop", (e, _) => e.preventDefault)
         .on("change", (e, x) => {
             x.completed_qty = parseInt(e.srcElement.value);
         });
 }
 
-async function metadata_revision_clicked(event, data)
+async function metadata_revision_clicked(event)
 {
     // check if the item is already selected
     let is_selected = event.srcElement.parentNode.classList.contains("list-item-dark-selected");
@@ -1716,6 +1729,9 @@ async function metadata_revision_clicked(event, data)
     // filter actions
     if (!is_selected) {
         event.srcElement.parentNode.classList.add("list-item-dark-selected");
+    }
+    else {
+        event.srcElement.blur();
     }
 }
 
@@ -2248,337 +2264,303 @@ async function lot_numbers_repopulate_list(data)
 
 // #region deviations
 
-// function deviations_save_deviation()
-// {
-//     // request confirmation
-//     if (!confirm("This action will write to the database and cannot be reverted. Continue?")) {
-//         return;
-//     }
+async function deviations_prepare_panel(measurement_id, part_index, revision, name, inspection_id, item, drawing)
+{
+    // set the visual flag
+    dv_label_current.text(`${part_index} // ${revision} // ${name}`);
 
-//     // create the data object
-//     let data = [];
-//     dv_ul_list.selectAll("li").data().forEach(element => {
-//         data.push({
-//             deviation_id: element.id,
-//             content: {
-//                 nominal: element.nominal,
-//                 usl: element.usl,
-//                 lsl: element.lsl,
-//                 precision: element.precision,
-//                 date_implemented: element.date_implemented,
-//                 notes: element.notes,
-//                 deviation_type_id: element.deviation_type_id,
-//                 employee_id: element.employee_id    
-//             }
-//         });
-//     });
+    // clear inputs
+    dv_input_notes.property("value", "");
 
-//     // query the flask server
-//     d3.json("/inspection_reports/save_deviations/", {
-//         method: "POST",
-//         body: JSON.stringify({
-//             data: data
-//         }),
-//         headers: {
-//             "Content-type": "application/json; charset=UTF-8"
-//         }
-//     }).then((json) => {
-//         if (json.status == "ok") {
+    // clear the list
+    dv_ul_list.selectAll("li").remove();
 
-//         }
-//         else if (json.status == "log") {
-//             console.log(json.response);
-//         }
-//         else if (json.status == "alert") {
-//             alert(json.response);
-//         }
-//     });
-// }
+    // set up static button events
+    dv_button_add.on("click", () => deviations_add(measurement_id, inspection_id, item, drawing));
+    dv_button_save.on("click", () => deviations_save(measurement_id));
 
-// function deviations_add_deviation(characteristic_id, inspection_id, item, drawing)
-// {
-//     d3.json("/inspection_reports/deviations_add_deviation/", {
-//         method: "POST",
-//         body: JSON.stringify({
-//             characteristic_id: characteristic_id,
-//             employee_id: ir_select_new_employee.property("value"),
-//             identity: {
-//                 inspection_id: inspection_id,
-//                 item: item,
-//                 drawing: drawing
-//             },
-//             content: {
-//                 part_index: cd_select_part_index.property("value"),
-//                 frequency_type_id: mt_select_frequency_type.property("value"),
-//                 revision: cd_select_revision.property("value"),
-//                 name: mt_input_name.property("value"),
-//                 has_deviations: mt_select_has_deviations.property("value"),
-//                 inspector_id: mt_select_inspector.property("value"),
-//                 gauge_id: mt_select_gauge.property("value"),
-//                 gauge_type_id: mt_select_gauge_type.property("value"),
-//                 specification_type_id: mt_select_specification_type.property("value"),
-//                 characteristic_type_id: mt_select_characteristic_type.property("value")
-//             }
-//         }),
-//         headers: {
-//             "Content-type": "application/json; charset=UTF-8"
-//         }
-//     }).then((json) => {
-//         if (json.status == "ok") {
+    // populate the list
+    await deviations_get_measurement_deviations(measurement_id);
+}
 
-//             // repopulate the deviations list
-//             deviations_repopulate_deviations_list(json.response.deviation_data, characteristic_id, inspection_id, item, drawing);
+async function deviations_add(measurement_id, inspection_id, item, drawing)
+{
+    // add a new deviation
+    await d3.json("/inspection_reports/deviations_add_deviation/", {
+        method: "POST",
+        body: JSON.stringify({
+            measurement_id: measurement_id
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+            deviations_repopulate_deviations_list(json.response, measurement_id, inspection_id, item, drawing);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
 
-//             // repopulate the characteristic table
-//             characteristic_display_repopulate_table(json.response.characteristic_data);
-//         }
-//         else if (json.status == "log") {
-//             console.log(json.response);
-//         }
-//         else if (json.status == "alert") {
-//             alert(json.response);
-//         }
-//     });
-// }
+    // requery for measurements
+    await measurements_get_filtered_measurements(inspection_id, item, drawing);
+}
 
-// function deviations_delete_deviation(deviation_id, characteristic_id, inspection_id, item, drawing)
-// {
-//     dv_ul_list.selectAll("li").remove();
-//     d3.json("/inspection_reports/deviations_delete_deviation/", {
-//         method: "POST",
-//         body: JSON.stringify({
-//             deviation_id: deviation_id,
-//             characteristic_id: characteristic_id,
-//             identity: {
-//                 inspection_id: inspection_id,
-//                 item: item,
-//                 drawing: drawing
-//             },
-//             content: {
-//                 part_index: cd_select_part_index.property("value"),
-//                 frequency_type_id: mt_select_frequency_type.property("value"),
-//                 revision: cd_select_revision.property("value"),
-//                 name: mt_input_name.property("value"),
-//                 has_deviations: mt_select_has_deviations.property("value"),
-//                 inspector_id: mt_select_inspector.property("value"),
-//                 gauge_id: mt_select_gauge.property("value"),
-//                 gauge_type_id: mt_select_gauge_type.property("value"),
-//                 specification_type_id: mt_select_specification_type.property("value"),
-//                 characteristic_type_id: mt_select_characteristic_type.property("value")
-//             }
-//         }),
-//         headers: {
-//             "Content-type": "application/json; charset=UTF-8"
-//         }
-//     }).then((json) => {
-//         if (json.status == "ok") {
+async function deviations_save(measurement_id)
+{
+    await d3.json("/inspection_reports/deviations_save/", {
+        method: "POST",
+        body: JSON.stringify({
+            measurement_id: measurement_id,
+            data: dv_ul_list.selectAll("li").data()
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+            
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
 
-//             // repopulate the deviations list
-//             if (json.response.deviation_data != null) {
-//                 deviations_repopulate_deviations_list(json.response.deviation_data, characteristic_id, inspection_id, item, drawing);
-//             }
+async function deviations_delete(measurement_id, deviation_id, inspection_id, item, drawing)
+{
+    await d3.json("/inspection_reports/deviations_delete_deviation/", {
+        method: "POST",
+        body: JSON.stringify({
+            measurement_id: measurement_id,
+            deviation_id: deviation_id
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
 
-//             // clear the notes
-//             dv_input_notes.property("value", "");
+        // clear the old entries every time
+        dv_ul_list.selectAll("li").remove();
 
-//             // repopulate the characteristic table
-//             characteristic_display_repopulate_table(json.response.characteristic_data);
-//         }
-//         else if (json.status == "log") {
-//             console.log(json.response);
-//         }
-//         else if (json.status == "alert") {
-//             alert(json.response);
-//         }
-//     })
-// }
+        if (json.status == "ok") {
+            deviations_repopulate_deviations_list(json.response, measurement_id, inspection_id, item, drawing);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
 
-// function deviations_get_characteristic_deviations(characteristic_id, inspection_id, item, drawing, revision, part_index, name)
-// {
-//     // update the label to show current characteristic
-//     dv_label_current.text(`${part_index} // ${revision} // ${name}`);
+    // requery for measurements
+    await measurements_get_filtered_measurements(inspection_id, item, drawing);
+}
 
-//     // reset the deviations display
-//     dv_ul_list.selectAll("li").remove();
-//     dv_input_notes.property("value", "");
-//     dv_button_add.on("click", () => { deviations_add_deviation(characteristic_id, inspection_id, item, drawing); });
+async function deviations_get_measurement_deviations(measurement_id)
+{
+    await d3.json("/inspection_reports/deviations_get_measurement_deviations/", {
+        method: "POST",
+        body: JSON.stringify({
+            measurement_id: measurement_id
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+            deviations_repopulate_deviations_list(json.response, measurement_id, inspection_id, item, drawing);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
 
-//     // query the flask server
-//     d3.json("/inspection_reports/deviations_get_characteristic_deviations/", {
-//         method: "POST",
-//         body: JSON.stringify({
-//             characteristic_id: characteristic_id
-//         }),
-//         headers: {
-//             "Content-type": "application/json; charset=UTF-8"
-//         }
-//     }).then((json) => {
-//         if (json.status == "ok") {
+async function deviations_clicked(e, x)
+{
+    // check if the item is already selected
+    let is_selected = e.srcElement.parentNode.classList.contains("list-item-dark-selected");
 
-//             // repopulate the deviations list
-//             deviations_repopulate_deviations_list(json.response, characteristic_id, inspection_id, item, drawing);
-//         }
-//         else if (json.status == "log") {
-//             console.log(json.response);
-//         }
-//         else if (json.status == "alert") {
-//             alert(json.response);
-//         }
-//     });
-// }
+    // reset/set the selected class
+    for (let i = 0; i < dv_ul_list.node().childNodes.length; i++) {
+        let current_node = dv_ul_list.node().childNodes[i].children[0];
+        current_node.classList.remove("list-item-dark-selected");
+    }
 
-// function deviation_selected(event, data)
-// {
-//     dv_input_notes.property("value", data.notes);
+    // filter actions
+    if (!is_selected) {
+        await deviations_selected(e, x);
+    }
+    else {
+        await deviations_unselected(e);
+    }
+}
 
-//     for (let i = 0; i < md_ul_list.node().childNodes.length; i++) {
-//         let current_node = md_ul_list.node().childNodes[i].children[0];
-//         current_node.classList.remove("list-item-dark-selected");
-//     }
-//     event.srcElement.parentNode.classList.add("list-item-dark-selected");
-// }
+async function deviations_selected(e, x)
+{
+    // set the visual flags
+    e.srcElement.parentNode.classList.add("list-item-dark-selected");
 
-// function deviations_repopulate_deviations_list(data, characteristic_id, inspection_id, item, drawing)
-// {
-//     // populate the notes section
-//     dv_input_notes.property("value", data[0].notes);
+    // set the notes
+    dv_input_notes.property("value", x.notes);
+}
 
-//     // clear the old entries
-//     dv_ul_list.selectAll("li").remove();
+async function deviations_unselected(e)
+{
+    // remove focus
+    e.srcElement.blur();
 
-//     // repopulate the deviations list
-//     let items = dv_ul_list.selectAll("li")
-//         .data(data)
-//         .join("li")
-//         .append("div")
-//         .attr("class", "list-item-dark")
-//         .style("--grid-template-columns", "1fr 1fr 1fr 1fr 2fr 2fr 2fr")
-//         .on("contextmenu", (e) => {
+    // reset the notes
+    dv_input_notes.property("value", "");
+}
 
-//             // extract data
-//             let row_data = e.target.__data__;
+async function deviations_repopulate_deviations_list(data, measurement_id, inspection_id, item, drawing)
+{
+    // clear the old entries
+    dv_ul_list.selectAll("li").remove();
 
-//             // position and show the context menu
-//             dv_ul_list_contextmenu
-//                 .style("position", "absolute")
-//                 .style("left", `${e.pageX}px`)
-//                 .style("top", `${e.pageY}px`)
-//                 .style("display", "block");
+    // repopulate the deviations list
+    let items = dv_ul_list.selectAll("li")
+        .data(data)
+        .join("li")
+        .append("div")
+        .attr("class", "list-item-dark")
+        .style("--grid-template-columns", "repeat(4, minmax(0, 2fr)) repeat(3, minmax(0, 3fr))")
+        .on("contextmenu", (e, x) => {
 
-//             // delete deviation
-//             dv_ul_list_contextmenu.select("#context_menu_0").on("click", () => {
+            // position and show the context menu
+            dv_ul_list_contextmenu
+                .style("position", "absolute")
+                .style("left", `${e.pageX}px`)
+                .style("top", `${e.pageY}px`)
+                .style("display", "block");
 
-//                 // delete the selected deviation
-//                 deviations_delete_deviation(row_data.id, characteristic_id, inspection_id, item, drawing);
-//                 dv_ul_list_contextmenu.style("display", "none");
-//             });
+            // delete deviation
+            dv_ul_list_contextmenu.select("#context_menu_0").on("click", () => {
+                deviations_delete(measurement_id, x.id, inspection_id, item, drawing);
+                dv_ul_list_contextmenu.style("display", "none");
+            });
 
-//             // prevent default behavior
-//             e.preventDefault();
-//         })
-//         .on("click", (e, d) => deviation_selected(e, d));
-//     let nominal = items.append("input")
-//         .style("--grid-column", "1")
-//         .style("--grid-row", "1")
-//         .style("border-radius", "6px 0px 0px 6px")
-//         .attr("type", "number")
-//         .attr("step", "any")
-//         .attr("class", "list-item-input-dark")
-//         .property("value", (x) => x.nominal.toFixed(x.precision))
-//         .on("change", (e, x) => {
-//             x.nominal = parseFloat(e.srcElement.value);
-//             e.srcElement.value = x.nominal.toFixed(x.precision);
-//         });
-//     let usl = items.append("input")
-//         .style("--grid-column", "2")
-//         .style("--grid-row", "1")
-//         .attr("type", "number")
-//         .attr("step", "any")
-//         .attr("class", "list-item-input-dark")
-//         .property("value", (x) => x.usl.toFixed(x.precision))
-//         .on("change", (e, x) => {
-//             x.usl = parseFloat(e.srcElement.value);
-//             e.srcElement.value = x.usl.toFixed(x.precision);
-//         });
-//     let lsl = items.append("input")
-//         .style("--grid-column", "3")
-//         .style("--grid-row", "1")
-//         .attr("type", "number")
-//         .attr("step", "any")
-//         .attr("class", "list-item-input-dark")
-//         .property("value", (x) => x.lsl.toFixed(x.precision))
-//         .on("change", (e, x) => {
-//             x.lsl = parseFloat(e.srcElement.value);
-//             e.srcElement.value = x.lsl.toFixed(x.precision);
-//         });
-//     items.append("input")
-//         .style("--grid-column", "4")
-//         .style("--grid-row", "1")
-//         .attr("type", "number")
-//         .attr("step", "1")
-//         .attr("max", "6")
-//         .attr("min", "0")
-//         .attr("class", "list-item-input-dark")
-//         .property("value", (x) => x.precision)
-//         .on("change", (e, x) => {
-//             x.precision = parseInt(e.srcElement.value);
-//             nominal.property("value", x.nominal.toFixed(x.precision));
-//             usl.property("value", x.usl.toFixed(x.precision));
-//             lsl.property("value", x.lsl.toFixed(x.precision));
-//         });
-//     items.append("input")
-//         .style("--grid-column", "5")
-//         .style("--grid-row", "1")
-//         .attr("type", "date")
-//         .attr("class", "list-item-input-dark")
-//         .property("value", (x) => x.date_implemented)
-//         .on("change", (e, x) => {
-//             x.date_implemented = e.srcElement.value;
-//         });
-//     let deviations = items.append("select")
-//         .style("--grid-column", "6")
-//         .style("--grid-row", "1")
-//         .attr("class", "list-item-select-dark");
-//     let employees = items.append("select")
-//         .style("--grid-column", "7")
-//         .style("--grid-row", "1")
-//         .style("border-radius", "0px 6px 6px 0px")
-//         .attr("class", "list-item-select-dark");
+            // prevent default behavior
+            e.preventDefault();
+        })
+        .on("click", (e, x) => deviations_clicked(e, x));
+    let nominal = items.append("input")
+        .style("--grid-column", "1")
+        .style("--grid-row", "1")
+        .style("border-radius", "6px 0px 0px 6px")
+        .attr("type", "number")
+        .attr("step", "any")
+        .attr("class", "list-item-input-dark")
+        .property("value", (x) => x.nominal.toFixed(x.precision))
+        .on("drag", (e, _) => e.preventDefault)
+        .on("drop", (e, _) => e.preventDefault)
+        .on("change", (e, x) => {
+            x.nominal = parseFloat(e.srcElement.value);
+            e.srcElement.value = x.nominal.toFixed(x.precision);
+        });
+    let usl = items.append("input")
+        .style("--grid-column", "2")
+        .style("--grid-row", "1")
+        .attr("type", "number")
+        .attr("step", "any")
+        .attr("class", "list-item-input-dark")
+        .property("value", (x) => x.usl.toFixed(x.precision))
+        .on("drag", (e, _) => e.preventDefault)
+        .on("drop", (e, _) => e.preventDefault)
+        .on("change", (e, x) => {
+            x.usl = parseFloat(e.srcElement.value);
+            e.srcElement.value = x.usl.toFixed(x.precision);
+        });
+    let lsl = items.append("input")
+        .style("--grid-column", "3")
+        .style("--grid-row", "1")
+        .attr("type", "number")
+        .attr("step", "any")
+        .attr("class", "list-item-input-dark")
+        .property("value", (x) => x.lsl.toFixed(x.precision))
+        .on("drag", (e, _) => e.preventDefault)
+        .on("drop", (e, _) => e.preventDefault)
+        .on("change", (e, x) => {
+            x.lsl = parseFloat(e.srcElement.value);
+            e.srcElement.value = x.lsl.toFixed(x.precision);
+        });
+    items.append("input")
+        .style("--grid-column", "4")
+        .style("--grid-row", "1")
+        .attr("type", "number")
+        .attr("step", "1")
+        .attr("max", "6")
+        .attr("min", "0")
+        .attr("class", "list-item-input-dark")
+        .property("value", (x) => x.precision)
+        .on("drag", (e, _) => e.preventDefault)
+        .on("drop", (e, _) => e.preventDefault)
+        .on("change", (e, x) => {
+            x.precision = parseInt(e.srcElement.value);
+            nominal.property("value", x.nominal.toFixed(x.precision));
+            usl.property("value", x.usl.toFixed(x.precision));
+            lsl.property("value", x.lsl.toFixed(x.precision));
+        });
+    items.append("input")
+        .style("--grid-column", "5")
+        .style("--grid-row", "1")
+        .attr("type", "date")
+        .attr("class", "list-item-input-dark")
+        .property("value", (x) => x.date_implemented)
+        .on("drag", (e, _) => e.preventDefault)
+        .on("drop", (e, _) => e.preventDefault)
+        .on("change", (e, x) => {
+            x.date_implemented = e.srcElement.value;
+        });
+    let deviations = items.append("select")
+        .style("--grid-column", "6")
+        .style("--grid-row", "1")
+        .attr("class", "list-item-select-dark");
+    let employees = items.append("select")
+        .style("--grid-column", "7")
+        .style("--grid-row", "1")
+        .style("border-radius", "0px 6px 6px 0px")
+        .attr("class", "list-item-select-dark");
 
-//     // populate the deviations select
-//     deviations.selectAll("option")
-//         .data(glist_deviations)
-//         .join("option")
-//         .attr("value", (x) => x.id)
-//         .text((x) => x.name);
+    // populate the deviations select
+    deviations.selectAll("option")
+        .data(glist_deviations)
+        .join("option")
+        .attr("value", (x) => x.id)
+        .text((x) => x.name);
 
-//     // set the deviations select value
-//     deviations.property("value", (x) => x.deviation_type_id)
-//         .on("change", (e, x) => {
-//             x.deviation_type_id = parseInt(e.srcElement.value);
-//         });
+    // set the deviations select value
+    deviations.property("value", (x) => x.deviation_type_id)
+        .on("change", (e, x) => {
+            x.deviation_type_id = parseInt(e.srcElement.value);
+        });
 
-//     // populate the employees select
-//     employees.selectAll("option")
-//         .data(glist_employees)
-//         .join("option")
-//         .attr("value", (x) => x.id)
-//         .text((x) => x.name);
+    // populate the employees select
+    employees.selectAll("option")
+        .data(glist_employees)
+        .join("option")
+        .attr("value", (x) => x.id)
+        .text((x) => x.name);
 
-//     // set the employees select value
-//     employees.property("value", (x) => x.employee_id)
-//         .on("change", (e, x) => {
-//             x.employee_id = parseInt(e.srcElement.value);
-//         });
-// }
-
-// function deviations_clear()
-// {
-//     dv_button_save.on("click", null);
-//     dv_button_add.on("click", null);
-//     dv_input_notes.property("value", "");
-//     dv_ul_list.selectAll("option").remove();
-// }
+    // set the employees select value
+    employees.property("value", (x) => x.employee_id)
+        .on("change", (e, x) => {
+            x.employee_id = parseInt(e.srcElement.value);
+        });
+}
 
 // #endregion
 

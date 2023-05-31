@@ -2761,12 +2761,6 @@ def inspection_reports_measurements_get_filter_parameter_data():
 
 def func_measurements_get_filtered_measurements(inspection_id:int, item:str, drawing:str, frequency_type_id:int, name:str, has_deviations:int, inspector_id:int, gauge_id:int, gauge_type_id:int, specification_type_id:int, dimension_type_id:int, measurement_type_id:int, revision:str, part_index:int, measurement_set_ids:list):
 
-    # deviation prefix
-    deviation_prefix = {
-        True: "**",
-        False: ""
-    }
-
     # define the columns
     columns = [
         measurement_sets.id,
@@ -2883,7 +2877,7 @@ def func_measurements_get_filtered_measurements(inspection_id:int, item:str, dra
                     "measurement_set_id": measurement_set_id,
                     "part_index": part_index,
                     "revision": revision.upper(),
-                    "name": f"{deviation_prefix[has_deviations]}{name}",
+                    "name": name,
                     "nominal": nominal_flt,
                     "usl": usl_flt,
                     "lsl": lsl_flt,
@@ -3517,11 +3511,15 @@ def func_inspection_get_filtered_potential_associations(search_term:str, solo_ta
 
 # routes
 
-@app.route("/inspection_reports/save_deviations/", methods = ["POST"])
+@app.route("/inspection_reports/deviations_save/", methods = ["POST"])
 def inspection_reports_save_deviations():
 
     # interpret the posted data
     form_data = json.loads(request.data)
+    
+    # extract the required information
+    measurement_id = int(form_data["measurement_id"])
+    data = list(form_data["data"])
 
     try:
 
@@ -3530,13 +3528,23 @@ def inspection_reports_save_deviations():
 
         # query the database
         rows_affected = 0
-        for row in form_data["data"]:
-            deviation_id = row["deviation_id"]
+        for row in data:
+            deviation_id = int(row["id"])
             results = session.query(deviations).filter(deviations.id == deviation_id)
 
-            is_affected = 0
-            for k, v in row["content"].items():
-                is_affected += results.update({ k: v })
+
+
+            is_affected = results.update({
+                "nominal": float(row["nominal"]),
+                "usl": float(row["usl"]),
+                "lsl": float(row["lsl"]),
+                "precision": int(row["precision"]),
+                "date_implemented": datetime.datetime.strptime(str(row["date_implemented"]), "%Y-%m-%d"),
+                "notes": str(row["notes"]),
+                "deviation_type_id": int(row["deviation_type_id"]),
+                "employee_id": int(row["employee_id"]),
+                "measurement_id": measurement_id
+            })
 
             if is_affected > 0:
                 rows_affected += 1
@@ -3574,25 +3582,17 @@ def inspection_reports_deviations_add_deviation():
 
     # get the required parameters
     measurement_id = int(form_data["measurement_id"])
-    employee_id = int(form_data["employee_id"])
-    inspection_id = int(form_data["identity"]["inspection_id"])
-    item = form_data["identity"]["item"]
-    drawing = form_data["identity"]["drawing"]
-    part_index = int(form_data["content"]["part_index"])
-    frequency_type_id = int(form_data["content"]["frequency_type_id"])
-    revision = form_data["content"]["revision"]
-    name = form_data["content"]["name"]
-    has_deviations = int(form_data["content"]["has_deviations"])
-    inspector_id = int(form_data["content"]["inspector_id"])
-    gauge_id = int(form_data["content"]["gauge_id"])
-    gauge_type_id = int(form_data["content"]["gauge_type_id"])
-    specification_type_id = int(form_data["content"]["specification_type_id"])
-    measurement_type_id = int(form_data["content"]["measurement_type_id"])
 
     try:
 
         # open the database session
         session = Session(engine)
+
+        # get the measurement set's employee
+        employee_id = session.query(measurement_sets.employee_id)\
+            .join(measurements, (measurements.measurement_set_id == measurement_sets.id))\
+            .filter(measurements.id == measurement_id)\
+            .first()[0]
 
         # add the placeholder data to the database
         new_record = deviations(
@@ -3612,40 +3612,8 @@ def inspection_reports_deviations_add_deviation():
         # close the session
         session.close()
 
-        # get the new deviation data
-        deviation_results = func_deviations_get_measurement_deviations(measurement_id)
-
-        # get the updated measurement data
-        measurement_results = func_measurements_get_filtered_measurements(
-            inspection_id,
-            item,
-            drawing,
-            part_index,
-            frequency_type_id,
-            revision,
-            name,
-            has_deviations,
-            inspector_id,
-            gauge_id,
-            gauge_type_id,
-            specification_type_id,
-            measurement_type_id
-        )
-
-        # return the results
-        if deviation_results["status"] == "ok" and measurement_results["status"] == "ok":
-            return {
-                "status": "ok",
-                "response": {
-                    "deviation_data": deviation_results["response"],
-                    "measurement_data": measurement_results["response"]
-                }
-            }
-        else:
-            return {
-                "status": "log",
-                "response": deviation_results["response"] + " || " + measurement_results["response"]
-            }
+        # return the new deviation data
+        return func_deviations_get_measurement_deviations(measurement_id)
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
@@ -3661,21 +3629,8 @@ def inspection_reports_deviations_delete_deviation():
     form_data = json.loads(request.data)
 
     # get the required parameters
-    deviation_id = int(form_data["deviation_id"])
     measurement_id = int(form_data["measurement_id"])
-    inspection_id = int(form_data["identity"]["inspection_id"])
-    item = form_data["identity"]["item"]
-    drawing = form_data["identity"]["drawing"]
-    part_index = int(form_data["content"]["part_index"])
-    frequency_type_id = int(form_data["content"]["frequency_type_id"])
-    revision = form_data["content"]["revision"]
-    name = form_data["content"]["name"]
-    has_deviations = int(form_data["content"]["has_deviations"])
-    inspector_id = int(form_data["content"]["inspector_id"])
-    gauge_id = int(form_data["content"]["gauge_id"])
-    gauge_type_id = int(form_data["content"]["gauge_type_id"])
-    specification_type_id = int(form_data["content"]["specification_type_id"])
-    measurement_type_id = int(form_data["content"]["measurement_type_id"])
+    deviation_id = int(form_data["deviation_id"])
 
     try:
 
@@ -3686,6 +3641,12 @@ def inspection_reports_deviations_delete_deviation():
         rows_deleted = session.query(deviations)\
             .filter(deviations.id == deviation_id)\
             .delete()
+        if rows_deleted == 0:
+            session.close()
+            return {
+                "status": "log",
+                "response": "no records deleted in 'deviations'"
+            }
 
         # commit the changes
         session.commit()
@@ -3693,46 +3654,8 @@ def inspection_reports_deviations_delete_deviation():
         # close the session
         session.close()
 
-        # get the new deviation data
-        deviation_results = None
-        deviation_obj = func_deviations_get_measurement_deviations(measurement_id)
-        if deviation_obj["status"] == "ok":
-            deviation_results = deviation_obj["response"]
-
-        # get the updated measurement data
-        measurement_results = None
-        measurement_obj = func_measurements_get_filtered_measurements(
-            inspection_id,
-            item,
-            drawing,
-            part_index,
-            frequency_type_id,
-            revision,
-            name,
-            has_deviations,
-            inspector_id,
-            gauge_id,
-            gauge_type_id,
-            specification_type_id,
-            measurement_type_id
-        )
-        if measurement_obj["status"] == "ok":
-            measurement_results = measurement_obj["response"]
-
-        # return the results
-        if measurement_obj["status"] == "ok":
-            return {
-                "status": "ok",
-                "response": {
-                    "deviation_data": deviation_results,
-                    "measurement_data": measurement_results
-                }
-            }
-        else:
-            return {
-                "status": "log",
-                "response": "no measurements found"
-            }
+        # return the updated deviations
+        return func_deviations_get_measurement_deviations(measurement_id)
 
     except SQLAlchemyError as e:
         error_msg = str(e.__dict__["orig"])
@@ -3748,7 +3671,7 @@ def inspection_reports_deviations_get_measurement_deviations():
     form_data = json.loads(request.data)
 
     # get the required parameters
-    measurement_id = form_data["measurement_id"]
+    measurement_id = int(form_data["measurement_id"])
 
     # return the results
     return func_deviations_get_measurement_deviations(measurement_id)

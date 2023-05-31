@@ -71,14 +71,6 @@
         <button class="context-menu-button" id="context_menu_1">View Deviations</button>
     </div>
 
-    <!-- characteristic table context menu -->
-    <div class="context-menu" id="characteristics_view_characteristics_table_contextmenu">
-        <button class="context-menu-button" id="context_menu_0">Tunnel to Physical Part</button>
-        <button class="context-menu-button" id="context_menu_1">View Deviations</button>
-        <button class="context-menu-button" id="context_menu_2">Reload Characteristics</button>
-        <button class="context-menu-button" id="context_menu_3">Delete Check Set</button>
-    </div>
-
     <!-- inspection report controls -->
     <div class="sidebar" id="inspection_reports_sidebar">
         <div class="container" style="--grid-template-columns: repeat(2, minmax(0, 1fr));">
@@ -105,7 +97,8 @@
             <input class="input-dark" id="inspection_reports_part_filter" type="text" style="
                 --grid-column: 1;
                 --grid-row: 5;
-                text-align: left;">
+                text-align: left;"
+                ondrag="return false;" ondrop="return false;">
             <label class="label-dark" for="inspection_reports_part" style="
                 --grid-column: 2;
                 --grid-row: 4;">Part ID</label>
@@ -120,7 +113,8 @@
             <input class="input-dark" id="inspection_reports_schema_filter" type="text" style="
                 --grid-column: 1;
                 --grid-row: 7;
-                text-align: left;">
+                text-align: left;"
+                ondrag="return false;" ondrop="return false;">
             <label class="label-dark" for="inspection_reports_schema" style="
                 --grid-column: 2;
                 --grid-row: 6;">Schema ID</label>
@@ -135,7 +129,8 @@
             <input class="input-dark" id="inspection_reports_employee_filter" type="text" style="
                 --grid-column: 1;
                 --grid-row: 9;
-                text-align: left;">
+                text-align: left;"
+                ondrag="return false;" ondrop="return false;">
             <label class="label-dark" for="inspection_reports_employee" style="
                 --grid-column: 2;
                 --grid-row: 8;">Employee</label>
@@ -155,14 +150,16 @@
             <input class="input-dark" id="inspection_reports_list_filter_part" type="text" style="
                 --grid-column: 1;
                 --grid-row: 12;
-                text-align: left;">
+                text-align: left;"
+                ondrag="return false;" ondrop="return false;">
             <label class="label-dark" for="inspection_reports_list_filter_job_order" style="
                 --grid-column: 2;
                 --grid-row: 11;">Job Order</label>
             <input class="input-dark" id="inspection_reports_list_filter_job_order" style="
                 --grid-column: 2;
                 --grid-row: 12;
-                text-align: left;">
+                text-align: left;"
+                ondrag="return false;" ondrop="return false;">
 
             <!-- row -->
             <label class="label-dark" for="inspection_reports_list_filter_start_after" style="
@@ -170,13 +167,15 @@
                 --grid-row: 13;">Started After</label>
             <input class="input-dark" id="inspection_reports_list_filter_start_after" type="date" style="
                 --grid-column: 1;
-                --grid-row: 14">
+                --grid-row: 14"
+                ondrag="return false;" ondrop="return false;">
             <label class="label-dark" for="inspection_reports_list_filter_finished_before" style="
                 --grid-column: 2;
                 --grid-row: 13;">Finished Before</label>
             <input class="input-dark" id="inspection_reports_list_filter_finished_before" type="date" style="
                 --grid-column: 2;
-                --grid-row: 14">
+                --grid-row: 14"
+                ondrag="return false;" ondrop="return false;">
 
             <!-- row -->
             <ul class="item-list" style="
@@ -232,7 +231,8 @@
             <input class="input-dark" type="text" id="measurement_sets_schema_filter" style="
                 --grid-column: 1;
                 --grid-row: 5;
-                text-align: left;">
+                text-align: left;"
+                ondrag="return false;" ondrop="return false;">
             <label class="label-dark" for="measurement_sets_schema" style="
                 --grid-column: 2;
                 --grid-row: 4;">Measurement Schema</label>
@@ -247,7 +247,8 @@
             <input class="input-dark" type="text" id="measurement_sets_employee_filter" style="
                 --grid-column: 1;
                 --grid-row: 7;
-                text-align: left;">
+                text-align: left;"
+                ondrag="return false;" ondrop="return false;">
             <label class="label-dark" for="measurement_sets_employee" style="
                 --grid-column: 2;
                 --grid-row: 6;">Employee</label>
@@ -262,7 +263,8 @@
             <input class="input-dark" type="text" id="measurement_sets_display_filter" style="
                 --grid-column: 1 / 3;
                 --grid-row: 9;
-                text-align: left;">
+                text-align: left;"
+                ondrag="return false;" ondrop="return false;">
 
             <!-- row -->
             <label class="label-dark" style="
@@ -370,7 +372,8 @@
             <input class="input-dark" id="measurements_dimension_name" type="text" style="
                 --grid-column: 1;
                 --grid-row: 10;
-                text-align: left;">
+                text-align: left;"
+                ondrag="return false;" ondrop="return false;">
             <label class="label-dark" for="measurements_frequency_type" style="
                 --grid-column: 2;
                 --grid-row: 9;">Frequency Type</label>
@@ -501,7 +504,8 @@
             <input class="input-dark" type="text" id="receiver_numbers_selected_search_term" style="
                 --grid-column: 1;
                 --grid-row: 3;
-                text-align: left;">
+                text-align: left;"
+                ondrag="return false;" ondrop="return false;">
             <label class="label-dark" style="
                 --grid-column: 2;
                 --grid-row: 2;">Receiver Number</label>
@@ -516,7 +520,8 @@
             <input class="input-dark" type="text" id="receiver_numbers_search_term" style="
                 --grid-column: 1 / 3;
                 --grid-row: 5;
-                text-align: left;">
+                text-align: left;"
+                ondrag="return false;" ondrop="return false;">
 
             <!-- row -->
             <label class="label-dark" style="
@@ -549,7 +554,8 @@
             <input class="input-dark" type="text" id="purchase_orders_selected_search_term" style="
                 --grid-column: 1;
                 --grid-row: 3;
-                text-align: left;">
+                text-align: left;"
+                ondrag="return false;" ondrop="return false;">
             <label class="label-dark" style="
                 --grid-column: 2;
                 --grid-row: 2;">Purchase Order</label>
@@ -564,7 +570,8 @@
             <input class="input-dark" type="text" id="purchase_orders_search_term" style="
                 --grid-column: 1 / 3;
                 --grid-row: 5;
-                text-align: left;">
+                text-align: left;"
+                ondrag="return false;" ondrop="return false;">
 
             <!-- row -->
             <label class="label-dark" style="
@@ -597,7 +604,8 @@
             <input class="input-dark" type="text" id="lot_numbers_selected_search_term" style="
                 --grid-column: 1;
                 --grid-row: 3;
-                text-align: left;">
+                text-align: left;"
+                ondrag="return false;" ondrop="return false;">
             <label class="label-dark" style="
                 --grid-column: 2;
                 --grid-row: 2;">Lot Number</label>
@@ -612,7 +620,8 @@
             <input class="input-dark" type="text" id="lot_numbers_search_term" style="
                 --grid-column: 1 / 3;
                 --grid-row: 5;
-                text-align: left;">
+                text-align: left;"
+                ondrag="return false;" ondrop="return false;">
 
             <!-- row -->
             <label class="label-dark" style="
@@ -634,19 +643,19 @@
         <div class="container" style="--grid-template-columns: repeat(1, minmax(0, 1fr));">
 
             <!-- row -->
-            <button class="button-dark" id="deviations_save_deviation" type="button" style="
-                --grid-column: 1;
-                --grid-row: 1;">Save Deviations</button>
-
-            <!-- row -->
             <button class="button-dark" id="deviations_add_deviation" type="button" style="
                 --grid-column: 1;
-                --grid-row: 2;">Add</button>
+                --grid-row: 1;">Add</button>
+
+            <!-- row -->
+            <button class="button-dark" id="deviations_save_deviation" type="button" style="
+                --grid-column: 1;
+                --grid-row: 2;">Save</button>
 
             <!-- row -->
             <label class="label-header-dark" id="deviations_current_characteristic" style="
                 --grid-column: 1;
-                --grid-row: 3;">Selected Characteristic:</label>
+                --grid-row: 3;">Selected Measurement:</label>
 
             <!-- row -->
             <label class="label-dark" style="
@@ -665,7 +674,7 @@
                 --grid-column: 1;
                 --grid-row: 7;">
                 <li>
-                    <div class="list-item-header" style="--grid-template-columns: 1fr 1fr 1fr 1fr 2fr 2fr 2fr;">
+                    <div class="list-item-header" style="--grid-template-columns: repeat(4, minmax(0, 2fr)) repeat(3, minmax(0, 3fr));">
                         <label class="list-item-header-label-dark" style="--grid-column: 1;--grid-row: 1;">Nominal</label>
                         <label class="list-item-header-label-dark" style="--grid-column: 2;--grid-row: 1;">USL</label>
                         <label class="list-item-header-label-dark" style="--grid-column: 3;--grid-row: 1;">LSL</label>
