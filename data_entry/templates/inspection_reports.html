@@ -418,60 +418,55 @@
         <div class="container" style="--grid-template-columns: repeat(2, minmax(0, 1fr));">
 
             <!-- row -->
-            <label class="label-header-dark" id="metadata_identity" style="
-                --grid-column: 1 / 3;
-                --grid-row: 1;">No Report Selected</label>
-
-            <!-- row -->
             <button class="button-dark" id="metadata_save" type="button" style="
                 --grid-column: 1 / 3;
-                --grid-row: 2;">Save</button>
+                --grid-row: 1;">Save</button>
 
             <!-- row -->
             <label class="label-dark" style="
                 --grid-column: 1;
-                --grid-row: 3;">Disposition</label>
+                --grid-row: 2;">Disposition</label>
             <select class="select-dark" id="metadata_disposition" style="
                 --grid-column: 1;
-                --grid-row: 4;"></select>
+                --grid-row: 3;"></select>
             <label class="label-dark" style="
                 --grid-column: 2;
-                --grid-row: 3;">Material Type</label>
+                --grid-row: 2;">Material Type</label>
             <select class="select-dark" id="metadata_material_type" style="
                 --grid-column: 2;
-                --grid-row: 4;"></select>
+                --grid-row: 3;"></select>
 
             <!-- row -->
             <label class="label-dark" style="
                 --grid-column: 1;
-                --grid-row: 5;">Inspector</label>
+                --grid-row: 4;">Inspector</label>
             <select class="select-dark" id="metadata_inspector" style="
                 --grid-column: 1;
-                --grid-row: 6;"></select>
+                --grid-row: 5;"></select>
             <label class="label-dark" style="
                 --grid-column: 2;
-                --grid-row: 5;">Job Order</label>
+                --grid-row: 4;">Job Order</label>
             <select class="select-dark" id="metadata_job_order" style="
                 --grid-column: 2;
-                --grid-row: 6;"></select>
+                --grid-row: 5;"></select>
 
             <!-- row -->
             <label class="label-dark" style="
                 --grid-column: 1;
-                --grid-row: 7;">Supplier</label>
+                --grid-row: 6;">Supplier</label>
             <select class="select-dark" id="metadata_supplier" style="
                 --grid-column: 1;
-                --grid-row: 8;"></select>
+                --grid-row: 7;"></select>
 
             <!-- row -->
             <label class="label-dark" style="
                 --grid-column: 1 / 3;
-                --grid-row: 9;">Quantities By Revision</label>
+                --grid-row: 8;">Quantities By Revision</label>
             <ul class="item-list" style="
                 --grid-column: 1 / 3;
-                --grid-row: 10;">
+                --grid-row: 9;">
                 <li>
-                    <div class="list-item-header" style="--grid-template-columns: 1fr 2fr 2fr 2fr;">
+                    <div class="list-item-header" style="--grid-template-columns: repeat(4, minmax(0, 1fr));">
                         <label class="list-item-header-label-dark" style="--grid-column: 1;--grid-row: 1;">Revision</label>
                         <label class="list-item-header-label-dark" style="--grid-column: 2;--grid-row: 1;">Full Inspect</label>
                         <label class="list-item-header-label-dark" style="--grid-column: 3;--grid-row: 1;">Released</label>
@@ -481,7 +476,7 @@
             </ul>
             <ul class="item-list" id="metadata_quantity_list" style="
                 --grid-column: 1 / 3;
-                --grid-row: 11;"></ul>
+                --grid-row: 10;"></ul>
         </div>
     </div>
     <div class="sidebar-toggle" id="metadata_btn" style="top: calc(3 * (12px + 42px) + 12px + 54px);">

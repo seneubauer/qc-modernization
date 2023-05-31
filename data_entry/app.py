@@ -2922,6 +2922,139 @@ def func_measurements_get_filtered_measurements(inspection_id:int, item:str, dra
 
 #region inspection reports - metadata
 
+@app.route("/inspection_reports/metadata_save/", methods = ["POST"])
+def inspection_reports_metadata_save():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_id = int(form_data["inspection_id"])
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # get the associated item and drawing values
+        part_query = session.query(parts.item, parts.drawing)\
+            .join(measurement_sets, (measurement_sets.part_id == parts.id))\
+            .join(inspection_reports, (inspection_reports.id == measurement_sets.inspection_id))\
+            .filter(inspection_reports.id == inspection_id).first()
+        if part_query is None:
+            return {
+                "status": "log",
+                "response": "part not found"
+            }
+        item, drawing = part_query
+
+        # update the inspection report
+        results = session.query(inspection_reports).filter(inspection_reports.id == inspection_id)
+        ir_is_affected = 0
+        for k, v in form_data["content"].items():
+            if v == "-1":
+                ir_is_affected = results.update({ k: None }, synchronize_session = False)
+            else:
+                ir_is_affected = results.update({ k: v }, synchronize_session = False)
+
+        # commit to then close the session
+        session.commit()
+        session.close()
+
+        # open the database session
+        session = Session(engine)
+
+        # update the quantities
+        pa_is_affected = 0
+        for obj in form_data["sub_data"]:
+            results = session.query(parts)\
+                .filter(parts.item.ilike(f"%{item}%"))\
+                .filter(parts.drawing.ilike(f"%{drawing}%"))\
+                .filter(parts.revision.ilike(f"%{obj['revision']}%"))
+            pa_is_affected = results.update({ "full_inspect_interval": obj["full_inspect_interval"] }, synchronize_session = False)
+            pa_is_affected = results.update({ "completed_qty": obj["completed_qty"] }, synchronize_session = False)
+            pa_is_affected = results.update({ "released_qty": obj["released_qty"] }, synchronize_session = False)
+
+        # commit to then close the session
+        session.commit()
+        session.close()
+
+        # return the response
+        if ir_is_affected > 0 and pa_is_affected > 0:
+            return {
+                "status": "alert",
+                "response": "tables 'inspection_reports' and 'parts' successfully updated"
+            }
+        else:
+            return {
+                "status": "alert",
+                "response": "no records in 'inspection_reports' and 'parts' updated"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+@app.route("/inspection_reports/metadata_get_parameters/", methods = ["POST"])
+def inspection_reports_metadata_get_parameters():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_id = form_data["inspection_id"]
+
+    # define the required columns
+    columns = [
+        inspection_reports.material_type_id,
+        inspection_reports.supplier_id,
+        inspection_reports.job_order_id,
+        inspection_reports.employee_id,
+        inspection_reports.disposition_id
+    ]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(*columns)\
+            .filter(inspection_reports.id == inspection_id)\
+            .first()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if results is not None:
+            material_type_id, supplier_id, job_order_id, employee_id, disposition_id = results
+            return {
+                "status": "ok",
+                "response": {
+                    "material_type_id": material_type_id,
+                    "supplier_id": supplier_id,
+                    "job_order_id": job_order_id,
+                    "employee_id": employee_id,
+                    "disposition_id": disposition_id
+                }
+            }
+        else:
+            return {
+                "status": "log",
+                "response": "no matching inspection report found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
 @app.route("/inspection_reports/metadata_get_matching_revisions/", methods = ["POST"])
 def inspection_reports_metadata_get_matching_revisions():
 
@@ -2963,83 +3096,6 @@ def inspection_reports_metadata_get_matching_revisions():
             return {
                 "status": "log",
                 "response": "no matching parts found"
-            }
-
-    except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
-        return {
-            "status": "log",
-            "response": error_msg
-        }
-
-@app.route("/inspection_reports/metadata_save/", methods = ["POST"])
-def inspection_reports_metadata_save():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    item = form_data["identity"]["item"]
-    drawing = form_data["identity"]["drawing"]
-    inspection_id = form_data["identity"]["inspection_id"]
-
-    try:
-
-        # open the database session
-        session = Session(engine)
-
-        # make sure the report/part combination exists
-        results = session.query(inspection_reports.id).distinct(inspection_reports.id)\
-            .join(measurement_sets, (measurement_sets.inspection_id == inspection_reports.id))\
-            .join(parts, (parts.id == measurement_sets.part_id))\
-            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"%{drawing}%"), inspection_reports.id == inspection_id)).all()
-        if len(results) == 0:
-            return {
-                "status": "log",
-                "response": "no matching inspection report and part found"
-            }
-
-        # update the inspection report
-        results = session.query(inspection_reports).filter(inspection_reports.id == inspection_id)
-        ir_is_affected = 0
-        for k, v in form_data["content"].items():
-            if v == "-1":
-                ir_is_affected = results.update({ k: None })
-            else:
-                ir_is_affected = results.update({ k: v })
-
-        # commit to then close the session
-        session.commit()
-        session.close()
-
-        # open the database session
-        session = Session(engine)
-
-        # update the quantities
-        pa_is_affected = 0
-        for obj in form_data["sub_data"]:
-            results = session.query(parts)\
-                .filter(parts.item.ilike(f"%{item}%"))\
-                .filter(parts.drawing.ilike(f"%{drawing}%"))\
-                .filter(parts.revision.ilike(f"%{obj['revision']}%"))
-            pa_is_affected = results.update({ "full_inspect_interval": obj["full_inspect_interval"] }, synchronize_session = False)
-            pa_is_affected = results.update({ "completed_qty": obj["completed_qty"] }, synchronize_session = False)
-            pa_is_affected = results.update({ "released_qty": obj["released_qty"] }, synchronize_session = False)
-
-        # commit to then close the session
-        session.commit()
-        session.close()
-
-        # return the response
-        if ir_is_affected > 0 and pa_is_affected > 0:
-            return {
-                "status": "alert",
-                "response": "tables 'inspection_reports' and 'parts' successfully updated"
-            }
-        else:
-            return {
-                "status": "alert",
-                "response": "no records in 'inspection_reports' and 'parts' updated"
             }
 
     except SQLAlchemyError as e:
