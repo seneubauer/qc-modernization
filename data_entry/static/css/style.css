@@ -140,6 +140,16 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     appearance: none;
 }
 
+option {
+    background-color: var(--dark-control-bg-static);
+    color: var(--dark-control-fg-static);
+}
+
+option:checked {
+    background-color: var(--dark-control-bg-active);
+    color: var(--dark-control-fg-active);
+}
+
 /* #endregion globals */
 
 /* #region navbar basics */
@@ -321,6 +331,17 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     grid-template-columns: var(--grid-template-columns);
 }
 
+.sub-container {
+    gap: 0px;
+    margin: 0px;
+    display: grid;
+    overflow: visible;
+    grid-auto-rows: auto;
+    grid-row: var(--grid-row);
+    grid-column: var(--grid-column);
+    grid-template-columns: var(--grid-template-columns);
+}
+
 /* #endregion containers */
 
 /* #region controls */
@@ -448,6 +469,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
 
 .item-list {
     padding: 6px 0px 0px 0px;
+    margin: 0px 6px;
     overflow: hidden;
     grid-row: var(--grid-row);
     grid-column: var(--grid-column);
@@ -479,6 +501,7 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     gap: 0px;
     margin: 0px;
     display: grid;
+    align-items: center;
     border-radius: 6px;
     grid-auto-rows: auto;
     grid-template-columns: var(--grid-template-columns);
@@ -647,14 +670,14 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     color: var(--dark-table-fg-header);
     padding: 6px;
     text-align: center;
-    text-shadow: 1px 1px 1px var(--dark-table-sd-static);
+    /* text-shadow: 1px 1px 1px var(--dark-table-sd-static); */
 }
 
 .data-table tbody td {
     border: solid 1px var(--dark-table-bd-static);
     color: var(--dark-table-fg-static);
     padding: 0px;
-    text-shadow: 1px 1px 1px var(--dark-table-sd-static);
+    /* text-shadow: 1px 1px 1px var(--dark-table-sd-static); */
 }
 
 .data-table-highlight-all {
@@ -701,16 +724,6 @@ input::-webkit-inner-spin-button, input::-webkit-outer-spin-button {
     margin: 0px;
     padding: 6px;
     cursor: default;
-}
-
-.data-table-cell-dark:hover {
-    background-color: var(--dark-table-bg-hover);
-    color: var(--dark-table-fg-hover);
-}
-
-.data-table-cell-dark:active {
-    background-color: var(--dark-table-bg-active);
-    color: var(--dark-table-fg-active);
 }
 
 .data-table-cell-dark::selection {

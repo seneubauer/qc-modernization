@@ -2,6 +2,8 @@
 drop table inspection_lot_numbers;
 drop table inspection_receiver_numbers;
 drop table inspection_purchase_orders;
+drop table parts_job_orders;
+drop table parts_suppliers;
 drop table employee_projects;
 drop table measurement_set_schema_details;
 drop table measurement_set_schemas;
@@ -172,6 +174,9 @@ create table job_orders
 (
     id serial not null,
     name varchar(32) not null unique,
+    full_inspect_interval integer not null,
+    released_qty integer not null,
+    completed_qty integer not null,
 
     -- primary key and unique constraints
     constraint pk_job_orders primary key (id),
@@ -183,10 +188,6 @@ create table purchase_orders
     id serial not null,
     name varchar(32) not null unique,
 
-    -- many purchase orders relate to one supplier
-    supplier_id integer not null,
-    constraint fk_supplier_po foreign key (supplier_id) references suppliers(id),
-
     -- primary key and unique constraints
     constraint pk_purchase_orders primary key (id),
     constraint uc_purchase_orders unique (id)
@@ -196,6 +197,7 @@ create table receiver_numbers
 (
     id serial not null,
     name varchar(32) not null unique,
+    received_qty integer not null,
 
     -- primary key and unique constraints
     constraint pk_receiver_numbers primary key (id),
@@ -297,16 +299,8 @@ create table inspection_reports
     material_type_id integer not null,
     constraint fk_material_type_ins foreign key (material_type_id) references material_types(id),
 
-    -- many inspection reports can relate to one supplier
-    supplier_id integer,
-    constraint fk_supplier_ins foreign key (supplier_id) references suppliers(id),
-
-    -- many inspection reports can relate to one job order
-    job_order_id integer,
-    constraint fk_job_order_ins foreign key (job_order_id) references job_orders(id),
-
     -- many inspection reports can relate to one employee
-    employee_id integer,
+    employee_id integer not null,
     constraint fk_employee_ins foreign key (employee_id) references employees(id),
 
     -- many inspection reports relate to one disposition type
@@ -320,9 +314,6 @@ create table parts
     drawing varchar(32) not null,
     revision varchar(2) not null,
     item varchar(32) not null,
-    full_inspect_interval integer not null,
-    released_qty integer not null,
-    completed_qty integer not null,
 
     -- primary key and unique constraints
     constraint pk_parts_id primary key (id),
@@ -504,6 +495,24 @@ create table employee_projects
     project_id integer not null references projects(id) on update cascade,
     constraint pk_employee_project primary key (id),
     constraint uc_employee_project unique (employee_id, project_id)
+);
+
+create table parts_suppliers
+(
+    id serial not null unique,
+    part_id integer not null references parts(id) on update cascade,
+    supplier_id integer not null references suppliers(id) on update cascade,
+    constraint pk_parts_suppliers primary key (id),
+    constraint uc_parts_suppliers unique (part_id, supplier_id)
+);
+
+create table parts_job_orders
+(
+    id serial not null unique,
+    part_id integer not null references parts(id) on update cascade,
+    job_order_id integer not null references job_orders(id) on update cascade,
+    constraint pk_parts_job_orders primary key (id),
+    constraint uc_parts_job_orders unique (part_id, job_order_id)
 );
 
 create table inspection_purchase_orders

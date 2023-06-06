@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects import postgresql
-from sqlalchemy import create_engine, and_, or_, func
+from sqlalchemy import create_engine, and_, or_, func, delete
 
 # import general dependencies
 import json
@@ -55,6 +55,8 @@ deviations = base.classes.deviations
 measurement_set_schemas = base.classes.measurement_set_schemas
 measurement_set_schema_details = base.classes.measurement_set_schema_details
 employee_projects = base.classes.employee_projects
+parts_suppliers = base.classes.parts_suppliers
+parts_job_orders = base.classes.parts_job_orders
 inspection_purchase_orders = base.classes.inspection_purchase_orders
 inspection_receiver_numbers = base.classes.inspection_receiver_numbers
 inspection_lot_numbers = base.classes.inspection_lot_numbers
@@ -1687,10 +1689,17 @@ def inspection_reports_inspection_reports_get_filtered_reports():
     form_data = json.loads(request.data)
 
     # get the required parameters
-    part_search_term = str(form_data["part_search_term"])
-    job_order_search_term = str(form_data["job_order_search_term"])
-    started_after_str = form_data["started_after"]
-    finished_before_str = form_data["finished_before"]
+    part_search_term = str(form_data["part"])
+    started_after_str = str(form_data["started_after"])
+    finished_before_str = str(form_data["finished_before"])
+    material_type_search_term = str(form_data["material_type"])
+    employee_search_term = str(form_data["employee"])
+    disposition_search_term = str(form_data["disposition"])
+    receiver_number_search_term = str(form_data["receiver_number"])
+    purchase_order_search_term = str(form_data["purchase_order"])
+    job_order_search_term = str(form_data["job_order"])
+    lot_number_search_term = str(form_data["lot_number"])
+    supplier_search_term = str(form_data["supplier"])
 
     # convert date strings to datetime objects
     started_after = datetime.date(1970, 1, 1)
@@ -1700,7 +1709,19 @@ def inspection_reports_inspection_reports_get_filtered_reports():
     if finished_before_str != "":
         finished_before = datetime.datetime.strptime(finished_before_str, "%Y-%m-%d")
 
-    return func_inspection_reports_get_filtered_reports(part_search_term, job_order_search_term, started_after, finished_before)
+    return func_inspection_reports_get_filtered_reports(
+        part_search_term,
+        started_after,
+        finished_before,
+        material_type_search_term,
+        employee_search_term,
+        disposition_search_term,
+        receiver_number_search_term,
+        purchase_order_search_term,
+        job_order_search_term,
+        lot_number_search_term,
+        supplier_search_term
+    )
 
 @app.route("/inspection_reports/inspection_reports_get_filtered_parts/", methods = ["POST"])
 def inspection_reports_inspection_reports_get_filtered_parts():
@@ -1884,7 +1905,7 @@ def inspection_reports_inspection_report_get_filtered_employees():
 
 # recycled methods
 
-def func_inspection_reports_get_filtered_reports(part_search_term:str, job_order_search_term:str, started_after:datetime, finished_before:datetime):
+def func_inspection_reports_get_filtered_reports(part_search_term:str, started_after:datetime, finished_before:datetime, material_type_search_term:str, employee_search_term:str, disposition_search_term:str, receiver_number_search_term:str, purchase_order_search_term:str, job_order_search_term:str, lot_number_search_term:str, supplier_search_term:str):
 
     # define the required fields
     columns = [
@@ -1892,12 +1913,10 @@ def func_inspection_reports_get_filtered_reports(part_search_term:str, job_order
         parts.id,
         parts.item,
         parts.drawing,
-        job_orders.id,
-        job_orders.name,
         inspection_reports.disposition_id,
         inspection_reports.material_type_id,
         inspection_reports.employee_id,
-        inspection_reports.supplier_id
+        disposition_types.name
     ]
 
     try:
@@ -1909,32 +1928,49 @@ def func_inspection_reports_get_filtered_reports(part_search_term:str, job_order
         results = session.query(*columns)\
             .join(measurement_sets, (measurement_sets.inspection_id == inspection_reports.id))\
             .join(parts, (measurement_sets.part_id == parts.id))\
-            .join(job_orders, (inspection_reports.job_order_id == job_orders.id), isouter = True)\
+            .outerjoin(material_types, (material_types.id == inspection_reports.material_type_id))\
+            .outerjoin(employees, (employees.id == inspection_reports.employee_id))\
+            .outerjoin(disposition_types, (disposition_types.id == inspection_reports.disposition_id))\
+            .outerjoin(inspection_receiver_numbers, (inspection_receiver_numbers.inspection_id == inspection_reports.id))\
+            .outerjoin(receiver_numbers, (receiver_numbers.id == inspection_receiver_numbers.receiver_number_id))\
+            .outerjoin(inspection_purchase_orders, (inspection_purchase_orders.inspection_id == inspection_reports.id))\
+            .outerjoin(purchase_orders, (purchase_orders.id == inspection_purchase_orders.purchase_order_id))\
+            .outerjoin(parts_job_orders, (parts_job_orders.part_id == parts.id))\
+            .outerjoin(job_orders, (job_orders.id == parts_job_orders.job_order_id))\
+            .outerjoin(inspection_lot_numbers, (inspection_lot_numbers.inspection_id == inspection_reports.id))\
+            .outerjoin(lot_numbers, (lot_numbers.id == inspection_lot_numbers.lot_number_id))\
+            .outerjoin(parts_suppliers, (parts_suppliers.part_id == parts.id))\
+            .outerjoin(suppliers, (suppliers.id == parts_suppliers.supplier_id))\
             .filter(measurement_sets.datetime_measured >= started_after)\
             .filter(or_(measurement_sets.datetime_measured <= finished_before, measurement_sets.datetime_measured == None))\
             .filter(or_(parts.item.ilike(f"%{part_search_term}%"), parts.drawing.ilike(f"%{part_search_term}%"), parts.revision.ilike(f"%{part_search_term}%")))\
-            .filter(or_(job_orders.name.ilike(f"%{job_order_search_term}%"), inspection_reports.job_order_id == None))\
+            .filter(material_types.name.ilike(f"%{material_type_search_term}%"))\
+            .filter(or_(employees.first_name.ilike(f"%{employee_search_term}%"), employees.last_name.ilike(f"%{employee_search_term}%")))\
+            .filter(disposition_types.name.ilike(f"%{disposition_search_term}%"))\
+            .filter(or_(receiver_numbers.name == None, receiver_numbers.name.ilike(f"%{receiver_number_search_term}%")))\
+            .filter(or_(purchase_orders.name == None, purchase_orders.name.ilike(f"%{purchase_order_search_term}%")))\
+            .filter(or_(job_orders.name == None, job_orders.name.ilike(f"%{job_order_search_term}%")))\
+            .filter(or_(lot_numbers.name == None, lot_numbers.name.ilike(f"%{lot_number_search_term}%")))\
+            .filter(or_(suppliers.name == None, suppliers.name.ilike(f"%{supplier_search_term}%")))\
             .order_by(parts.drawing.asc(), parts.item.asc())\
-            .distinct(parts.drawing, parts.item).all()
+            .distinct(parts.drawing, parts.item)
 
         # close the database session
         session.close()
 
         # return the results
-        if len(results) > 0:
+        if len(results.all()) > 0:
             output_arr = []
-            for inspection_id, part_id, item, drawing, job_order_id, job_order, disposition_type_id, material_type_id, employee_id, supplier_id in results:
+            for inspection_id, part_id, item, drawing, disposition_type_id, material_type_id, employee_id, disposition in results.all():
                 output_arr.append({
                     "inspection_id": inspection_id,
                     "part_id": part_id,
                     "item": item,
                     "drawing": drawing,
-                    "job_order_id": job_order_id,
-                    "job_order": job_order,
                     "disposition_type_id": disposition_type_id,
                     "material_type_id": material_type_id,
                     "employee_id": employee_id,
-                    "supplier_id": supplier_id
+                    "disposition": disposition
                 })
 
             return {
@@ -2852,7 +2888,7 @@ def func_measurements_get_filtered_measurements(inspection_id:int, item:str, dra
                 lsl_flt = float(lsl)
 
                 # evaluate measurements
-                state = "n/a"
+                state = "incomplete"
                 measured_flt = 0
                 if measured is None:
                     measured_flt = None
@@ -2911,6 +2947,863 @@ def func_measurements_get_filtered_measurements(inspection_id:int, item:str, dra
             "status": "log",
             "response": error_msg
         }
+
+#endregion
+
+#region inspection reports - manufactured
+
+# routes
+
+@app.route("/inspection_reports/manufactured_add_associated_job_order/", methods = ["POST"])
+def inspection_reports_manufactured_add_associated_job_order():
+
+    # get the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = str(form_data["search_term"])
+    inspection_id = int(form_data["inspection_id"])
+    part_id = int(form_data["part_id"])
+    job_order_id = int(form_data["job_order_id"])
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # check if the association already exists
+        exists = session.query(parts_job_orders.id)\
+            .filter(parts_job_orders.part_id == part_id)\
+            .filter(parts_job_orders.job_order_id == job_order_id)\
+            .first()
+        if exists is not None:
+            session.close()
+            return {
+                "status": "alert",
+                "response": "this association already exists"
+            }
+
+        # add the association
+        session.add(parts_job_orders(**{
+            "part_id": part_id,
+            "job_order_id": job_order_id,
+        }))
+
+        # commit the changes
+        session.commit()
+
+        # close the database session
+        session.close()
+
+        # reacquire the association list
+        return func_manufactured_get_associated_job_orders(inspection_id, search_term)
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+@app.route("/inspection_reports/manufactured_save_associated_job_orders/", methods = ["POST"])
+def inspection_reports_manufactured_save_associated_job_orders():
+
+    # get the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    raw_data = list(form_data["data"])
+
+    # convert the raw data
+    clean_data = []
+    for x in raw_data:
+        clean_data.append({
+            "id": int(x["id"]),
+            "data": {
+                "full_inspect_interval": int(x["full_inspect_interval"]),
+                "released_qty": int(x["released_qty"]),
+                "completed_qty": int(x["completed_qty"])
+            }
+        })
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # update the database
+        rows_affected = 0
+        for x in clean_data:
+            results = session.query(job_orders).filter(job_orders.id == int(x["id"]))
+            is_affected = 0
+            for k, v in x["data"].items():
+                is_affected += results.update({ k: v })
+            if is_affected > 0:
+                rows_affected += 1
+
+        # commit the changes
+        session.commit()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if rows_affected > 0:
+            return {
+                "status": "alert",
+                "response": f"{rows_affected} records were successfully updated in 'job_orders'"
+            }
+        else:
+            return {
+                "status": "alert",
+                "response": "no records were successfully updated in 'job_orders'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+@app.route("/inspection_reports/manufactured_delete_associated_job_order/", methods = ["POST"])
+def inspection_reports_manufactured_delete_associated_job_order():
+
+    # get the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = str(form_data["search_term"])
+    inspection_id = int(form_data["inspection_id"])
+    part_id = int(form_data["part_id"])
+    job_order_id = int(form_data["job_order_id"])
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # delete the associated record
+        rows_deleted = session.query(parts_job_orders)\
+            .filter(parts_job_orders.part_id == part_id)\
+            .filter(parts_job_orders.job_order_id == job_order_id)\
+            .delete()
+
+        # commit the changes
+        if rows_deleted > 0:
+            session.commit()
+
+        # close the database session
+        session.close()
+
+        # reacquire the association list
+        return func_manufactured_get_associated_job_orders(inspection_id, search_term)
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+@app.route("/inspection_reports/manufactured_get_associated_job_orders/", methods = ["POST"])
+def inspection_reports_manufactured_get_associated_job_orders():
+
+    # get the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = str(form_data["search_term"])
+    inspection_id = int(form_data["inspection_id"])
+
+    # return the results
+    return func_manufactured_get_associated_job_orders(inspection_id, search_term)
+
+@app.route("/inspection_reports/manufactured_get_filtered_job_orders/", methods = ["POST"])
+def inspection_reports_manufactured_get_filtered_job_orders():
+
+    # get the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = str(form_data["search_term"])
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(job_orders.id, job_orders.name)\
+            .filter(job_orders.name.ilike(f"%{search_term}%"))\
+            .order_by(job_orders.name.asc()).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name
+                })
+            
+            return {
+                "status": "ok",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "log",
+                "response": "no records found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+@app.route("/inspection_reports/manufactured_get_filtered_parts/", methods = ["POST"])
+def inspection_reports_manufactured_get_filtered_parts():
+
+    # get the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = str(form_data["search_term"])
+    inspection_id = int(form_data["inspection_id"])
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(parts.id, parts.item, parts.drawing, parts.revision)\
+            .join(measurement_sets, (measurement_sets.part_id == parts.id))\
+            .join(inspection_reports, (inspection_reports.id == measurement_sets.inspection_id))\
+            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
+            .filter(inspection_reports.id == inspection_id)\
+            .order_by(parts.drawing.asc(), parts.revision.asc(), parts.item.asc())\
+            .distinct(parts.drawing, parts.revision, parts.item).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, item, drawing, revision in results:
+                output_arr.append({
+                    "id": id,
+                    "name": f"{item}, {drawing}, {revision.upper()}"
+                })
+            
+            return {
+                "status": "ok",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "log",
+                "response": "no records found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+# recycled methods
+
+def func_manufactured_get_associated_job_orders(inspection_id:int, search_term:str):
+
+    # define the output columns
+    columns = [
+        job_orders.id,
+        job_orders.name,
+        job_orders.full_inspect_interval,
+        job_orders.released_qty,
+        job_orders.completed_qty,
+        parts.revision,
+        parts.id
+    ]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(*columns)\
+            .join(parts_job_orders, (parts_job_orders.job_order_id == job_orders.id))\
+            .join(parts, (parts.id == parts_job_orders.part_id))\
+            .join(measurement_sets, (measurement_sets.part_id == parts.id))\
+            .join(inspection_reports, (inspection_reports.id == measurement_sets.inspection_id))\
+            .filter(inspection_reports.id == inspection_id)\
+            .filter(or_(parts.revision.ilike(f"%{search_term}%"), job_orders.name.ilike(f"%{search_term}%")))\
+            .order_by(job_orders.name.asc())\
+            .distinct(job_orders.name).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name, full_inspect_interval, released_qty, completed_qty, revision, part_id in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name,
+                    "full_inspect_interval": full_inspect_interval,
+                    "released_qty": released_qty,
+                    "completed_qty": completed_qty,
+                    "revision": revision.upper(),
+                    "part_id": part_id
+                })
+
+            return {
+                "status": "ok",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "log",
+                "response": "no records found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+#endregion
+
+#region inspection reports - received
+
+# routes
+
+@app.route("/inspection_reports/received_add_association/", methods = ["POST"])
+def inspection_reports_received_add_association():
+
+    # get the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = str(form_data["search_term"])
+    target = str(form_data["target"])
+    inspection_id = int(form_data["inspection_id"])
+    part_id = int(form_data["part_id"])
+    item_id = int(form_data["item_id"])
+
+    # use the targeted tables
+    if target == "receiver_numbers":
+        return func_received_add_association(
+            search_term,
+            inspection_id,
+            item_id,
+            inspection_id,
+            "receiver_number_id",
+            "inspection_id",
+            receiver_numbers,
+            inspection_receiver_numbers,
+            inspection_reports
+        )
+    elif target == "purchase_orders":
+        return func_received_add_association(
+            search_term,
+            inspection_id,
+            item_id,
+            inspection_id,
+            "purchase_order_id",
+            "inspection_id",
+            purchase_orders,
+            inspection_purchase_orders,
+            inspection_reports
+        )
+    elif target == "suppliers":
+        return func_received_add_association(
+            search_term,
+            inspection_id,
+            item_id,
+            part_id,
+            "supplier_id",
+            "part_id",
+            suppliers,
+            parts_suppliers,
+            parts
+        )
+    else:
+        return {
+            "status": "alert",
+            "response": "supplied target does not match criteria"
+        }
+
+@app.route("/inspection_reports/received_save_receiver_number_associations/", methods = ["POST"])
+def inspection_reports_received_save_receiver_number_associations():
+
+    # get the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    raw_data = list(form_data["data"])
+
+    # convert the raw data
+    clean_data = []
+    for x in raw_data:
+        clean_data.append({
+            "id": int(x["id"]),
+            "data": {
+                "received_qty": int(x["received_qty"])
+            }
+        })
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # update the database
+        rows_affected = 0
+        for x in clean_data:
+            results = session.query(receiver_numbers).filter(receiver_numbers.id == int(x["id"]))
+            is_affected = 0
+            for k, v in x["data"].items():
+                is_affected += results.update({ k: v })
+            if is_affected > 0:
+                rows_affected += 1
+
+        # commit the changes
+        session.commit()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if rows_affected > 0:
+            return {
+                "status": "alert",
+                "response": f"{rows_affected} records were successfully updated in 'receiver_numbers'"
+            }
+        else:
+            return {
+                "status": "alert",
+                "response": "no records were successfully updated in 'receiver_numbers'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+@app.route("/inspection_reports/received_delete_association/", methods = ["POST"])
+def inspection_reports_received_delete_association():
+
+    # get the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = str(form_data["search_term"])
+    target = str(form_data["target"])
+    inspection_id = int(form_data["inspection_id"])
+    part_id = int(form_data["part_id"])
+    item_id = int(form_data["item_id"])
+
+    # use the targeted tables
+    if target == "receiver_numbers":
+        return func_received_delete_association(
+            search_term,
+            inspection_id,
+            item_id,
+            inspection_id,
+            "receiver_number_id",
+            "inspection_id",
+            receiver_numbers,
+            inspection_receiver_numbers
+        )
+    elif target == "purchase_orders":
+        return func_received_delete_association(
+            search_term,
+            inspection_id,
+            item_id,
+            inspection_id,
+            "purchase_order_id",
+            "inspection_id",
+            purchase_orders,
+            inspection_purchase_orders
+        )
+    elif target == "suppliers":
+        return func_received_delete_association(
+            search_term,
+            inspection_id,
+            item_id,
+            part_id,
+            "supplier_id",
+            "part_id",
+            suppliers,
+            parts_suppliers
+        )
+    else:
+        return {
+            "status": "alert",
+            "response": "supplied target does not match criteria"
+        }
+
+@app.route("/inspection_reports/received_get_filtered_associations/", methods = ["POST"])
+def inspection_reports_received_get_filtered_associations():
+
+    # get the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = str(form_data["search_term"])
+    target = str(form_data["target"])
+    inspection_id = int(form_data["inspection_id"])
+
+    # use the targeted tables
+    if target == "receiver_numbers":
+        return func_received_get_filtered_associations(
+            search_term,
+            inspection_id,
+            "receiver_number_id",
+            receiver_numbers,
+            inspection_receiver_numbers
+        )
+    elif target == "purchase_orders":
+        return func_received_get_filtered_associations(
+            search_term,
+            inspection_id,
+            "purchase_order_id",
+            purchase_orders,
+            inspection_purchase_orders
+        )
+    elif target == "suppliers":
+        return func_received_get_filtered_associations(
+            search_term,
+            inspection_id,
+            "supplier_id",
+            suppliers,
+            parts_suppliers
+        )
+    else:
+        return {
+            "status": "alert",
+            "response": "supplied target does not match criteria"
+        }
+
+@app.route("/inspection_reports/received_get_filtered_options/", methods = ["POST"])
+def inspection_reports_received_get_filtered_options():
+
+    # get the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = str(form_data["search_term"])
+    target = str(form_data["target"])
+
+    # use the targeted tables
+    if target == "receiver_numbers":
+        return func_received_get_filtered_options(search_term, receiver_numbers)
+    elif target == "purchase_orders":
+        return func_received_get_filtered_options(search_term, purchase_orders)
+    elif target == "suppliers":
+        return func_received_get_filtered_options(search_term, suppliers)
+    else:
+        return {
+            "status": "alert",
+            "response": "supplied target does not match criteria"
+        }
+
+@app.route("/inspection_reports/received_get_filtered_parts/", methods = ["POST"])
+def inspection_reports_received_get_filtered_parts():
+
+    # get the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    search_term = str(form_data["search_term"])
+    inspection_id = int(form_data["inspection_id"])
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(parts.id, parts.item, parts.drawing, parts.revision)\
+            .join(measurement_sets, (measurement_sets.part_id == parts.id))\
+            .join(inspection_reports, (inspection_reports.id == measurement_sets.inspection_id))\
+            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
+            .filter(inspection_reports.id == inspection_id)\
+            .order_by(parts.drawing.asc(), parts.revision.asc(), parts.item.asc())\
+            .distinct(parts.drawing, parts.revision, parts.item).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, item, drawing, revision in results:
+                output_arr.append({
+                    "id": id,
+                    "name": f"{item}, {drawing}, {revision.upper()}"
+                })
+            
+            return {
+                "status": "ok",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "log",
+                "response": "no records found"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+# recycled methods
+
+def func_received_add_association(search_term:str, inspection_id:int, solo_id:int, record_id:int, solo_link:str, record_link:str, solo_table, link_table, record_table):
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # check if the association already exists
+        exists = session.query(link_table.id)\
+            .filter(link_table.__table__.c[solo_link] == solo_id)\
+            .filter(link_table.__table__.c[record_link] == record_id)\
+            .first()
+        if exists is not None:
+            session.close()
+            return {
+                "status": "alert",
+                "response": f"the association between '{solo_table.__table__.name}', '{link_table.__table__.name}', and '{record_table.__table__.name}' already exists"
+            }
+        
+        # add the association
+        session.add(link_table(**{
+            solo_link: solo_id,
+            record_link: record_id
+        }))
+
+        # commit the changes
+        session.commit()
+
+        # close the session
+        session.close()
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+    
+    return func_received_get_filtered_associations(
+        search_term,
+        inspection_id,
+        solo_link,
+        solo_table,
+        link_table
+    )
+
+def func_received_delete_association(search_term:str, inspection_id:int, solo_id:int, record_id:int, solo_link:str, record_link:str, solo_table, link_table):
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        delete_query = delete(link_table)
+        
+
+        # delete the associated record
+        rows_deleted = session.query(link_table)\
+            .filter(link_table.__table__.c[solo_link] == solo_id)\
+            .filter(link_table.__table__.c[record_link] == record_id)\
+            .delete()
+
+        # commit the changes
+        if rows_deleted > 0:
+            session.commit()
+
+        # close the database session
+        session.close()
+
+        # reacquire the association list
+        return func_received_get_filtered_associations(
+            search_term,
+            inspection_id,
+            solo_link,
+            solo_table,
+            link_table
+        )
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+def func_received_get_filtered_associations(search_term:str, inspection_id:int, solo_link:str, solo_table, link_table):
+
+    # define the output columns
+    columns = []
+    if solo_table.__table__.name == "receiver_numbers":
+        columns = [
+            solo_table.id,
+            solo_table.name,
+            solo_table.received_qty
+        ]
+    elif solo_table.__table__.name == "suppliers":
+        columns = [
+            solo_table.id,
+            solo_table.name,
+            parts.id,
+            parts.revision
+        ]
+    else:
+        columns = [
+            solo_table.id,
+            solo_table.name
+        ]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        if solo_table.__table__.name == "suppliers":
+            results = session.query(*columns)\
+                .join(link_table, (solo_table.id == link_table.__table__.c[solo_link]))\
+                .join(parts, (parts.id == link_table.__table__.c[solo_link]))\
+                .join(measurement_sets, (measurement_sets.part_id == parts.id))\
+                .join(inspection_reports, (inspection_reports.id == measurement_sets.inspection_id))\
+                .filter(inspection_reports.id == inspection_id)\
+                .filter(solo_table.name.ilike(f"%{search_term}%"))\
+                .order_by(solo_table.name.asc())\
+                .distinct(solo_table.name).all()
+        else:
+            results = session.query(*columns)\
+                .join(link_table, (solo_table.id == link_table.__table__.c[solo_link]))\
+                .join(inspection_reports, (inspection_reports.id == link_table.inspection_id))\
+                .filter(inspection_reports.id == inspection_id)\
+                .filter(solo_table.name.ilike(f"%{search_term}%"))\
+                .order_by(solo_table.name.asc()).all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            if solo_table.__table__.name == "receiver_numbers":
+                for id, name, received_qty in results:
+                    output_arr.append({
+                        "inspection_id": inspection_id,
+                        "id": id,
+                        "name": name,
+                        "received_qty": received_qty
+                    })
+            elif solo_table.__table__.name == "suppliers":
+                for id, name, part_id, revision in results:
+                    output_arr.append({
+                        "inspection_id": inspection_id,
+                        "id": id,
+                        "name": name,
+                        "part_id": part_id,
+                        "revision": revision.upper()
+                    })
+            else:
+                for id, name in results:
+                    output_arr.append({
+                        "inspection_id": inspection_id,
+                        "id": id,
+                        "name": name
+                    })
+
+            return {
+                "status": "ok",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok",
+                "response": {
+                    "size": 0,
+                    "message":f"no connection found between 'inspection_reports', '{solo_table.__table__.name}', and '{link_table.__table__.name}'"
+                }
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
+def func_received_get_filtered_options(search_term:str, solo_table):
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(solo_table.id, solo_table.name)\
+            .filter(solo_table.name.ilike(f"%{search_term}%"))\
+            .order_by(solo_table.name.asc())\
+            .all()
+
+        # close the session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "log",
+                "response": f"no matching records found in '{solo_table.__table__.name}'"
+            }
+
+    except SQLAlchemyError as e:
+        error_msg = str(e.__dict__["orig"])
+        return {
+            "status": "log",
+            "response": error_msg
+        }
+
 
 #endregion
 
@@ -2976,7 +3869,7 @@ def inspection_reports_metadata_save():
         # return the response
         if ir_is_affected > 0 and pa_is_affected > 0:
             return {
-                "status": "alert",
+                "status": "ok",
                 "response": "tables 'inspection_reports' and 'parts' successfully updated"
             }
         else:
