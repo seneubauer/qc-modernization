@@ -1,18 +1,16 @@
 -- database reset
-drop table inspection_lot_numbers;
-drop table inspection_receiver_numbers;
-drop table inspection_purchase_orders;
-drop table parts_job_orders;
-drop table parts_suppliers;
+drop table inspection_records_lot_numbers;
+drop table inspection_records_purchase_orders;
+drop table parts_job_numbers;
 drop table employee_projects;
-drop table measurement_set_schema_details;
-drop table measurement_set_schemas;
+drop table inspection_schema_details;
+drop table inspection_schemas;
 drop table deviations;
-drop table measurements;
-drop table measurement_sets;
+drop table features;
+drop table inspections;
 drop table gauges;
 drop table parts;
-drop table inspection_reports;
+drop table inspection_records;
 drop table machines;
 drop table employees;
 drop table locations;
@@ -20,10 +18,10 @@ drop table departments;
 drop table projects;
 drop table receiver_numbers;
 drop table purchase_orders;
-drop table job_orders;
+drop table job_numbers;
 drop table suppliers;
 drop table lot_numbers;
-drop table measurement_types;
+drop table inspection_types;
 drop table frequency_types;
 drop table material_types;
 drop table project_types;
@@ -138,14 +136,14 @@ create table frequency_types
     constraint uc_frequency_types unique (id)
 );
 
-create table measurement_types
+create table inspection_types
 (
     id integer not null,
     name varchar(32) not null,
 
     -- primary key and unique constraints
-    constraint pk_measurement_types primary key (id),
-    constraint uc_measurement_types unique (id)
+    constraint pk_inspection_types primary key (id),
+    constraint uc_inspection_types unique (id)
 );
 
 -- record tables
@@ -170,7 +168,7 @@ create table suppliers
     constraint uc_suppliers unique (id)
 );
 
-create table job_orders
+create table job_numbers
 (
     id serial not null,
     name varchar(32) not null unique,
@@ -179,8 +177,8 @@ create table job_orders
     completed_qty integer not null,
 
     -- primary key and unique constraints
-    constraint pk_job_orders primary key (id),
-    constraint uc_job_orders unique (id)
+    constraint pk_job_numbers primary key (id),
+    constraint uc_job_numbers unique (id)
 );
 
 create table purchase_orders
@@ -190,7 +188,11 @@ create table purchase_orders
 
     -- primary key and unique constraints
     constraint pk_purchase_orders primary key (id),
-    constraint uc_purchase_orders unique (id)
+    constraint uc_purchase_orders unique (id),
+
+    -- one purchase order is related to one supplier
+    supplier_id integer not null unique,
+    constraint fk_supplier_id foreign key (supplier_id) references suppliers(id)
 );
 
 create table receiver_numbers
@@ -201,7 +203,11 @@ create table receiver_numbers
 
     -- primary key and unique constraints
     constraint pk_receiver_numbers primary key (id),
-    constraint uc_receiver_numbers unique (id)
+    constraint uc_receiver_numbers unique (id),
+
+    -- many receiver numbers relate to one purchase order
+    purchase_order_id integer not null,
+    constraint fk_purchase_order_id foreign key (purchase_order_id) references purchase_orders(id)
 );
 
 create table projects
@@ -216,7 +222,7 @@ create table projects
     constraint pk_projects primary key (id),
     constraint uc_projects unique (id),
 
-    -- many projects relates to one project type
+    -- many projects relate to one project type
     project_type_id integer not null,
     constraint fk_project_type foreign key (project_type_id) references project_types(id)
 );
@@ -287,13 +293,13 @@ create table machines
     constraint fk_machine_location foreign key (machine_location_id) references locations(id)
 );
 
-create table inspection_reports
+create table inspection_records
 (
     id serial not null,
 
     -- primary key and unique constraints
-    constraint pk_inspection_reports primary key (id),
-    constraint uc_inspection_reports unique (id),
+    constraint pk_inspection_records primary key (id),
+    constraint uc_inspection_records unique (id),
 
     -- many inspection reports relate to one material type
     material_type_id integer not null,
@@ -346,37 +352,37 @@ create table gauges
     constraint fk_location_gauge foreign key (location_id) references locations(id)
 );
 
-create table measurement_sets
+create table inspections
 (
     id serial not null,
     part_index integer not null,
     datetime_measured timestamp not null,
 
-    -- many measurement sets relate to one inspection report
-    inspection_id integer not null,
-    constraint fk_measurement_set_inspection foreign key (inspection_id) references inspection_reports(id),
+    -- many inspections relate to one inspection report
+    inspection_record_id integer not null,
+    constraint fk_inspection_record_id foreign key (inspection_record_id) references inspection_records(id),
 
-    -- many measurement sets relate to one part
+    -- many inspections relate to one part
     part_id integer not null,
     constraint fk_measurement_set_part foreign key (part_id) references parts(id),
 
-    -- many measurement sets can relate to one employee
+    -- many inspections can relate to one employee
     employee_id integer not null,
     constraint fk_employee_char foreign key (employee_id) references employees(id),
 
-    -- many measurement sets relate to one measurement type
-    measurement_type_id integer not null,
-    constraint fk_measurement_type_id foreign key (measurement_type_id) references measurement_types(id),
+    -- many inspections relate to one inspection type
+    inspection_type_id integer not null,
+    constraint fk_inspection_type_id foreign key (inspection_type_id) references inspection_types(id),
 
     -- primary key and unique constraints
-    constraint pk_measurement_sets primary key (id),
-    constraint uc_measurement_sets unique (id),
+    constraint pk_inspections primary key (id),
+    constraint uc_inspections unique (id),
 
     -- part index doesn't repeat within the same inspection report
-    constraint uc_ins_measurement_sets unique (part_index, part_id)
+    constraint uc_ins_inspections unique (part_index, part_id)
 );
 
-create table measurements
+create table features
 (
     id serial not null,
     name varchar(32) not null,
@@ -387,26 +393,26 @@ create table measurements
     precision integer not null,
 
     -- primary key and unique constraints
-    constraint pk_measurements primary key (id),
-    constraint uc_measurements unique (id),
+    constraint pk_features primary key (id),
+    constraint uc_features unique (id),
 
-    -- many measurements relate to one measurement_set
-    measurement_set_id integer not null,
-    constraint fk_measurement_set_id foreign key (measurement_set_id) references measurement_sets(id),
+    -- many features relate to one inspection
+    inspection_id integer not null,
+    constraint fk_inspection_id foreign key (inspection_id) references inspections(id),
 
-    -- many measurements relate to one specification type
+    -- many features relate to one specification type
     specification_type_id integer not null,
     constraint fk_specification_type_id foreign key (specification_type_id) references specification_types(id),
 
-    -- many measurements relate to one dimension type
+    -- many features relate to one dimension type
     dimension_type_id integer not null,
     constraint fk_dimension_type_id foreign key (dimension_type_id) references dimension_types(id),
 
-    -- many measurements relate to one frequency type
+    -- many features relate to one frequency type
     frequency_type_id integer not null,
     constraint fk_frequency_type_id foreign key (frequency_type_id) references frequency_types(id),
 
-    -- many measurements relate to one gauge
+    -- many features relate to one gauge
     gauge_id integer not null,
     constraint fk_gauge_id foreign key (gauge_id) references gauges(id)
 );
@@ -429,16 +435,16 @@ create table deviations
     employee_id integer not null,
     constraint fk_deviation_employee_id foreign key (employee_id) references employees(id),
 
-    -- many deviations relate to one measurement
-    measurement_id integer not null,
-    constraint fk_char_deviation foreign key (measurement_id) references measurements(id),
+    -- many deviations relate to one feature
+    feature_id integer not null,
+    constraint fk_char_deviation foreign key (feature_id) references features(id),
 
     -- primary key and unique constraints
     constraint pk_deviations primary key (id),
     constraint uc_deviations unique (id)
 );
 
-create table measurement_set_schemas
+create table inspection_schemas
 (
     id serial not null,
     is_locked boolean not null,
@@ -448,11 +454,11 @@ create table measurement_set_schemas
     constraint fk_schema_part foreign key (part_id) references parts(id),
 
     -- primary key and unique constraints
-    constraint pk_measurement_set_schemas primary key (id),
-    constraint uc_measurement_set_schemas unique (id)
+    constraint pk_inspection_schemas primary key (id),
+    constraint uc_inspection_schemas unique (id)
 );
 
-create table measurement_set_schema_details
+create table inspection_schema_details
 (
     id serial not null,
     name varchar(32) not null,
@@ -479,7 +485,7 @@ create table measurement_set_schema_details
 
     -- many measurement set schema details relate to one measurement set schema
     schema_id integer not null,
-    constraint fk_schema_id foreign key (schema_id) references measurement_set_schemas(id),
+    constraint fk_schema_id foreign key (schema_id) references inspection_schemas(id),
 
     -- primary key and unique constraints
     constraint pk_schema_details primary key (id),
@@ -497,47 +503,29 @@ create table employee_projects
     constraint uc_employee_project unique (employee_id, project_id)
 );
 
-create table parts_suppliers
+create table parts_job_numbers
 (
     id serial not null unique,
     part_id integer not null references parts(id) on update cascade,
-    supplier_id integer not null references suppliers(id) on update cascade,
-    constraint pk_parts_suppliers primary key (id),
-    constraint uc_parts_suppliers unique (part_id, supplier_id)
+    job_number_id integer not null references job_numbers(id) on update cascade,
+    constraint pk_parts_job_numbers primary key (id),
+    constraint uc_parts_job_numbers unique (part_id, job_number_id)
 );
 
-create table parts_job_orders
+create table inspection_records_purchase_orders
 (
     id serial not null unique,
-    part_id integer not null references parts(id) on update cascade,
-    job_order_id integer not null references job_orders(id) on update cascade,
-    constraint pk_parts_job_orders primary key (id),
-    constraint uc_parts_job_orders unique (part_id, job_order_id)
-);
-
-create table inspection_purchase_orders
-(
-    id serial not null unique,
-    inspection_id integer not null references inspection_reports(id) on update cascade,
+    inspection_record_id integer not null references inspection_records(id) on update cascade,
     purchase_order_id integer not null references purchase_orders(id) on update cascade,
     constraint pk_inspection_purchase_orders primary key (id),
-    constraint uc_inspection_purchase_orders unique (inspection_id, purchase_order_id)
+    constraint uc_inspection_purchase_orders unique (inspection_record_id, purchase_order_id)
 );
 
-create table inspection_receiver_numbers
+create table inspection_records_lot_numbers
 (
     id serial not null unique,
-    inspection_id integer not null references inspection_reports(id) on update cascade,
-    receiver_number_id integer not null references receiver_numbers(id) on update cascade,
-    constraint pk_inspection_receiver_numbers primary key (id),
-    constraint uc_inspection_receiver_numbers unique (inspection_id, receiver_number_id)
-);
-
-create table inspection_lot_numbers
-(
-    id serial not null unique,
-    inspection_id integer not null references inspection_reports(id) on update cascade,
+    inspection_record_id integer not null references inspection_records(id) on update cascade,
     lot_number_id integer not null references lot_numbers(id) on update cascade,
     constraint pk_inspection_lot_number primary key (id),
-    constraint uc_inspection_lot_number unique (inspection_id, lot_number_id)
+    constraint uc_inspection_lot_number unique (inspection_record_id, lot_number_id)
 );
