@@ -1,4 +1,4 @@
-part_index,datetime_measured,part_id,inspection_id,employee_id,measurement_type_id
+part_index,datetime_measured,part_id,inspection_record_id,employee_id,inspection_type_id
 1,6/1/2021 08:00,4,1,4113,1
 20,6/1/2021 09:00,4,1,4113,1
 60,6/1/2021 10:00,4,1,4113,1

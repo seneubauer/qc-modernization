@@ -6,11 +6,13 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects import postgresql
-from sqlalchemy import create_engine, and_, or_, func, delete
+from sqlalchemy import create_engine, and_, or_, func, delete, Table, MetaData
 
 # import general dependencies
 import json
 import datetime
+from enum import Enum
+from inspect import stack
 
 # import confidential information
 from sys import path
@@ -35,10 +37,10 @@ specification_types = base.classes.specification_types
 project_types = base.classes.project_types
 material_types = base.classes.material_types
 frequency_types = base.classes.frequency_types
-measurement_types = base.classes.measurement_types
+inspection_types = base.classes.inspection_types
 lot_numbers = base.classes.lot_numbers
 suppliers = base.classes.suppliers
-job_orders = base.classes.job_orders
+job_numbers = base.classes.job_numbers
 purchase_orders = base.classes.purchase_orders
 receiver_numbers = base.classes.receiver_numbers
 projects = base.classes.projects
@@ -46,20 +48,18 @@ departments = base.classes.departments
 locations = base.classes.locations
 employees = base.classes.employees
 machines = base.classes.machines
-inspection_reports = base.classes.inspection_reports
+inspection_records = base.classes.inspection_records
 parts = base.classes.parts
 gauges = base.classes.gauges
-measurement_sets = base.classes.measurement_sets
-measurements = base.classes.measurements
+inspections = base.classes.inspections
+features = base.classes.features
 deviations = base.classes.deviations
-measurement_set_schemas = base.classes.measurement_set_schemas
-measurement_set_schema_details = base.classes.measurement_set_schema_details
+inspection_schemas = base.classes.inspection_schemas
+inspection_schema_details = base.classes.inspection_schema_details
 employee_projects = base.classes.employee_projects
-parts_suppliers = base.classes.parts_suppliers
-parts_job_orders = base.classes.parts_job_orders
-inspection_purchase_orders = base.classes.inspection_purchase_orders
-inspection_receiver_numbers = base.classes.inspection_receiver_numbers
-inspection_lot_numbers = base.classes.inspection_lot_numbers
+parts_job_numbers = base.classes.parts_job_numbers
+inspection_records_purchase_orders = base.classes.inspection_records_purchase_orders
+inspection_records_lot_numbers = base.classes.inspection_records_lot_numbers
 
 # instantiate the flask app
 app = Flask(__name__)
@@ -67,9 +67,66 @@ app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 # --------------------------------------------------
 
+#region messaging
+
+# message type enumerations
+class message_type(Enum):
+    records_not_found = 0
+    record_already_exists = 1
+    record_locked = 2
+    records_deleted = 3
+    records_updated = 4
+    records_not_deleted = 5
+    records_not_updated = 6
+    no_records_added = 7
+    no_association_found = 8
+    sql_exception = 9
+    generic = 10
+
+def text_response(current_method:str, type:message_type, **kwargs):
+
+    output_str = ""
+    if type == message_type.records_not_found:
+        tables = ", ".join([f"'{x.__table__.name}'" for x in kwargs["tables"]])
+        output_str = f"no matching records found in the following tables; {tables}"
+    elif type == message_type.record_already_exists:
+        tables = ", ".join([f"'{x.__table__.name}'" for x in kwargs["tables"]])
+        output_str = f"record already exists in {tables}"
+    elif type == message_type.record_locked:
+        output_str = f"editing is not allowed; '{kwargs['table'].__table__.name}' is locked"
+    elif type == message_type.records_deleted:
+        output_str = f"{kwargs['qty']} records deleted from '{kwargs['table']}'"
+    elif type == message_type.records_updated:
+        tables = ", ".join([f"'{x.__table__.name}'" for x in kwargs["tables"]])
+        output_str = f"{kwargs['qty']} records updated in {tables}"
+    elif type == message_type.records_not_deleted:
+        tables = ", ".join([f"'{x.__table__.name}'" for x in kwargs["tables"]])
+        output_str = f"no records deleted from the following tables; {tables}"
+    elif type == message_type.records_not_updated:
+        tables = ", ".join([f"'{x.__table__.name}'" for x in kwargs["tables"]])
+        output_str = f"no records updated in the following tables; {tables}"
+    elif type == message_type.no_records_added:
+        tables = ", ".join([f"'{x.__table__.name}'" for x in kwargs["tables"]])
+        output_str = f"no records added to the following tables; {tables}"
+    elif type == message_type.no_association_found:
+        tables = ", ".join([f"'{x.__table__.name}'" for x in kwargs["tables"]])
+        output_str = f"no association found between the following tables; {tables}"
+    elif type == message_type.sql_exception:
+        output_str = str(kwargs["error"].__dict__["orig"])
+    elif type == message_type.generic:
+        output_str = kwargs["err_msg"]
+    else:
+        output_str = "response type not given"
+
+    return f"def {current_method}() // {output_str}"
+
+#endregion
+
+# --------------------------------------------------
+
 #region page navigation
 
-@app.route("/measurement_set_schemas/")
+@app.route("/inspection_schemas/")
 def open_measurement_set_schemas():
     return render_template("measurement_schemas.html")
 
@@ -118,10 +175,9 @@ def get_all_dimension_types():
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
 @app.route("/get_all_deviation_types/")
@@ -340,8 +396,8 @@ def get_all_frequency_types():
             "response": error_msg
         }
 
-@app.route("/get_all_measurement_types/")
-def get_all_measurement_types():
+@app.route("/get_all_inspection_types/")
+def get_all_inspection_types():
 
     try:
 
@@ -349,7 +405,7 @@ def get_all_measurement_types():
         session = Session(engine)
 
         # query the database
-        results = session.query(measurement_types.id, measurement_types.name).order_by(measurement_types.name.asc()).all()
+        results = session.query(inspection_types.id, inspection_types.name).order_by(inspection_types.name.asc()).all()
 
         # close the session
         session.close()
@@ -370,7 +426,7 @@ def get_all_measurement_types():
         else:
             return {
                 "status": "log",
-                "response": "no records found in 'measurement_types'"
+                "response": "no records found in 'inspection_types'"
             }
 
     except SQLAlchemyError as e:
@@ -581,8 +637,8 @@ def get_all_parts():
             "response": error_msg
         }
 
-@app.route("/get_all_job_orders/")
-def get_all_job_orders():
+@app.route("/get_all_job_numbers/")
+def get_all_job_numbers():
 
     try:
 
@@ -590,7 +646,7 @@ def get_all_job_orders():
         session = Session(engine)
 
         # query the database
-        results = session.query(job_orders.id, job_orders.name).order_by(job_orders.name.asc()).all()
+        results = session.query(job_numbers.id, job_numbers.name).order_by(job_numbers.name.asc()).all()
 
         # close the session
         session.close()
@@ -611,7 +667,7 @@ def get_all_job_orders():
         else:
             return {
                 "status": "log",
-                "response": "no records found in 'job_orders'"
+                "response": "no records found in 'job_numbers'"
             }
 
     except SQLAlchemyError as e:
@@ -826,12 +882,12 @@ def get_all_lot_numbers():
 
 # --------------------------------------------------
 
-#region measurement schemas - schemas
+#region inspection schemas - schemas
 
 # routes
 
-@app.route("/measurement_set_schemas/create_new_measurement_set_schema/", methods = ["POST"])
-def measurement_set_schemas_create_new_measurement_set_schema():
+@app.route("/inspection_schemas/schemas/create_new_schema/", methods = ["POST"])
+def inspection_schemas_schemas_create_new_schema():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -847,18 +903,18 @@ def measurement_set_schemas_create_new_measurement_set_schema():
         session = Session(engine)
 
         # make sure the measurement schema doesn't already exist
-        exists = session.query(measurement_set_schemas.id)\
-            .filter(measurement_set_schemas.part_id == part_id)\
+        exists = session.query(inspection_schemas.id)\
+            .filter(inspection_schemas.part_id == part_id)\
             .first()
         if exists is not None:
             session.close()
             return {
                 "status": "alert",
-                "response": "this measurement schema already exists"
+                "response": text_response(stack()[0][3], message_type.record_already_exists, tables = [inspection_schemas])
             }
 
         # create new governing record in the database
-        results = measurement_set_schemas(
+        results = inspection_schemas(
             is_locked = False,
             part_id = part_id
         )
@@ -869,17 +925,17 @@ def measurement_set_schemas_create_new_measurement_set_schema():
             session.close()
             return {
                 "status": "alert",
-                "response": "error in creating the new schema id"
+                "response": text_response(stack()[0][3], message_type.no_records_added, tables = [inspection_schemas])
             }
 
         # close the database session
         session.close()
 
         # create the first measurement in the new schema
-        returned_obj0 = func_measurement_set_schemas_add_row(schema_id)
+        returned_obj0 = func_inspection_schemas_add_detail_record(schema_id)
 
         # requery the schemas with the same filter parameters
-        returned_obj1 = func_measurement_set_schemas_get_filtered_schemas(search_term, is_locked)
+        returned_obj1 = func_inspection_schemas_get_filtered_schemas(search_term, is_locked)
 
         # return the results
         if returned_obj0["status"] == "ok" and returned_obj1["status"] == "ok":
@@ -893,52 +949,50 @@ def measurement_set_schemas_create_new_measurement_set_schema():
         else:
             return {
                 "status": "log",
-                "response": "no records added to 'measurement_set_schemas' and 'measurement_set_schema_details'"
+                "response": text_response(stack()[0][3], message_type.no_records_added, tables = [inspection_schemas, inspection_schema_details])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/measurement_set_schemas/add_row/", methods = ["POST"])
-def measurement_set_schemas_add_row():
+@app.route("/inspection_schemas/schemas/add_row/", methods = ["POST"])
+def inspection_schemas_schemas_add_row():
 
     # interpret the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
     schema_id = form_data["schema_id"]
-    
+
     try:
 
         # open the database session
         session = Session(engine)
 
         # measurement_set if the schema is locked
-        locked_query = session.query(measurement_set_schemas.is_locked)\
-            .filter(measurement_set_schemas.id == schema_id)\
+        locked_query = session.query(inspection_schemas.is_locked)\
+            .filter(inspection_schemas.id == schema_id)\
             .first()[0]
         if locked_query:
             session.close()
             return {
                 "status": "alert",
-                "response": "this schema is locked; it cannot be modified"
+                "response": text_response(stack()[0][3], message_type.record_locked, table = inspection_schemas)
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-    return func_measurement_set_schemas_add_row(schema_id)
+    return func_inspection_schemas_add_detail_record(schema_id)
 
-@app.route("/measurement_set_schemas/remove_row/", methods = ["POST"])
-def measurement_set_schemas_remove_row():
+@app.route("/inspection_schemas/schemas/remove_row/", methods = ["POST"])
+def inspection_schemas_schemas_remove_row():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -952,35 +1006,32 @@ def measurement_set_schemas_remove_row():
         session = Session(engine)
 
         # get the schema id
-        schema_id = session.query(measurement_set_schema_details.schema_id)\
-            .filter(measurement_set_schema_details.id == detail_id)\
+        schema_id = session.query(inspection_schema_details.schema_id)\
+            .filter(inspection_schema_details.id == detail_id)\
             .first()[0]
 
         # measurement_set if the schema is locked
-        locked_query = session.query(measurement_set_schemas.is_locked)\
-            .filter(measurement_set_schemas.id == schema_id)\
+        locked_query = session.query(inspection_schemas.is_locked)\
+            .filter(inspection_schemas.id == schema_id)\
             .first()[0]
         if locked_query:
             session.close()
-            return {
-                "status": "alert",
-                "response": "this schema is locked; it cannot be modified"
-            }
+            return text_response(stack()[0][3], message_type.record_locked, table = inspection_schemas)
 
         # make sure there is something to be deleted
-        results = session.query(measurement_set_schema_details.id)\
-            .filter(measurement_set_schema_details.id == detail_id)\
+        results = session.query(inspection_schema_details.id)\
+            .filter(inspection_schema_details.id == detail_id)\
             .first()
         if results is None:
             session.close()
             return {
                 "status": "alert",
-                "response": "this schema measurement does not exist in the database"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [inspection_schema_details])
             }
 
         # remove the matching schema id
-        results = session.query(measurement_set_schema_details)\
-            .filter(measurement_set_schema_details.id == detail_id)\
+        results = session.query(inspection_schema_details)\
+            .filter(inspection_schema_details.id == detail_id)\
             .delete()
 
         # commit the changes
@@ -993,23 +1044,22 @@ def measurement_set_schemas_remove_row():
         if results > 0:
             return {
                 "status": "ok",
-                "response": f"{results} records deleted from 'measurement_set_schema_details'"
+                "response": text_response(stack()[0][3], message_type.records_deleted, qty = results, table = inspection_schema_details)
             }
         else:
             return {
                 "status": "log",
-                "response": "no records deleted from 'measurement_set_schema_details'"
+                "response": text_response(stack()[0][3], message_type.records_deleted, qty = results, table = inspection_schema_details)
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/measurement_set_schemas/toggle_lock_schema/", methods = ["POST"])
-def measurement_set_schemas_toggle_lock_schema():
+@app.route("/inspection_schemas/schemas/toggle_lock_schema/", methods = ["POST"])
+def inspection_schemas_schemas_toggle_lock_schema():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -1025,24 +1075,24 @@ def measurement_set_schemas_toggle_lock_schema():
         session = Session(engine)
 
         # make sure the measurement schema exists
-        exists = session.query(measurement_set_schemas.id)\
-            .filter(measurement_set_schemas.id == schema_id)\
+        exists = session.query(inspection_schemas.id)\
+            .filter(inspection_schemas.id == schema_id)\
             .first()
         if exists is None:
             session.close()
             return {
                 "status": "alert",
-                "response": "this schema does not exists"
+                "response": text_response(stack()[0][3], message_type.record_already_exists, tables = [inspection_schemas])
             }
 
         # get the current locked status
-        locked_query = session.query(measurement_set_schemas.is_locked)\
-            .filter(measurement_set_schemas.id == schema_id)\
+        locked_query = session.query(inspection_schemas.is_locked)\
+            .filter(inspection_schemas.id == schema_id)\
             .first()[0]
 
         # set the locked status
-        rows_affected = session.query(measurement_set_schemas)\
-            .filter(measurement_set_schemas.id == schema_id)\
+        rows_affected = session.query(inspection_schemas)\
+            .filter(inspection_schemas.id == schema_id)\
             .update({ "is_locked": not locked_query })
 
         # commit the changes
@@ -1055,11 +1105,11 @@ def measurement_set_schemas_toggle_lock_schema():
         if rows_affected == 0:
             return {
                 "status": "log",
-                "response": "no records modified in 'measurement_set_schemas'"
+                "response": text_response(stack()[0][3], message_type.records_updated, qty = rows_affected, tables = [inspection_schemas])
             }
 
         # requery the schemas
-        returned_obj = func_measurement_set_schemas_get_filtered_schemas(search_term, is_locked)
+        returned_obj = func_inspection_schemas_get_filtered_schemas(search_term, is_locked)
 
         # return the results
         if returned_obj["status"] == "ok":
@@ -1072,14 +1122,13 @@ def measurement_set_schemas_toggle_lock_schema():
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/measurement_set_schemas/save_measurement_set_schema/", methods = ["POST"])
-def measurement_set_schemas_save_measurement_set_schema():
+@app.route("/inspection_schemas/schemas/save_inspection_schema/", methods = ["POST"])
+def inspection_schemas_schemas_save_inspection_schema():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -1093,21 +1142,21 @@ def measurement_set_schemas_save_measurement_set_schema():
         session = Session(engine)
 
         # make sure the measurement schema exists
-        exists = session.query(measurement_set_schema_details.id)\
-            .filter(measurement_set_schema_details.schema_id == schema_id)\
+        exists = session.query(inspection_schema_details.id)\
+            .filter(inspection_schema_details.schema_id == schema_id)\
             .first()
         if exists is None:
             session.close()
             return {
                 "status": "alert",
-                "response": "this schema does not exists"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [inspection_schema_details])
             }
 
         # query the database
         rows_affected = 0
         for obj in form_data["data"]:
-            results = session.query(measurement_set_schema_details)\
-                .filter(measurement_set_schema_details.id == obj["detail_id"])
+            results = session.query(inspection_schema_details)\
+                .filter(inspection_schema_details.id == obj["detail_id"])
             field_affected = 0
             for x in obj["contents"]:
                 field_affected += results.update({ x["key"]: x["value"] })
@@ -1124,23 +1173,22 @@ def measurement_set_schemas_save_measurement_set_schema():
         if rows_affected > 0:
             return {
                 "status": "alert",
-                "response": f"{rows_affected} rows were updated"
+                "response": text_response(stack()[0][3], message_type.records_updated, qty = rows_affected, tables = [inspection_schema_details])
             }
         else:
             return {
                 "status": "log",
-                "response": "no records added to 'measurement_set_schemas'"
+                "response": text_response(stack()[0][3], message_type.records_updated, qty = rows_affected, tables = [inspection_schema_details])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/measurement_set_schemas/delete_measurement_set_schema/", methods = ["POST"])
-def measurement_set_schemas_delete_measurement_set_schema():
+@app.route("/inspection_schemas/schemas/delete_inspection_schema/", methods = ["POST"])
+def inspection_schemas_schemas_delete_inspection_schema():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -1156,32 +1204,32 @@ def measurement_set_schemas_delete_measurement_set_schema():
         session = Session(engine)
 
         # make sure the referenced schema exists
-        exists = session.query(measurement_set_schemas.id)\
-            .filter(measurement_set_schemas.id == schema_id).first()
+        exists = session.query(inspection_schemas.id)\
+            .filter(inspection_schemas.id == schema_id).first()
         if exists is None:
             session.close()
             return {
                 "status": "alert",
-                "response": "the referenced schema does not exist in the database"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [inspection_schemas])
             }
 
         # measurement_set if the schema is already locked
-        schema_is_locked = session.query(measurement_set_schemas.is_locked)\
-            .filter(measurement_set_schemas.id == schema_id)\
+        schema_is_locked = session.query(inspection_schemas.is_locked)\
+            .filter(inspection_schemas.id == schema_id)\
             .first()[0]
         if schema_is_locked:
             session.close()
             return {
                 "status": "alert",
-                "response": "this schema is locked: it cannot be deleted"
+                "response": text_response(stack()[0][3], message_type.record_locked, table = inspection_schemas)
             }
 
         # delete the referenced schema
-        details_results = session.query(measurement_set_schema_details)\
-            .filter(measurement_set_schema_details.schema_id == schema_id)\
+        details_results = session.query(inspection_schema_details)\
+            .filter(inspection_schema_details.schema_id == schema_id)\
             .delete()
-        schema_results = session.query(measurement_set_schemas)\
-            .filter(measurement_set_schemas.id == schema_id)\
+        schema_results = session.query(inspection_schemas)\
+            .filter(inspection_schemas.id == schema_id)\
             .delete()
 
         # logic gate
@@ -1189,19 +1237,19 @@ def measurement_set_schemas_delete_measurement_set_schema():
             session.close()
             return {
                 "status": "alert",
-                "response": "no records in 'measurement_set_schemas' and 'measurement_set_schema_details' were deleted"
+                "response": text_response(stack()[0][3], message_type.records_not_deleted, tables = [inspection_schemas, inspection_schema_details])
             }
         elif details_results == 0:
             session.close()
             return {
                 "status": "alert",
-                "response": "no records in 'measurement_set_schema_details' were deleted"
+                "response": text_response(stack()[0][3], message_type.records_deleted, qty = details_results, table = inspection_schema_details)
             }
         elif schema_results == 0:
             session.close()
             return {
                 "status": "alert",
-                "response": "no records in 'measurement_set_schemas' were deleted"
+                "response": text_response(stack()[0][3], message_type.records_deleted, qty = schema_results, table = inspection_schemas)
             }
 
         # commit the changes
@@ -1211,17 +1259,16 @@ def measurement_set_schemas_delete_measurement_set_schema():
         session.close()
 
         # requery the schemas
-        return func_measurement_set_schemas_get_filtered_schemas(search_term, is_locked)
+        return func_inspection_schemas_get_filtered_schemas(search_term, is_locked)
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/measurement_set_schemas/get_filtered_measurement_set_schemas/", methods = ["POST"])
-def measurement_set_schemas_get_filtered_schemas():
+@app.route("/inspection_schemas/schemas/get_filtered_inspection_schemas/", methods = ["POST"])
+def inspection_schemas_schema_get_filtered_schemas():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -1231,10 +1278,10 @@ def measurement_set_schemas_get_filtered_schemas():
     is_locked = int(form_data["is_locked"])
 
     # call the relevant method
-    return func_measurement_set_schemas_get_filtered_schemas(search_term, is_locked)
+    return func_inspection_schemas_get_filtered_schemas(search_term, is_locked)
 
-@app.route("/measurement_set_schemas/get_filtered_parts/", methods = ["POST"])
-def measurement_set_schemas_get_filtered_parts():
+@app.route("/inspection_schemas/schemas/get_filtered_parts/", methods = ["POST"])
+def inspection_schemas_schema_get_filtered_parts():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -1273,19 +1320,18 @@ def measurement_set_schemas_get_filtered_parts():
         else:
             return {
                 "status": "log",
-                "response": "no matching parts found"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
 # recycled methods
 
-def func_measurement_set_schemas_add_row(schema_id:int):
+def func_inspection_schemas_add_detail_record(schema_id:int):
 
     try:
 
@@ -1320,7 +1366,7 @@ def func_measurement_set_schemas_add_row(schema_id:int):
         default_precision = 1
 
         # set the placeholder data
-        results = measurement_set_schema_details(
+        results = inspection_schema_details(
             name = default_name,
             nominal = default_nominal,
             usl = default_usl,
@@ -1362,22 +1408,21 @@ def func_measurement_set_schemas_add_row(schema_id:int):
         else:
             return {
                 "status": "log",
-                "response": "no records added to 'measurement_set_schema_details'"
+                "response": text_response(stack()[0][3], message_type.no_records_added, tables = [inspection_schema_details])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-def func_measurement_set_schemas_get_filtered_schemas(search_term:str, is_locked:int):
+def func_inspection_schemas_get_filtered_schemas(search_term:str, is_locked:int):
 
     # define the output columns
     columns = [
-        measurement_set_schemas.id,
-        measurement_set_schemas.is_locked,
+        inspection_schemas.id,
+        inspection_schemas.is_locked,
         parts.id,
         parts.item,
         parts.drawing,
@@ -1391,10 +1436,10 @@ def func_measurement_set_schemas_get_filtered_schemas(search_term:str, is_locked
 
         # query the database
         results = session.query(*columns)\
-            .join(parts, (parts.id == measurement_set_schemas.part_id))\
+            .join(parts, (parts.id == inspection_schemas.part_id))\
             .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))
         if is_locked >= 0:
-            results = results.filter(measurement_set_schemas.is_locked == bool(is_locked))
+            results = results.filter(inspection_schemas.is_locked == bool(is_locked))
         results = results.order_by(parts.item.asc(), parts.drawing.asc(), parts.revision.asc()).all()
 
         # close the database session
@@ -1420,22 +1465,21 @@ def func_measurement_set_schemas_get_filtered_schemas(search_term:str, is_locked
         else:
             return {
                 "status": "log",
-                "response": "no matching records found"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [inspection_schemas, parts])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
 #endregion
 
 #region measurement schemas - schema view
 
-@app.route("/measurement_set_schemas/get_schema_measurements/", methods = ["POST"])
-def measurement_set_schemas_get_schema_measurements():
+@app.route("/inspection_schemas/view/get_schema_measurements/", methods = ["POST"])
+def inspection_schemas_view_get_schema_measurements():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -1445,19 +1489,19 @@ def measurement_set_schemas_get_schema_measurements():
 
     # define the output columns
     columns = [
-        measurement_set_schemas.id,
-        measurement_set_schemas.is_locked,
+        inspection_schemas.id,
+        inspection_schemas.is_locked,
         parts.id,
-        measurement_set_schema_details.id,
-        measurement_set_schema_details.name,
-        measurement_set_schema_details.nominal,
-        measurement_set_schema_details.usl,
-        measurement_set_schema_details.lsl,
-        measurement_set_schema_details.precision,
-        measurement_set_schema_details.specification_type_id,
-        measurement_set_schema_details.dimension_type_id,
-        measurement_set_schema_details.frequency_type_id,
-        measurement_set_schema_details.gauge_type_id
+        inspection_schema_details.id,
+        inspection_schema_details.name,
+        inspection_schema_details.nominal,
+        inspection_schema_details.usl,
+        inspection_schema_details.lsl,
+        inspection_schema_details.precision,
+        inspection_schema_details.specification_type_id,
+        inspection_schema_details.dimension_type_id,
+        inspection_schema_details.frequency_type_id,
+        inspection_schema_details.gauge_type_id
     ]
 
     try:
@@ -1467,10 +1511,10 @@ def measurement_set_schemas_get_schema_measurements():
 
         # get the requested schema
         results = session.query(*columns)\
-            .join(parts, (parts.id == measurement_set_schemas.part_id))\
-            .join(measurement_set_schema_details, (measurement_set_schema_details.schema_id == measurement_set_schemas.id))\
-            .filter(measurement_set_schemas.id == schema_id)\
-            .order_by(measurement_set_schema_details.id.asc(), measurement_set_schema_details.name.asc()).all()
+            .join(parts, (parts.id == inspection_schemas.part_id))\
+            .join(inspection_schema_details, (inspection_schema_details.schema_id == inspection_schemas.id))\
+            .filter(inspection_schemas.id == schema_id)\
+            .order_by(inspection_schema_details.id.asc(), inspection_schema_details.name.asc()).all()
 
         # close the database session
         session.close()
@@ -1508,26 +1552,25 @@ def measurement_set_schemas_get_schema_measurements():
         else:
             return {
                 "status": "log",
-                "response": "no matching records found"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts, inspection_schemas, inspection_schema_details])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
 #endregion
 
 # --------------------------------------------------
 
-#region inspection reports - inspection reports
+#region inspection records - inspection records
 
 # routes
 
-@app.route("/inspection_reports/inspection_reports_create_new_report/", methods = ["POST"])
-def inspection_reports_inspection_reports_create_new_report():
+@app.route("/inspection_records/inspection_records/create_new_record/", methods = ["POST"])
+def inspection_records_inspection_records_create_new_record():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -1537,7 +1580,7 @@ def inspection_reports_inspection_reports_create_new_report():
     schema_id = int(form_data["schema_id"])
     employee_id = int(form_data["employee_id"])
     part_search_term = str(form_data["part_search_term"])
-    job_order_search_term = str(form_data["job_order_search_term"])
+    job_number_search_term = str(form_data["job_number_search_term"])
     started_after_str = str(form_data["started_after"])
     finished_before_str = str(form_data["finished_before"])
 
@@ -1560,45 +1603,45 @@ def inspection_reports_inspection_reports_create_new_report():
         if exists is None:
             return {
                 "status": "log",
-                "response": f"the referenced part ({part_id}) does not exist"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts])
             }
 
         # make sure this part isn't already associated with an inspection report
-        exists = session.query(parts.id, inspection_reports.id, measurement_sets.id)\
-            .join(parts, (parts.id == measurement_sets.part_id))\
-            .join(inspection_reports, (inspection_reports.id == measurement_sets.inspection_id))\
+        exists = session.query(parts.id, inspection_records.id, inspections.id)\
+            .join(parts, (parts.id == inspections.part_id))\
+            .join(inspection_records, (inspection_records.id == inspections.inspection_id))\
             .filter(parts.id == part_id).first()
         if exists is not None:
             return {
                 "status": "alert",
-                "response": f"the referenced part ({part_id}) already exists in an inspection report ({exists[1]})"
+                "response": text_response(stack()[0][3], message_type.record_already_exists, tables = [parts, inspection_records])
             }
 
         # close the database session
         session.close()
 
         # create the new records
-        func_measurement_sets_add_new_measurement_set(part_id, -1, schema_id, employee_id, 0)
+        func_inspections_add_inspection(part_id, -1, schema_id, employee_id, 0)
 
-        return func_inspection_reports_get_filtered_reports(part_search_term, job_order_search_term, started_after, finished_before)
+        # return the filtered records
+        return func_inspection_records_get_filtered_records(part_search_term, job_number_search_term, started_after, finished_before)
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/inspection_reports_delete/", methods = ["POST"])
-def inspection_reports_inspection_reports_delete():
+@app.route("/inspection_records/inspection_records/delete_record/", methods = ["POST"])
+def inspection_records_inspection_records_delete_record():
 
     # interpret the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
-    inspection_id = form_data["inspection_id"]
+    inspection_record_id = form_data["inspection_record_id"]
     part_search_term = str(form_data["part_search_term"])
-    job_order_search_term = str(form_data["job_order_search_term"])
+    job_number_search_term = str(form_data["job_number_search_term"])
     started_after_str = form_data["started_after"]
     finished_before_str = form_data["finished_before"]
 
@@ -1616,55 +1659,52 @@ def inspection_reports_inspection_reports_delete():
         session = Session(engine)
 
         # make sure the required records exist
-        inspection_exists = session.query(inspection_reports.id)\
-            .filter(inspection_reports.id == inspection_id).first()
+        inspection_exists = session.query(inspection_records.id)\
+            .filter(inspection_records.id == inspection_record_id).first()
         if inspection_exists is None:
             session.close()
             return {
                 "status": "alert",
-                "response": f"the referenced inspection report ({inspection_id}) doesn't exist in the database"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [inspection_records])
             }
 
         # get the associated ids
-        measurement_set_ids_query = session.query(measurement_sets.id)\
-            .join(inspection_reports, (inspection_reports.id == measurement_sets.inspection_id))\
-            .filter(inspection_reports.id == inspection_id).all()
-        measurement_set_ids = [x[0] for x in measurement_set_ids_query]
+        inspection_ids_query = session.query(inspections.id)\
+            .join(inspection_records, (inspection_records.id == inspections.inspection_record_id))\
+            .filter(inspection_records.id == inspection_record_id).all()
+        inspection_ids = [x[0] for x in inspection_ids_query]
 
-        measurement_ids_query = session.query(measurements.id)\
-            .join(measurement_sets, (measurement_sets.id == measurements.measurement_set_id))\
-            .join(inspection_reports, (inspection_reports.id == measurement_sets.inspection_id))\
-            .filter(inspection_reports.id == inspection_id).all()
-        measurement_ids = [x[0] for x in measurement_ids_query]
+        feature_ids_query = session.query(features.id)\
+            .join(inspections, (inspections.id == features.inspection_id))\
+            .join(inspection_records, (inspection_records.id == inspections.inspection_record_id))\
+            .filter(inspection_records.id == inspection_record_id).all()
+        feature_ids = [x[0] for x in feature_ids_query]
 
         deviation_ids_query = session.query(deviations.id)\
-            .join(measurements, (measurements.id == deviations.measurement_id))\
-            .join(measurement_sets, (measurement_sets.id == measurements.measurement_set_id))\
-            .join(inspection_reports, (inspection_reports.id == measurement_sets.inspection_id))\
-            .filter(inspection_reports.id == inspection_id).all()
+            .join(features, (features.id == deviations.feature_id))\
+            .join(inspections, (inspections.id == features.inspection_id))\
+            .join(inspection_records, (inspection_records.id == inspections.inspection_record_id))\
+            .filter(inspection_records.id == inspection_record_id).all()
         deviation_ids = [x[0] for x in deviation_ids_query]
 
         # delete the referenced records
-        deviations_deleted = session.query(deviations)\
+        session.query(deviations)\
             .filter(deviations.id.in_(deviation_ids)).delete(synchronize_session = False)
 
-        measurements_deleted = session.query(measurements)\
-            .filter(measurements.id.in_(measurement_ids)).delete(synchronize_session = False)
+        session.query(features)\
+            .filter(features.id.in_(feature_ids)).delete(synchronize_session = False)
 
-        measurement_sets_deleted = session.query(measurement_sets)\
-            .filter(measurement_sets.id.in_(measurement_set_ids)).delete(synchronize_session = False)
+        session.query(inspections)\
+            .filter(inspections.id.in_(inspection_ids)).delete(synchronize_session = False)
 
-        inspection_purchase_orders_deleted = session.query(inspection_purchase_orders)\
-            .filter(inspection_purchase_orders.inspection_id == inspection_id).delete(synchronize_session = False)
+        session.query(inspection_records_purchase_orders)\
+            .filter(inspection_records_purchase_orders.inspection_record_id == inspection_record_id).delete(synchronize_session = False)
 
-        inspection_receiver_numbers_deleted = session.query(inspection_receiver_numbers)\
-            .filter(inspection_receiver_numbers.inspection_id == inspection_id).delete(synchronize_session = False)
+        session.query(inspection_records_lot_numbers)\
+            .filter(inspection_records_lot_numbers.inspection_record_id == inspection_record_id).delete(synchronize_session = False)
 
-        inspection_lot_numbers_deleted = session.query(inspection_lot_numbers)\
-            .filter(inspection_lot_numbers.inspection_id == inspection_id).delete(synchronize_session = False)
-
-        inspection_reports_deleted = session.query(inspection_reports)\
-            .filter(inspection_reports.id == inspection_id).delete(synchronize_session = False)
+        session.query(inspection_records)\
+            .filter(inspection_records.id == inspection_record_id).delete(synchronize_session = False)
 
         # commit the changes
         session.commit()
@@ -1672,18 +1712,17 @@ def inspection_reports_inspection_reports_delete():
         # close the database session
         session.close()
 
-        # return the results
-        return func_inspection_reports_get_filtered_reports(part_search_term, job_order_search_term, started_after, finished_before)
+        # return the filtered records
+        return func_inspection_records_get_filtered_records(part_search_term, job_number_search_term, started_after, finished_before)
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/inspection_reports_get_filtered_reports/", methods = ["POST"])
-def inspection_reports_inspection_reports_get_filtered_reports():
+@app.route("/inspection_records/inspection_records/get_filtered_records/", methods = ["POST"])
+def inspection_records_inspection_records_get_filtered_records():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -1697,7 +1736,7 @@ def inspection_reports_inspection_reports_get_filtered_reports():
     disposition_search_term = str(form_data["disposition"])
     receiver_number_search_term = str(form_data["receiver_number"])
     purchase_order_search_term = str(form_data["purchase_order"])
-    job_order_search_term = str(form_data["job_order"])
+    job_number_search_term = str(form_data["job_number"])
     lot_number_search_term = str(form_data["lot_number"])
     supplier_search_term = str(form_data["supplier"])
 
@@ -1709,7 +1748,7 @@ def inspection_reports_inspection_reports_get_filtered_reports():
     if finished_before_str != "":
         finished_before = datetime.datetime.strptime(finished_before_str, "%Y-%m-%d")
 
-    return func_inspection_reports_get_filtered_reports(
+    return func_inspection_records_get_filtered_records(
         part_search_term,
         started_after,
         finished_before,
@@ -1718,13 +1757,13 @@ def inspection_reports_inspection_reports_get_filtered_reports():
         disposition_search_term,
         receiver_number_search_term,
         purchase_order_search_term,
-        job_order_search_term,
+        job_number_search_term,
         lot_number_search_term,
         supplier_search_term
     )
 
-@app.route("/inspection_reports/inspection_reports_get_filtered_parts/", methods = ["POST"])
-def inspection_reports_inspection_reports_get_filtered_parts():
+@app.route("/inspection_records/inspection_records/get_filtered_parts/", methods = ["POST"])
+def inspection_records_inspection_records_get_filtered_parts():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -1763,18 +1802,17 @@ def inspection_reports_inspection_reports_get_filtered_parts():
         else:
             return {
                 "status": "log",
-                "response": f"no matching records found in {parts.__table__.name} under the criteria search_term: '{search_term}'"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
-            "status": "not_ok",
-            "response": error_msg
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/inspection_reports_get_filtered_schemas/", methods = ["POST"])
-def inspection_reports_inspection_reports_get_filtered_measurement_set_schemas():
+@app.route("/inspection_records/inspection_records/get_filtered_schemas/", methods = ["POST"])
+def inspection_records_inspection_records_get_filtered_schemas():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -1785,7 +1823,7 @@ def inspection_reports_inspection_reports_get_filtered_measurement_set_schemas()
 
     # define the output columns
     columns = [
-        measurement_set_schemas.id,
+        inspection_schemas.id,
         parts.item,
         parts.drawing,
         parts.revision
@@ -1802,13 +1840,13 @@ def inspection_reports_inspection_reports_get_filtered_measurement_set_schemas()
         if part_query is None:
             return {
                 "status": "log",
-                "response": "part not found in the database"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts])
             }
         item, drawing = part_query
 
         # query the database
         results = session.query(*columns)\
-            .join(parts, (parts.id == measurement_set_schemas.part_id))\
+            .join(parts, (parts.id == inspection_schemas.part_id))\
             .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
             .filter(and_(parts.item.ilike(item), parts.drawing.ilike(drawing)))\
             .order_by(parts.item.asc(), parts.drawing.asc(), parts.revision.asc()).all()
@@ -1832,18 +1870,17 @@ def inspection_reports_inspection_reports_get_filtered_measurement_set_schemas()
         else:
             return {
                 "status": "ok",
-                "response": None
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts, inspection_schemas])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
-            "status": "not_ok",
-            "response": error_msg
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/inspection_reports_get_filtered_employees/", methods = ["POST"])
-def inspection_reports_inspection_report_get_filtered_employees():
+@app.route("/inspection_records/inspection_records/get_filtered_employees/", methods = ["POST"])
+def inspection_records_inspection_records_get_filtered_employees():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -1893,29 +1930,28 @@ def inspection_reports_inspection_report_get_filtered_employees():
         else:
             return {
                 "status": "log",
-                "response": "no matching records found"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [employees])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
 # recycled methods
 
-def func_inspection_reports_get_filtered_reports(part_search_term:str, started_after:datetime, finished_before:datetime, material_type_search_term:str, employee_search_term:str, disposition_search_term:str, receiver_number_search_term:str, purchase_order_search_term:str, job_order_search_term:str, lot_number_search_term:str, supplier_search_term:str):
+def func_inspection_records_get_filtered_records(part_search_term:str, started_after:datetime, finished_before:datetime, material_type_search_term:str, employee_search_term:str, disposition_search_term:str, receiver_number_search_term:str, purchase_order_search_term:str, job_number_search_term:str, lot_number_search_term:str, supplier_search_term:str):
 
     # define the required fields
     columns = [
-        inspection_reports.id,
+        inspection_records.id,
         parts.id,
         parts.item,
         parts.drawing,
-        inspection_reports.disposition_id,
-        inspection_reports.material_type_id,
-        inspection_reports.employee_id,
+        inspection_records.disposition_id,
+        inspection_records.material_type_id,
+        inspection_records.employee_id,
         disposition_types.name
     ]
 
@@ -1926,30 +1962,28 @@ def func_inspection_reports_get_filtered_reports(part_search_term:str, started_a
 
         # query the database
         results = session.query(*columns)\
-            .join(measurement_sets, (measurement_sets.inspection_id == inspection_reports.id))\
-            .join(parts, (measurement_sets.part_id == parts.id))\
-            .outerjoin(material_types, (material_types.id == inspection_reports.material_type_id))\
-            .outerjoin(employees, (employees.id == inspection_reports.employee_id))\
-            .outerjoin(disposition_types, (disposition_types.id == inspection_reports.disposition_id))\
-            .outerjoin(inspection_receiver_numbers, (inspection_receiver_numbers.inspection_id == inspection_reports.id))\
-            .outerjoin(receiver_numbers, (receiver_numbers.id == inspection_receiver_numbers.receiver_number_id))\
-            .outerjoin(inspection_purchase_orders, (inspection_purchase_orders.inspection_id == inspection_reports.id))\
-            .outerjoin(purchase_orders, (purchase_orders.id == inspection_purchase_orders.purchase_order_id))\
-            .outerjoin(parts_job_orders, (parts_job_orders.part_id == parts.id))\
-            .outerjoin(job_orders, (job_orders.id == parts_job_orders.job_order_id))\
-            .outerjoin(inspection_lot_numbers, (inspection_lot_numbers.inspection_id == inspection_reports.id))\
-            .outerjoin(lot_numbers, (lot_numbers.id == inspection_lot_numbers.lot_number_id))\
-            .outerjoin(parts_suppliers, (parts_suppliers.part_id == parts.id))\
-            .outerjoin(suppliers, (suppliers.id == parts_suppliers.supplier_id))\
-            .filter(measurement_sets.datetime_measured >= started_after)\
-            .filter(or_(measurement_sets.datetime_measured <= finished_before, measurement_sets.datetime_measured == None))\
+            .join(inspections, (inspections.inspection_record_id == inspection_records.id))\
+            .join(parts, (inspections.part_id == parts.id))\
+            .outerjoin(material_types, (material_types.id == inspection_records.material_type_id))\
+            .outerjoin(employees, (employees.id == inspection_records.employee_id))\
+            .outerjoin(disposition_types, (disposition_types.id == inspection_records.disposition_id))\
+            .outerjoin(receiver_numbers, (receiver_numbers.purchase_order_id == purchase_orders.id))\
+            .outerjoin(inspection_records_purchase_orders, (inspection_records_purchase_orders.inspection_record_id == inspection_records.id))\
+            .outerjoin(purchase_orders, (purchase_orders.id == inspection_records_purchase_orders.purchase_order_id))\
+            .outerjoin(parts_job_numbers, (parts_job_numbers.part_id == parts.id))\
+            .outerjoin(job_numbers, (job_numbers.id == parts_job_numbers.job_number_id))\
+            .outerjoin(inspection_records_lot_numbers, (inspection_records_lot_numbers.inspection_record_id == inspection_records.id))\
+            .outerjoin(lot_numbers, (lot_numbers.id == inspection_records_lot_numbers.lot_number_id))\
+            .outerjoin(suppliers, (suppliers.id == purchase_orders.supplier_id))\
+            .filter(inspections.datetime_measured >= started_after)\
+            .filter(or_(inspections.datetime_measured <= finished_before, inspections.datetime_measured == None))\
             .filter(or_(parts.item.ilike(f"%{part_search_term}%"), parts.drawing.ilike(f"%{part_search_term}%"), parts.revision.ilike(f"%{part_search_term}%")))\
             .filter(material_types.name.ilike(f"%{material_type_search_term}%"))\
             .filter(or_(employees.first_name.ilike(f"%{employee_search_term}%"), employees.last_name.ilike(f"%{employee_search_term}%")))\
             .filter(disposition_types.name.ilike(f"%{disposition_search_term}%"))\
             .filter(or_(receiver_numbers.name == None, receiver_numbers.name.ilike(f"%{receiver_number_search_term}%")))\
             .filter(or_(purchase_orders.name == None, purchase_orders.name.ilike(f"%{purchase_order_search_term}%")))\
-            .filter(or_(job_orders.name == None, job_orders.name.ilike(f"%{job_order_search_term}%")))\
+            .filter(or_(job_numbers.name == None, job_numbers.name.ilike(f"%{job_number_search_term}%")))\
             .filter(or_(lot_numbers.name == None, lot_numbers.name.ilike(f"%{lot_number_search_term}%")))\
             .filter(or_(suppliers.name == None, suppliers.name.ilike(f"%{supplier_search_term}%")))\
             .order_by(parts.drawing.asc(), parts.item.asc())\
@@ -1961,9 +1995,9 @@ def func_inspection_reports_get_filtered_reports(part_search_term:str, started_a
         # return the results
         if len(results.all()) > 0:
             output_arr = []
-            for inspection_id, part_id, item, drawing, disposition_type_id, material_type_id, employee_id, disposition in results.all():
+            for inspection_record_id, part_id, item, drawing, disposition_type_id, material_type_id, employee_id, disposition in results.all():
                 output_arr.append({
-                    "inspection_id": inspection_id,
+                    "inspection_record_id": inspection_record_id,
                     "part_id": part_id,
                     "item": item,
                     "drawing": drawing,
@@ -1980,30 +2014,29 @@ def func_inspection_reports_get_filtered_reports(part_search_term:str, started_a
         else:
             return {
                 "status": "alert",
-                "response": "no matching records found in 'inspection_reports', 'parts', 'job_orders', and 'measurement_sets'"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [inspection_records, inspections, parts, material_types, employees, disposition_types, receiver_numbers, purchase_orders, parts_job_numbers, job_numbers, inspection_records_lot_numbers, lot_numbers, suppliers])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
 #endregion
 
-#region inspection reports - measurement sets
+#region inspection records - inspections
 
 # routes
 
-@app.route("/inspection_reports/measurement_sets_add_set/", methods = ["POST"])
-def inspection_reports_measurement_sets_add_set():
+@app.route("/inspection_records/inspections/add_inspection/", methods = ["POST"])
+def inspection_records_inspections_add_inspection():
 
     # interpret the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
-    inspection_id = int(form_data["inspection_id"])
+    inspection_record_id = int(form_data["inspection_record_id"])
     schema_id = int(form_data["schema_id"])
     employee_id = int(form_data["employee_id"])
     search_term = str(form_data["search_term"])
@@ -2014,34 +2047,33 @@ def inspection_reports_measurement_sets_add_set():
         session = Session(engine)
 
         # get the part id
-        part_id = session.query(measurement_set_schemas.part_id)\
-            .filter(measurement_set_schemas.id == schema_id).first()[0]
+        part_id = session.query(inspection_schemas.part_id)\
+            .filter(inspection_schemas.id == schema_id).first()[0]
 
         # close the database session
         session.close()
 
         # add the records
-        func_measurement_sets_add_new_measurement_set(part_id, inspection_id, schema_id, employee_id, -1)
+        func_inspections_add_inspection(part_id, inspection_record_id, schema_id, employee_id, -1)
 
         # return an updated list of measurement sets
-        return func_measurement_sets_get_filtered_sets(inspection_id, search_term)
+        return func_inspections_get_filtered_inspections(inspection_record_id, search_term)
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/measurement_sets_delete_set/", methods = ["POST"])
-def inspection_reports_measurement_sets_delete_set():
+@app.route("/inspection_records/inspections/delete_inspection/", methods = ["POST"])
+def inspection_records_inspections_delete_inspection():
 
     # interpret the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
+    inspection_record_id = int(form_data["inspection_record_id"])
     inspection_id = int(form_data["inspection_id"])
-    measurement_set_id = int(form_data["measurement_set_id"])
     search_term = str(form_data["search_term"])
 
     try:
@@ -2050,13 +2082,13 @@ def inspection_reports_measurement_sets_delete_set():
         session = Session(engine)
 
         # remove associated measurements
-        measurements_query = session.query(measurements)\
-            .filter(measurements.measurement_set_id == measurement_set_id)\
+        measurements_query = session.query(features)\
+            .filter(features.inspection_id == inspection_id)\
             .delete()
 
         # narrow search to measurement set
-        measurement_set_query = session.query(measurement_sets)\
-            .filter(measurement_sets.id == measurement_set_id)\
+        measurement_set_query = session.query(inspections)\
+            .filter(inspections.id == inspection_id)\
             .delete()
 
         # commit the changes
@@ -2066,17 +2098,16 @@ def inspection_reports_measurement_sets_delete_set():
         session.close()
 
         # return an updated list of measurement sets
-        return func_measurement_sets_get_filtered_sets(inspection_id, search_term)
+        return func_inspections_get_filtered_inspections(inspection_record_id, search_term)
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/measurement_sets_save_edits/", methods = ["POST"])
-def inspection_reports_measurement_sets_save_edits():
+@app.route("/inspection_records/inspections/save_edits/", methods = ["POST"])
+def inspection_records_inspections_save_edits():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -2088,10 +2119,10 @@ def inspection_reports_measurement_sets_save_edits():
     data_object = []
     for x in data_list:
         data_object.append({
-            "measurement_set_id": int(x["measurement_set_id"]),
+            "inspection_id": int(x["inspection_id"]),
             "data": {
                 "part_index": int(x["part_index"]),
-                "measurement_type_id": int(x["measurement_type_id"]),
+                "inspection_type_id": int(x["inspection_type_id"]),
                 "datetime_measured": datetime.datetime.strptime(x["timestamp"], "%Y-%m-%dT%H:%M"),
                 "employee_id": int(x["employee_id"])
             }
@@ -2103,12 +2134,17 @@ def inspection_reports_measurement_sets_save_edits():
         session = Session(engine)
 
         # narrow query object to proper scope
+        rows_affected = 0
         for x in data_object:
-            measurement_set_query = session.query(measurement_sets)\
-                .filter(measurement_sets.id == x["measurement_set_id"])
+            inspections_query = session.query(inspections)\
+                .filter(inspections.id == x["inspections_id"])
 
+            is_affected = 0
             for k, v in x["data"].items():
-                measurement_set_query.update({ k: v })
+                is_affected += inspections_query.update({ k: v })
+
+            if is_affected > 0:
+                rows_affected += 1
 
         # commit the changes
         session.commit()
@@ -2119,29 +2155,28 @@ def inspection_reports_measurement_sets_save_edits():
         # return an updated list of measurement sets
         return {
             "status": "alert",
-            "response": "records successfully updated"
+            "response": text_response(stack()[0][3], message_type.records_updated, qty = rows_affected, tables = [inspections])
         }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/measurement_sets_get_filtered_set_schemas/", methods = ["POST"])
-def inspection_reports_measurement_sets_get_filtered_set_schemas():
+@app.route("/inspection_records/inspections/get_filtered_schemas/", methods = ["POST"])
+def inspection_records_inspections_get_filtered_schemas():
 
     # interpret the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
-    inspection_id = int(form_data["inspection_id"])
+    inspection_record_id = int(form_data["inspection_record_id"])
     search_term = str(form_data["search_term"])
 
     # define the output columns
     columns = [
-        measurement_set_schemas.id,
+        inspection_schemas.id,
         parts.id,
         parts.item,
         parts.drawing,
@@ -2155,21 +2190,21 @@ def inspection_reports_measurement_sets_get_filtered_set_schemas():
 
         # get the item and drawing from the provided inspection id
         part_query = session.query(parts.item, parts.drawing)\
-            .join(measurement_sets, (measurement_sets.part_id == parts.id))\
-            .join(inspection_reports, (inspection_reports.id == measurement_sets.inspection_id))\
-            .filter(inspection_reports.id == inspection_id)\
+            .join(inspections, (inspections.part_id == parts.id))\
+            .join(inspection_records, (inspection_records.id == inspections.inspection_id))\
+            .filter(inspection_records.id == inspection_record_id)\
             .order_by(parts.item.asc(), parts.drawing.asc())
         if part_query.first() is None:
             session.close()
             return {
                 "status": "alert",
-                "response": f"no results from the following query:\n{str(part_query.statement.compile(dialect = postgresql.dialect()))}"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts, inspections, inspection_records])
             }
         item, drawing = part_query.first()
 
         # get the list of matching measurement set schemas
         set_schema_query = session.query(*columns)\
-            .join(parts, (parts.id == measurement_set_schemas.part_id))\
+            .join(parts, (parts.id == inspection_schemas.part_id))\
             .filter(func.lower(parts.item) == func.lower(item))\
             .filter(func.lower(parts.drawing) == func.lower(drawing))\
             .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
@@ -2198,43 +2233,42 @@ def inspection_reports_measurement_sets_get_filtered_set_schemas():
         else:
             return {
                 "status": "log",
-                "response": f"no matching records found in the joined query of '{parts.__table__.name}' and '{measurement_set_schemas.__table__.name}' under the criteria of {search_term}, {item}, and {drawing}"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts, inspection_schemas])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/measurement_sets_get_filtered_sets/", methods = ["POST"])
-def inspection_reports_measurement_sets_get_filtered_sets():
+@app.route("/inspection_records/inspections/get_filtered_inspections/", methods = ["POST"])
+def inspection_records_inspections_get_filtered_inspections():
 
     # interpret the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
-    inspection_id = int(form_data["inspection_id"])
+    inspection_record_id = int(form_data["inspection_record_id"])
     search_term = str(form_data["search_term"])
 
-    return func_measurement_sets_get_filtered_sets(inspection_id, search_term)
+    return func_inspections_get_filtered_inspections(inspection_record_id, search_term)
 
 # recycled methods
 
-def func_measurement_sets_add_new_measurement_set(part_id:int, inspection_id:int, schema_id:int, employee_id:int, part_index:int):
+def func_inspections_add_inspection(part_id:int, inspection_record_id:int, schema_id:int, employee_id:int, part_index:int):
 
     # schema detail columns
     schema_details_columns = [
-        measurement_set_schema_details.name,
-        measurement_set_schema_details.nominal,
-        measurement_set_schema_details.usl,
-        measurement_set_schema_details.lsl,
-        measurement_set_schema_details.precision,
-        measurement_set_schema_details.specification_type_id,
-        measurement_set_schema_details.dimension_type_id,
-        measurement_set_schema_details.frequency_type_id,
-        measurement_set_schema_details.gauge_type_id
+        inspection_schema_details.name,
+        inspection_schema_details.nominal,
+        inspection_schema_details.usl,
+        inspection_schema_details.lsl,
+        inspection_schema_details.precision,
+        inspection_schema_details.specification_type_id,
+        inspection_schema_details.dimension_type_id,
+        inspection_schema_details.frequency_type_id,
+        inspection_schema_details.gauge_type_id
     ]
 
     try:
@@ -2242,26 +2276,26 @@ def func_measurement_sets_add_new_measurement_set(part_id:int, inspection_id:int
         # open the database session
         session = Session(engine)
 
-        # measurement_set for schema
+        # get the inspection schema details
         schema_query = session.query(parts.item, parts.drawing)\
-            .join(measurement_set_schemas, (measurement_set_schemas.part_id == parts.id))\
-            .filter(measurement_set_schemas.id == schema_id).first()
+            .join(inspection_schemas, (inspection_schemas.part_id == parts.id))\
+            .filter(inspection_schemas.id == schema_id).first()
         if schema_query is None:
             session.close()
             return {
                 "status": "alert",
-                "response": f"the referenced measurement schema ({schema_id}) does not exist in the database"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts, inspection_schemas])
             }
         schema_item, schema_drawing = schema_query
 
-        # measurement_set for part
+        # get the part details
         part_query = session.query(parts.item, parts.drawing)\
             .filter(parts.id == part_id).first()
         if part_query is None:
             session.close()
             return {
                 "status": "alert",
-                "response": f"the referenced part ({part_id}) does not exist in the database"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts])
             }
         part_item, part_drawing = part_query
 
@@ -2270,73 +2304,74 @@ def func_measurement_sets_add_new_measurement_set(part_id:int, inspection_id:int
             session.close()
             return {
                 "status": "alert",
-                "response": "the provided schema does not match the provided part"
+                "response": text_response(stack()[0][3], message_type.generic, err_msg = "the provided schema does not match the provided part")
             }
 
         # create a new inspection report if the provided inspection_id is -1, or ensure it exists
-        if inspection_id == -1:
+        if inspection_record_id == -1:
 
             # create a new inspection report
-            inspection_report_query = inspection_reports(
+            inspection_record_query = inspection_records(
                 material_type_id = 0,
                 employee_id = employee_id,
                 disposition_id = 2
             )
-            session.add(inspection_report_query)
+            session.add(inspection_record_query)
             session.commit()
-            inspection_id = inspection_report_query.id
+            inspection_record_id = inspection_record_query.id
         else:
 
-            # ensure the inspection report exists
-            inspection_query = session.query(parts.item, parts.drawing)\
-                .join(measurement_sets, (measurement_sets.part_id == parts.id))\
-                .join(inspection_reports, (inspection_reports.id == measurement_sets.inspection_id))\
-                .filter(inspection_reports.id == inspection_id).first()
-            if inspection_query is None:
+            # get the inspection record details
+            inspection_record_query = session.query(parts.item, parts.drawing)\
+                .join(inspections, (inspections.part_id == parts.id))\
+                .join(inspection_records, (inspection_records.id == inspections.inspection_record_id))\
+                .filter(inspection_records.id == inspection_record_id).first()
+            if inspection_record_query is None:
                 session.close()
                 return {
                     "status": "alert",
-                    "response": f"the referenced inspection report ({inspection_id}) does not exist in the database"
+                    "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts, inspections, inspection_records])
                 }
-            inspection_item, inspection_drawing = inspection_query
+            inspection_item, inspection_drawing = inspection_record_query
 
-            # measurement_set if the inspection and part match up
+            # make sure the inspection record and part match up
             if inspection_item != part_item and inspection_drawing != part_drawing:
                 session.close()
                 return {
                     "status": "alert",
-                    "response": "the provided inspection report does not match the provided part"
+                    "response": text_response(stack()[0][3], message_type.generic, err_msg = "the provided inspection report does not match the provided part")
                 }
 
         # calculate the part index if the provided part_index is -1
         if part_index == -1:
-            part_index_arr = session.query(measurement_sets.part_index)\
-                .filter(measurement_sets.part_id == part_id)\
-                .filter(measurement_sets.inspection_id == inspection_id).all()
+            part_index_arr = session.query(inspections.part_index)\
+                .filter(inspections.part_id == part_id)\
+                .filter(inspections.inspection_record_id == inspection_record_id).all()
             part_index = max([x[0] for x in part_index_arr]) + 1
 
-        # create a new measurement_set set
-        measurement_set_query = measurement_sets(
+        # create a new inspection
+        inspection_query = inspections(
             part_index = part_index,
             datetime_measured = datetime.datetime.now(),
-            inspection_id = inspection_id,
+            inspection_record_id = inspection_record_id,
             part_id = part_id,
             employee_id = employee_id,
-            measurement_type_id = 0
+            inspection_type_id = 0
         )
-        session.add(measurement_set_query)
+        session.add(inspection_query)
         session.commit()
-        measurement_set_id = measurement_set_query.id
+        inspection_id = inspection_query.id
 
         # get the schema details
         schema_details = session.query(*schema_details_columns)\
-            .filter(measurement_set_schema_details.schema_id == schema_id)\
-            .order_by(measurement_set_schema_details.name.asc()).all()
+            .filter(inspection_schema_details.schema_id == schema_id)\
+            .order_by(inspection_schema_details.name.asc()).all()
         schema_details_list = []
         for name, nominal, usl, lsl, precision, spectype, dimetype, freqtype, gauge_type_id in schema_details:
 
             gauge_id = session.query(gauges.id)\
                 .filter(gauges.gauge_type_id == gauge_type_id)\
+                .order_by(gauges.name.asc())\
                 .first()[0]
 
             schema_details_list.append({
@@ -2351,43 +2386,42 @@ def func_measurement_sets_add_new_measurement_set(part_id:int, inspection_id:int
                 "gauge_id": gauge_id
             })
 
-        # create the measurement records
+        # create the feature records
         for obj in schema_details_list:
-            measurements_query = measurements(
+            features_query = features(
                 name = obj["name"],
                 nominal = obj["nominal"],
                 usl = obj["usl"],
                 lsl = obj["lsl"],
                 precision = obj["precision"],
-                measurement_set_id = measurement_set_id,
+                inspection_id = inspection_id,
                 specification_type_id = obj["specification_type_id"],
                 dimension_type_id = obj["dimension_type_id"],
                 frequency_type_id = obj["frequency_type_id"],
                 gauge_id = obj["gauge_id"]
             )
-            session.add(measurements_query)
+            session.add(features_query)
         session.commit()
 
         # close the database session
         session.close()
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-def func_measurement_sets_get_filtered_sets(inspection_id:int, search_term:str):
+def func_inspections_get_filtered_inspections(inspection_record_id:int, search_term:str):
 
     # define the output columns
     columns = [
-        measurement_sets.id,
-        measurement_sets.datetime_measured,
-        measurement_sets.part_index,
-        measurement_sets.employee_id,
-        measurement_sets.inspection_id,
-        measurement_sets.measurement_type_id,
+        inspections.id,
+        inspections.datetime_measured,
+        inspections.part_index,
+        inspections.employee_id,
+        inspections.inspection_record_id,
+        inspections.inspection_type_id,
         parts.item,
         parts.drawing,
         parts.revision
@@ -2398,12 +2432,12 @@ def func_measurement_sets_get_filtered_sets(inspection_id:int, search_term:str):
         # open the database session
         session = Session(engine)
 
-        # get the list of matching measurement set schemas
+        # get the list of matching inspection schemas
         sets_query = session.query(*columns)\
-            .join(parts, (parts.id == measurement_sets.part_id))\
-            .filter(measurement_sets.inspection_id == inspection_id)\
+            .join(parts, (parts.id == inspections.part_id))\
+            .filter(inspections.inspection_record_id == inspection_record_id)\
             .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
-            .order_by(measurement_sets.part_index.asc(), parts.revision.asc())\
+            .order_by(inspections.part_index.asc(), parts.revision.asc())\
             .all()
 
         # close the database session
@@ -2412,14 +2446,14 @@ def func_measurement_sets_get_filtered_sets(inspection_id:int, search_term:str):
         # return the results
         if len(sets_query) > 0:
             output_arr = []
-            for measurement_set_id, timestamp, part_index, employee_id, inspection_id, measurement_type_id, item, drawing, revision in sets_query:
+            for inspection_id, timestamp, part_index, employee_id, current_inspection_record_id, inspection_type_id, item, drawing, revision in sets_query:
                 output_arr.append({
-                    "measurement_set_id": measurement_set_id,
+                    "inspection_id": inspection_id,
                     "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M"),
                     "part_index": part_index,
                     "employee_id": employee_id,
-                    "inspection_id": inspection_id,
-                    "measurement_type_id": measurement_type_id,
+                    "inspection_record_id": current_inspection_record_id,
+                    "inspection_type_id": inspection_type_id,
                     "item": item,
                     "drawing": drawing,
                     "revision": revision.upper()
@@ -2431,28 +2465,27 @@ def func_measurement_sets_get_filtered_sets(inspection_id:int, search_term:str):
         else:
             return {
                 "status": "log",
-                "response": f"no matching records found in the joined query of '{measurement_sets.__table__.name}' and '{parts.__table__.name}' under the criteria of search_term: '{search_term}', inspection_id: '{inspection_id}'"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts, inspections])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
 #endregion
 
-#region inspection reports - measurements
+#region inspection records - features
 
-@app.route("/inspection_reports/measurements_get_filtered_measurements/", methods = ["POST"])
-def inspection_reports_measurements_get_filtered_measurements():
+@app.route("/inspection_records/features/get_filtered_features/", methods = ["POST"])
+def inspection_records_features_get_filtered_features():
 
     # interpret the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
-    inspection_id = int(form_data["identity"]["inspection_id"])
+    inspection_record_id = int(form_data["identity"]["inspection_record_id"])
     item = str(form_data["identity"]["item"])
     drawing = str(form_data["identity"]["drawing"])
     name = str(form_data["content"]["name"])
@@ -2463,19 +2496,19 @@ def inspection_reports_measurements_get_filtered_measurements():
     gauge_type_id = int(form_data["content"]["gauge_type_id"])
     specification_type_id = int(form_data["content"]["specification_type_id"])
     dimension_type_id = int(form_data["content"]["dimension_type_id"])
-    measurement_type_id = int(form_data["content"]["measurement_type_id"])
+    inspection_type_id = int(form_data["content"]["inspection_type_id"])
     revision = str(form_data["content"]["revision"])
     part_index = int(form_data["content"]["part_index"])
 
-    # make a list of acceptable measurement set ids
-    measurement_set_ids = []
-    for obj in list(form_data["content"]["measurement_sets"]):
+    # make a list of acceptable inspection ids
+    inspection_ids = []
+    for obj in list(form_data["content"]["inspections"]):
         if bool(int(obj["display_state"])):
-            measurement_set_ids.append(int(obj["measurement_set_id"]))
+            inspection_ids.append(int(obj["inspection_id"]))
 
     # run the required function
-    return func_measurements_get_filtered_measurements(
-        inspection_id,
+    return func_features_get_filtered_features(
+        inspection_record_id,
         item,
         drawing,
         frequency_type_id,
@@ -2486,14 +2519,14 @@ def inspection_reports_measurements_get_filtered_measurements():
         gauge_type_id,
         specification_type_id,
         dimension_type_id,
-        measurement_type_id,
+        inspection_type_id,
         revision,
         part_index,
-        measurement_set_ids
+        inspection_ids
     )
 
-@app.route("/inspection_reports/measurements_save_measurements/", methods = ["POST"])
-def inspection_reports_measurements_save_measurements():
+@app.route("/inspection_records/features/save_features/", methods = ["POST"])
+def inspection_records_features_save_features():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -2501,68 +2534,76 @@ def inspection_reports_measurements_save_measurements():
     # extract the required information
     data = form_data["data"]
 
-    if len(data) > 0:
+    try:
 
-        # convert the raw data
-        my_data = {}
-        for row in data:
+        if len(data) > 0:
 
-            # make sure we're only pulling info we want
-            if row["column"]["key"] == "measured" or row["column"]["key"] == "gauge_id":
+            # convert the raw data
+            my_data = {}
+            for row in data:
 
-                # get the measurement id
-                meas_id = row["row"]["measurement_id"]
+                # make sure we're only pulling info we want
+                if row["column"]["key"] == "measured" or row["column"]["key"] == "gauge_id":
 
-                # check if the measurement id already exists in our dictionary
-                if meas_id in my_data:
-                    my_data[meas_id].append({ row["column"]["key"]: row["row"]["value"] })
-                else:
-                    my_data[meas_id] = [{ row["column"]["key"]: row["row"]["value"] }]
+                    # get the feature id
+                    meas_id = row["row"]["feature_id"]
 
-        # open the database session
-        session = Session(engine)
+                    # check if the feature id already exists in dictionary
+                    if meas_id in my_data:
+                        my_data[meas_id].append({ row["column"]["key"]: row["row"]["value"] })
+                    else:
+                        my_data[meas_id] = [{ row["column"]["key"]: row["row"]["value"] }]
 
-        # iterate through the data object
-        rows_affected = 0
-        for k, v in my_data.items():
-            results = session.query(measurements).filter(measurements.id == k)
-            is_affected = 0
-            for obj in v:
-                is_affected = results.update(obj)
-            if is_affected > 0:
-                rows_affected += 1
+            # open the database session
+            session = Session(engine)
 
-        # commit the changes
-        session.commit()
+            # iterate through the data object
+            rows_affected = 0
+            for k, v in my_data.items():
+                results = session.query(features).filter(features.id == k)
+                is_affected = 0
+                for obj in v:
+                    is_affected = results.update(obj)
+                if is_affected > 0:
+                    rows_affected += 1
 
-        # close the database session
-        session.close()
+            # commit the changes
+            session.commit()
 
-        # return the results
-        if rows_affected > 0:
-            return {
-                "status": "alert",
-                "response": f"{rows_affected} rows updated in 'measurements'"
-            }
+            # close the database session
+            session.close()
+
+            # return the results
+            if rows_affected > 0:
+                return {
+                    "status": "alert",
+                    "response": text_response(stack()[0][3], message_type.records_updated, qty = rows_affected, tables = [features])
+                }
+            else:
+                return {
+                    "status": "alert",
+                    "response": text_response(stack()[0][3], message_type.records_not_updated, tables = [features])
+                }
         else:
             return {
                 "status": "alert",
-                "response": "no records affected"
+                "response": text_response(stack()[0][3], message_type.generic, err_msg = "no data passed to flask server")
             }
-    else:
+
+    except SQLAlchemyError as e:
         return {
-            "status": "alert",
-            "response": "no data passed to flask server"
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/measurements_tunnel_to_physical_part/", methods = ["POST"])
-def inspection_reports_measurements_tunnel_to_physical_part():
+@app.route("/inspection_records/features/tunnel_to_physical_part/", methods = ["POST"])
+def inspection_records_features_tunnel_to_physical_part():
 
     # interpret the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
-    inspection_id = int(form_data["inspection_id"])
+    inspection_record_id = int(form_data["inspection_record_id"])
     part_id = int(form_data["part_id"])
     part_index = int(form_data["part_index"])
 
@@ -2578,7 +2619,7 @@ def inspection_reports_measurements_tunnel_to_physical_part():
             session.close()
             return {
                 "status": "alert",
-                "response": f"the specified part ({part_id}) does not exist in the database"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts])
             }
         item, drawing, revision = part_query
 
@@ -2586,8 +2627,8 @@ def inspection_reports_measurements_tunnel_to_physical_part():
         session.close()
 
         # run the required function
-        return func_measurements_get_filtered_measurements(
-            inspection_id,
+        return func_features_get_filtered_features(
+            inspection_record_id,
             item,
             drawing,
             -1,
@@ -2605,20 +2646,19 @@ def inspection_reports_measurements_tunnel_to_physical_part():
         )
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/measurements_get_filter_parameter_data/", methods = ["POST"])
-def inspection_reports_measurements_get_filter_parameter_data():
-    
+@app.route("/inspection_reports/features/get_filter_parameters/", methods = ["POST"])
+def inspection_records_features_get_filter_parameters():
+
     # interpret the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
-    inspection_id = int(form_data["inspection_id"])
+    inspection_record_id = int(form_data["inspection_record_id"])
     item = form_data["item"]
     drawing = form_data["drawing"]
 
@@ -2628,78 +2668,78 @@ def inspection_reports_measurements_get_filter_parameter_data():
         session = Session(engine)
 
         # measurement type list
-        measurement_types_query = session.query(measurement_types.id, measurement_types.name)\
-            .join(measurement_sets, (measurement_sets.measurement_type_id == measurement_types.id))\
-            .join(parts, (measurement_sets.part_id == parts.id))\
-            .filter(measurement_sets.inspection_id == inspection_id)\
+        inspection_types_query = session.query(inspection_types.id, inspection_types.name)\
+            .join(inspections, (inspections.inspection_type_id == inspection_types.id))\
+            .join(parts, (inspections.part_id == parts.id))\
+            .filter(inspections.inspection_record_id == inspection_record_id)\
             .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"%{drawing}")))\
-            .order_by(measurement_types.name.asc()).distinct(measurement_types.name).all()
+            .order_by(inspection_types.name.asc()).distinct(inspection_types.name).all()
 
         # part index list
-        part_index_query = session.query(measurement_sets.part_index)\
-            .join(parts, (parts.id == measurement_sets.part_id))\
-            .filter(measurement_sets.inspection_id == inspection_id)\
+        part_index_query = session.query(inspections.part_index)\
+            .join(parts, (parts.id == inspections.part_id))\
+            .filter(inspections.inspection_record_id == inspection_record_id)\
             .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"%{drawing}%")))\
-            .order_by(measurement_sets.part_index.asc()).distinct(measurement_sets.part_index).all()
+            .order_by(inspections.part_index.asc()).distinct(inspections.part_index).all()
 
         # revisions list
         revisions_query = session.query(parts.revision)\
-            .join(measurement_sets, (parts.id == measurement_sets.part_id))\
-            .filter(measurement_sets.inspection_id == inspection_id)\
+            .join(inspections, (parts.id == inspections.part_id))\
+            .filter(inspections.inspection_record_id == inspection_record_id)\
             .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"%{drawing}%")))\
             .order_by(parts.revision.asc()).distinct(parts.revision).all()
 
         # frequency type list
         frequency_types_query = session.query(frequency_types.id, frequency_types.name)\
-            .join(measurements, (measurements.frequency_type_id == frequency_types.id))\
-            .join(measurement_sets, (measurement_sets.id == measurements.measurement_set_id))\
-            .join(parts, (measurement_sets.part_id == parts.id))\
-            .filter(measurement_sets.inspection_id == inspection_id)\
+            .join(features, (features.frequency_type_id == frequency_types.id))\
+            .join(inspections, (inspections.id == features.inspection_id))\
+            .join(parts, (inspections.part_id == parts.id))\
+            .filter(inspections.inspection_record_id == inspection_record_id)\
             .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
             .order_by(frequency_types.name.asc()).distinct(frequency_types.name).all()
 
         # inspectors list
         inspectors_query = session.query(employees.id, employees.first_name, employees.last_name)\
-            .join(measurement_sets, (measurement_sets.employee_id == employees.id))\
-            .join(parts, (measurement_sets.part_id == parts.id))\
-            .filter(measurement_sets.inspection_id == inspection_id)\
+            .join(inspections, (inspections.employee_id == employees.id))\
+            .join(parts, (inspections.part_id == parts.id))\
+            .filter(inspections.inspection_record_id == inspection_record_id)\
             .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
             .order_by(employees.last_name.asc(), employees.first_name.asc()).distinct(employees.first_name, employees.last_name).all()
 
         # gauges list
         gauges_query = session.query(gauges.id, gauges.name)\
-            .join(measurements, (measurements.gauge_id == gauges.id))\
-            .join(measurement_sets, (measurement_sets.id == measurements.measurement_set_id))\
-            .join(parts, (measurement_sets.part_id == parts.id))\
-            .filter(measurement_sets.inspection_id == inspection_id)\
+            .join(features, (features.gauge_id == gauges.id))\
+            .join(inspections, (inspections.id == features.inspection_id))\
+            .join(parts, (inspections.part_id == parts.id))\
+            .filter(inspections.inspection_record_id == inspection_record_id)\
             .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
             .order_by(gauges.name.asc()).distinct(gauges.name).all()
 
         # gauges types list
         gauge_types_query = session.query(gauge_types.id, gauge_types.name)\
             .join(gauges, (gauges.gauge_type_id == gauge_types.id))\
-            .join(measurements, (measurements.gauge_id == gauges.id))\
-            .join(measurement_sets, (measurement_sets.id == measurements.measurement_set_id))\
-            .join(parts, (measurement_sets.part_id == parts.id))\
-            .filter(measurement_sets.inspection_id == inspection_id)\
+            .join(features, (features.gauge_id == gauges.id))\
+            .join(inspections, (inspections.id == features.inspection_id))\
+            .join(parts, (inspections.part_id == parts.id))\
+            .filter(inspections.inspection_record_id == inspection_record_id)\
             .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
             .order_by(gauge_types.name.asc()).distinct(gauge_types.name).all()
 
         # specification types list
         specification_types_query = session.query(specification_types.id, specification_types.name)\
-            .join(measurements, (measurements.specification_type_id == specification_types.id))\
-            .join(measurement_sets, (measurement_sets.id == measurements.measurement_set_id))\
-            .join(parts, (measurement_sets.part_id == parts.id))\
-            .filter(measurement_sets.inspection_id == inspection_id)\
+            .join(features, (features.specification_type_id == specification_types.id))\
+            .join(inspections, (inspections.id == features.inspection_id))\
+            .join(parts, (inspections.part_id == parts.id))\
+            .filter(inspections.inspection_record_id == inspection_record_id)\
             .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
             .order_by(specification_types.name.asc()).distinct(specification_types.name).all()
 
         # dimension types list
         dimension_types_query = session.query(dimension_types.id, dimension_types.name)\
-            .join(measurements, (measurements.dimension_type_id == dimension_types.id))\
-            .join(measurement_sets, (measurement_sets.id == measurements.measurement_set_id))\
-            .join(parts, (measurement_sets.part_id == parts.id))\
-            .filter(measurement_sets.inspection_id == inspection_id)\
+            .join(features, (features.dimension_type_id == dimension_types.id))\
+            .join(inspections, (inspections.id == features.inspection_id))\
+            .join(parts, (inspections.part_id == parts.id))\
+            .filter(inspections.inspection_record_id == inspection_record_id)\
             .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"{drawing}%")))\
             .order_by(dimension_types.name.asc()).distinct(dimension_types.name).all()
 
@@ -2707,9 +2747,9 @@ def inspection_reports_measurements_get_filter_parameter_data():
         session.close()
 
         # return the results
-        measurement_types_list = []
-        for id, name in measurement_types_query:
-            measurement_types_list.append({
+        inspection_types_list = []
+        for id, name in inspection_types_query:
+            inspection_types_list.append({
                 "id": id,
                 "name": name
             })
@@ -2774,7 +2814,7 @@ def inspection_reports_measurements_get_filter_parameter_data():
         return {
             "status": "ok",
             "response": {
-                "measurement_types": measurement_types_list,
+                "inspection_types": inspection_types_list,
                 "frequency_types": frequency_types_list,
                 "inspectors": inspectors_list,
                 "gauges": gauges_list,
@@ -2787,38 +2827,37 @@ def inspection_reports_measurements_get_filter_parameter_data():
         }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
 # recycled methods
 
-def func_measurements_get_filtered_measurements(inspection_id:int, item:str, drawing:str, frequency_type_id:int, name:str, has_deviations:int, inspector_id:int, gauge_id:int, gauge_type_id:int, specification_type_id:int, dimension_type_id:int, measurement_type_id:int, revision:str, part_index:int, measurement_set_ids:list):
+def func_features_get_filtered_features(inspection_record_id:int, item:str, drawing:str, frequency_type_id:int, name:str, has_deviations:int, inspector_id:int, gauge_id:int, gauge_type_id:int, specification_type_id:int, dimension_type_id:int, inspection_type_id:int, revision:str, part_index:int, measurement_set_ids:list):
 
     # define the columns
     columns = [
-        measurement_sets.id,
-        measurement_sets.part_index,
-        measurement_sets.datetime_measured,
-        measurement_sets.employee_id,
+        inspections.id,
+        inspections.part_index,
+        inspections.datetime_measured,
+        inspections.employee_id,
         parts.id,
         parts.revision,
-        measurements.id,
-        measurements.name,
-        measurements.nominal,
-        measurements.usl,
-        measurements.lsl,
-        measurements.measured,
-        measurements.precision,
+        features.id,
+        features.name,
+        features.nominal,
+        features.usl,
+        features.lsl,
+        features.measured,
+        features.precision,
         gauges.id,
         gauge_types.id,
         gauge_types.name,
         specification_types.name,
         dimension_types.name,
         frequency_types.name,
-        measurement_types.name
+        inspection_types.name
     ]
 
     try:
@@ -2828,49 +2867,49 @@ def func_measurements_get_filtered_measurements(inspection_id:int, item:str, dra
 
         # query the database
         results = session.query(*columns)\
-            .join(gauges, (measurements.gauge_id == gauges.id))\
+            .join(gauges, (features.gauge_id == gauges.id))\
             .join(gauge_types, (gauges.gauge_type_id == gauge_types.id))\
-            .join(measurement_sets, (measurement_sets.id == measurements.measurement_set_id))\
-            .join(parts, (measurement_sets.part_id == parts.id))\
-            .join(inspection_reports, (measurement_sets.inspection_id == inspection_reports.id))\
-            .join(specification_types, (measurements.specification_type_id == specification_types.id))\
-            .join(dimension_types, (measurements.dimension_type_id == dimension_types.id))\
-            .join(frequency_types, (measurements.frequency_type_id == frequency_types.id))\
-            .join(measurement_types, (measurement_sets.measurement_type_id == measurement_types.id))\
-            .filter(inspection_reports.id == inspection_id)\
+            .join(inspections, (inspections.id == features.inspection_id))\
+            .join(parts, (inspections.part_id == parts.id))\
+            .join(inspection_records, (inspections.inspection_record_id == inspection_records.id))\
+            .join(specification_types, (features.specification_type_id == specification_types.id))\
+            .join(dimension_types, (features.dimension_type_id == dimension_types.id))\
+            .join(frequency_types, (features.frequency_type_id == frequency_types.id))\
+            .join(inspection_types, (inspections.inspection_type_id == inspection_types.id))\
+            .filter(inspection_records.id == inspection_record_id)\
             .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"%{drawing}%")))\
-            .filter(measurements.name.ilike(f"%{name}%"))\
+            .filter(features.name.ilike(f"%{name}%"))\
             .filter(parts.revision.ilike(f"%{revision}%"))
 
         if part_index > -1:
-            results = results.filter(measurement_sets.part_index == part_index)
+            results = results.filter(inspections.part_index == part_index)
         if dimension_type_id > -1:
             results = results.filter(dimension_types.id == dimension_type_id)
         if frequency_type_id > -1:
-            results = results.filter(measurements.frequency_type_id == frequency_type_id)
+            results = results.filter(features.frequency_type_id == frequency_type_id)
         if has_deviations == 0:
-            results = results.filter(measurements.id.notin_(session.query(deviations.measurement_id)))
+            results = results.filter(features.id.notin_(session.query(deviations.feature_id)))
         elif has_deviations == 1:
-            results = results.filter(measurements.id.in_(session.query(deviations.measurement_id)))
+            results = results.filter(features.id.in_(session.query(deviations.feature_id)))
         if inspector_id > -1:
-            results = results.filter(measurement_sets.employee_id == inspector_id)
+            results = results.filter(inspections.employee_id == inspector_id)
         if gauge_id > -1:
-            results = results.filter(measurements.gauge_id == gauge_id)
+            results = results.filter(features.gauge_id == gauge_id)
         if gauge_type_id > -1:
             results = results.filter(gauges.gauge_type_id == gauge_type_id)
         if specification_type_id > -1:
-            results = results.filter(measurements.specification_type_id == specification_type_id)
-        if measurement_type_id > -1:
-            results = results.filter(measurement_sets.measurement_type_id == measurement_type_id)
+            results = results.filter(features.specification_type_id == specification_type_id)
+        if inspection_type_id > -1:
+            results = results.filter(inspections.inspection_type_id == inspection_type_id)
         if measurement_set_ids is not None:
-            results = results.filter(measurements.measurement_set_id.in_(measurement_set_ids))
+            results = results.filter(features.measurement_set_id.in_(measurement_set_ids))
 
         # convert to a list
         measurement_list = results\
-            .order_by(measurement_sets.id.asc(), measurement_sets.part_id.asc(), parts.revision.asc(), measurements.id.asc(), measurements.name.asc()).all()
+            .order_by(inspections.id.asc(), inspections.part_id.asc(), parts.revision.asc(), features.id.asc(), features.name.asc()).all()
 
         # get the list of measurements that have deviations
-        deviations_list = [x[0] for x in session.query(deviations.measurement_id).all()]
+        deviations_list = [x[0] for x in session.query(deviations.feature_id).all()]
 
         # close the database session
         session.close()
@@ -2880,7 +2919,7 @@ def func_measurements_get_filtered_measurements(inspection_id:int, item:str, dra
 
             # assemble measurements output
             output_arr = []
-            for measurement_set_id, part_index, timestamp, employee_id, part_id, revision, measurement_id, name, nominal, usl, lsl, measured, precision, gauge_id, gauge_type_id, gauge_type, specification_type, dimension_type, frequency_type, measurement_type in measurement_list:
+            for inspection_id, part_index, timestamp, employee_id, part_id, revision, feature_id, name, nominal, usl, lsl, measured, precision, gauge_id, gauge_type_id, gauge_type, specification_type, dimension_type, frequency_type, inspection_type in measurement_list:
 
                 # parse to floats
                 nominal_flt = float(nominal)
@@ -2899,18 +2938,18 @@ def func_measurements_get_filtered_measurements(inspection_id:int, item:str, dra
                     else:
                         state = "fail"
 
-                # measurement_set for deviation flag
-                has_deviations = measurement_id in deviations_list
+                # inspection for deviation flag
+                has_deviations = feature_id in deviations_list
 
                 output_arr.append({
-                    "inspection_id": inspection_id,
+                    "inspection_record_id": inspection_record_id,
                     "part_id": part_id,
                     "item": item,
                     "drawing": drawing,
                     "timestamp": timestamp.strftime("%Y-%m-%d, %H:%M"),
                     "has_deviations": has_deviations,
-                    "measurement_id": measurement_id,
-                    "measurement_set_id": measurement_set_id,
+                    "feature_id": feature_id,
+                    "inspection_id": inspection_id,
                     "part_index": part_index,
                     "revision": revision.upper(),
                     "name": name,
@@ -2925,7 +2964,7 @@ def func_measurements_get_filtered_measurements(inspection_id:int, item:str, dra
                     "gauge_type": gauge_type,
                     "specification_type": specification_type,
                     "dimension_type": dimension_type,
-                    "measurement_type": measurement_type,
+                    "inspection_type": inspection_type,
                     "frequency_type": frequency_type,
                     "state": state
                 })
@@ -2938,33 +2977,32 @@ def func_measurements_get_filtered_measurements(inspection_id:int, item:str, dra
         else:
             return {
                 "status": "log",
-                "response": "no matching measurements found"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts, inspections, inspection_records, gauges, gauge_types, specification_types, dimension_types, frequency_types, inspection_types, features])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
 #endregion
 
-#region inspection reports - manufactured
+#region inspection records - manufactured
 
 # routes
 
-@app.route("/inspection_reports/manufactured_add_associated_job_order/", methods = ["POST"])
-def inspection_reports_manufactured_add_associated_job_order():
+@app.route("/inspection_records/manufactured/add_associated_job_number/", methods = ["POST"])
+def inspection_records_manufactured_add_associated_job_number():
 
     # get the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
     search_term = str(form_data["search_term"])
-    inspection_id = int(form_data["inspection_id"])
+    inspection_record_id = int(form_data["inspection_record_id"])
     part_id = int(form_data["part_id"])
-    job_order_id = int(form_data["job_order_id"])
+    job_number_id = int(form_data["job_number_id"])
 
     try:
 
@@ -2972,21 +3010,21 @@ def inspection_reports_manufactured_add_associated_job_order():
         session = Session(engine)
 
         # check if the association already exists
-        exists = session.query(parts_job_orders.id)\
-            .filter(parts_job_orders.part_id == part_id)\
-            .filter(parts_job_orders.job_order_id == job_order_id)\
+        exists = session.query(parts_job_numbers.id)\
+            .filter(parts_job_numbers.part_id == part_id)\
+            .filter(parts_job_numbers.job_number_id == job_number_id)\
             .first()
         if exists is not None:
             session.close()
             return {
                 "status": "alert",
-                "response": "this association already exists"
+                "response": text_response(stack()[0][3], message_type.record_already_exists, tables = [parts_job_numbers])
             }
 
         # add the association
-        session.add(parts_job_orders(**{
+        session.add(parts_job_numbers(**{
             "part_id": part_id,
-            "job_order_id": job_order_id,
+            "job_number_id": job_number_id,
         }))
 
         # commit the changes
@@ -2996,17 +3034,16 @@ def inspection_reports_manufactured_add_associated_job_order():
         session.close()
 
         # reacquire the association list
-        return func_manufactured_get_associated_job_orders(inspection_id, search_term)
+        return func_manufactured_get_associated_job_numbers(inspection_record_id, search_term)
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/manufactured_save_associated_job_orders/", methods = ["POST"])
-def inspection_reports_manufactured_save_associated_job_orders():
+@app.route("/inspection_records/manufactured/save_associated_job_numbers/", methods = ["POST"])
+def inspection_records_manufactured_save_associated_job_numbers():
 
     # get the posted data
     form_data = json.loads(request.data)
@@ -3034,7 +3071,7 @@ def inspection_reports_manufactured_save_associated_job_orders():
         # update the database
         rows_affected = 0
         for x in clean_data:
-            results = session.query(job_orders).filter(job_orders.id == int(x["id"]))
+            results = session.query(job_numbers).filter(job_numbers.id == int(x["id"]))
             is_affected = 0
             for k, v in x["data"].items():
                 is_affected += results.update({ k: v })
@@ -3051,32 +3088,31 @@ def inspection_reports_manufactured_save_associated_job_orders():
         if rows_affected > 0:
             return {
                 "status": "alert",
-                "response": f"{rows_affected} records were successfully updated in 'job_orders'"
+                "response": text_response(stack()[0][3], message_type.records_updated, qty = rows_affected, tables = [job_numbers])
             }
         else:
             return {
                 "status": "alert",
-                "response": "no records were successfully updated in 'job_orders'"
+                "response": text_response(stack()[0][3], message_type.records_not_updated, tables = [job_numbers])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/manufactured_delete_associated_job_order/", methods = ["POST"])
-def inspection_reports_manufactured_delete_associated_job_order():
+@app.route("/inspection_records/manufactured/delete_associated_job_number/", methods = ["POST"])
+def inspection_records_manufactured_delete_associated_job_number():
 
     # get the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
     search_term = str(form_data["search_term"])
-    inspection_id = int(form_data["inspection_id"])
+    inspection_record_id = int(form_data["inspection_record_id"])
     part_id = int(form_data["part_id"])
-    job_order_id = int(form_data["job_order_id"])
+    job_number_id = int(form_data["job_number_id"])
 
     try:
 
@@ -3084,9 +3120,9 @@ def inspection_reports_manufactured_delete_associated_job_order():
         session = Session(engine)
 
         # delete the associated record
-        rows_deleted = session.query(parts_job_orders)\
-            .filter(parts_job_orders.part_id == part_id)\
-            .filter(parts_job_orders.job_order_id == job_order_id)\
+        rows_deleted = session.query(parts_job_numbers)\
+            .filter(parts_job_numbers.part_id == part_id)\
+            .filter(parts_job_numbers.job_number_id == job_number_id)\
             .delete()
 
         # commit the changes
@@ -3097,30 +3133,29 @@ def inspection_reports_manufactured_delete_associated_job_order():
         session.close()
 
         # reacquire the association list
-        return func_manufactured_get_associated_job_orders(inspection_id, search_term)
+        return func_manufactured_get_associated_job_numbers(inspection_record_id, search_term)
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/manufactured_get_associated_job_orders/", methods = ["POST"])
-def inspection_reports_manufactured_get_associated_job_orders():
+@app.route("/inspection_records/manufactured/get_associated_job_numbers/", methods = ["POST"])
+def inspection_records_manufactured_get_associated_job_numbers():
 
     # get the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
     search_term = str(form_data["search_term"])
-    inspection_id = int(form_data["inspection_id"])
+    inspection_record_id = int(form_data["inspection_record_id"])
 
     # return the results
-    return func_manufactured_get_associated_job_orders(inspection_id, search_term)
+    return func_manufactured_get_associated_job_numbers(inspection_record_id, search_term)
 
-@app.route("/inspection_reports/manufactured_get_filtered_job_orders/", methods = ["POST"])
-def inspection_reports_manufactured_get_filtered_job_orders():
+@app.route("/inspection_records/manufactured/get_filtered_job_numbers/", methods = ["POST"])
+def inspection_records_manufactured_get_filtered_job_numbers():
 
     # get the posted data
     form_data = json.loads(request.data)
@@ -3134,9 +3169,9 @@ def inspection_reports_manufactured_get_filtered_job_orders():
         session = Session(engine)
 
         # query the database
-        results = session.query(job_orders.id, job_orders.name)\
-            .filter(job_orders.name.ilike(f"%{search_term}%"))\
-            .order_by(job_orders.name.asc()).all()
+        results = session.query(job_numbers.id, job_numbers.name)\
+            .filter(job_numbers.name.ilike(f"%{search_term}%"))\
+            .order_by(job_numbers.name.asc()).all()
 
         # close the database session
         session.close()
@@ -3149,7 +3184,7 @@ def inspection_reports_manufactured_get_filtered_job_orders():
                     "id": id,
                     "name": name
                 })
-            
+
             return {
                 "status": "ok",
                 "response": output_arr
@@ -3157,25 +3192,24 @@ def inspection_reports_manufactured_get_filtered_job_orders():
         else:
             return {
                 "status": "log",
-                "response": "no records found"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [job_numbers])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/manufactured_get_filtered_parts/", methods = ["POST"])
-def inspection_reports_manufactured_get_filtered_parts():
+@app.route("/inspection_records/manufactured/get_filtered_parts/", methods = ["POST"])
+def inspection_records_manufactured_get_filtered_parts():
 
     # get the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
     search_term = str(form_data["search_term"])
-    inspection_id = int(form_data["inspection_id"])
+    inspection_record_id = int(form_data["inspection_record_id"])
 
     try:
 
@@ -3184,10 +3218,10 @@ def inspection_reports_manufactured_get_filtered_parts():
 
         # query the database
         results = session.query(parts.id, parts.item, parts.drawing, parts.revision)\
-            .join(measurement_sets, (measurement_sets.part_id == parts.id))\
-            .join(inspection_reports, (inspection_reports.id == measurement_sets.inspection_id))\
+            .join(inspections, (inspections.part_id == parts.id))\
+            .join(inspection_records, (inspection_records.id == inspections.inspection_record_id))\
             .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
-            .filter(inspection_reports.id == inspection_id)\
+            .filter(inspection_records.id == inspection_record_id)\
             .order_by(parts.drawing.asc(), parts.revision.asc(), parts.item.asc())\
             .distinct(parts.drawing, parts.revision, parts.item).all()
 
@@ -3210,27 +3244,26 @@ def inspection_reports_manufactured_get_filtered_parts():
         else:
             return {
                 "status": "log",
-                "response": "no records found"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts, inspections, inspection_records])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
 # recycled methods
 
-def func_manufactured_get_associated_job_orders(inspection_id:int, search_term:str):
+def func_manufactured_get_associated_job_numbers(inspection_record_id:int, search_term:str):
 
     # define the output columns
     columns = [
-        job_orders.id,
-        job_orders.name,
-        job_orders.full_inspect_interval,
-        job_orders.released_qty,
-        job_orders.completed_qty,
+        job_numbers.id,
+        job_numbers.name,
+        job_numbers.full_inspect_interval,
+        job_numbers.released_qty,
+        job_numbers.completed_qty,
         parts.revision,
         parts.id
     ]
@@ -3242,14 +3275,14 @@ def func_manufactured_get_associated_job_orders(inspection_id:int, search_term:s
 
         # query the database
         results = session.query(*columns)\
-            .join(parts_job_orders, (parts_job_orders.job_order_id == job_orders.id))\
-            .join(parts, (parts.id == parts_job_orders.part_id))\
-            .join(measurement_sets, (measurement_sets.part_id == parts.id))\
-            .join(inspection_reports, (inspection_reports.id == measurement_sets.inspection_id))\
-            .filter(inspection_reports.id == inspection_id)\
-            .filter(or_(parts.revision.ilike(f"%{search_term}%"), job_orders.name.ilike(f"%{search_term}%")))\
-            .order_by(job_orders.name.asc())\
-            .distinct(job_orders.name).all()
+            .join(parts_job_numbers, (parts_job_numbers.job_number_id == job_numbers.id))\
+            .join(parts, (parts.id == parts_job_numbers.part_id))\
+            .join(inspections, (inspections.part_id == parts.id))\
+            .join(inspection_records, (inspection_records.id == inspections.inspection_record_id))\
+            .filter(inspection_records.id == inspection_record_id)\
+            .filter(or_(parts.revision.ilike(f"%{search_term}%"), job_numbers.name.ilike(f"%{search_term}%")))\
+            .order_by(job_numbers.name.asc())\
+            .distinct(job_numbers.name).all()
 
         # close the database session
         session.close()
@@ -3275,24 +3308,23 @@ def func_manufactured_get_associated_job_orders(inspection_id:int, search_term:s
         else:
             return {
                 "status": "log",
-                "response": "no records found"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts_job_numbers, job_numbers, parts, inspections, inspection_records])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
 #endregion
 
-#region inspection reports - received
+#region inspection records - received
 
 # routes
 
-@app.route("/inspection_reports/received_add_association/", methods = ["POST"])
-def inspection_reports_received_add_association():
+@app.route("/inspection_records/received/add_association/", methods = ["POST"])
+def inspection_records_received_add_association():
 
     # get the posted data
     form_data = json.loads(request.data)
@@ -3300,7 +3332,7 @@ def inspection_reports_received_add_association():
     # get the required parameters
     search_term = str(form_data["search_term"])
     target = str(form_data["target"])
-    inspection_id = int(form_data["inspection_id"])
+    inspection_record_id = int(form_data["inspection_record_id"])
     part_id = int(form_data["part_id"])
     item_id = int(form_data["item_id"])
 
@@ -3308,9 +3340,9 @@ def inspection_reports_received_add_association():
     if target == "receiver_numbers":
         return func_received_add_association(
             search_term,
-            inspection_id,
+            inspection_record_id,
             item_id,
-            inspection_id,
+            inspection_record_id,
             "receiver_number_id",
             "inspection_id",
             receiver_numbers,
@@ -3347,7 +3379,7 @@ def inspection_reports_received_add_association():
             "response": "supplied target does not match criteria"
         }
 
-@app.route("/inspection_reports/received_save_receiver_number_associations/", methods = ["POST"])
+@app.route("/inspection_records/received/save_receiver_number_associations/", methods = ["POST"])
 def inspection_reports_received_save_receiver_number_associations():
 
     # get the posted data
@@ -3632,18 +3664,19 @@ def func_received_delete_association(search_term:str, inspection_id:int, solo_id
         # open the database session
         session = Session(engine)
 
-        delete_query = delete(link_table)
-        
+        reflected_link_table = Table(link_table.__table__.name, MetaData(), autoload = True, autoload_with = engine)
 
-        # delete the associated record
-        rows_deleted = session.query(link_table)\
-            .filter(link_table.__table__.c[solo_link] == solo_id)\
-            .filter(link_table.__table__.c[record_link] == record_id)\
-            .delete()
+        # create the deletion query
+        delete_query = delete(reflected_link_table).where(and_(
+            getattr(reflected_link_table.c, solo_link) == solo_id,
+            getattr(reflected_link_table.c, record_link) == record_id
+        ))
+
+        # run the deletion query
+        session.execute(delete_query)
 
         # commit the changes
-        if rows_deleted > 0:
-            session.commit()
+        session.commit()
 
         # close the database session
         session.close()
@@ -3807,392 +3840,48 @@ def func_received_get_filtered_options(search_term:str, solo_table):
 
 #endregion
 
-#region inspection reports - metadata
-
-@app.route("/inspection_reports/metadata_save/", methods = ["POST"])
-def inspection_reports_metadata_save():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    inspection_id = int(form_data["inspection_id"])
-
-    try:
-
-        # open the database session
-        session = Session(engine)
-
-        # get the associated item and drawing values
-        part_query = session.query(parts.item, parts.drawing)\
-            .join(measurement_sets, (measurement_sets.part_id == parts.id))\
-            .join(inspection_reports, (inspection_reports.id == measurement_sets.inspection_id))\
-            .filter(inspection_reports.id == inspection_id).first()
-        if part_query is None:
-            return {
-                "status": "log",
-                "response": "part not found"
-            }
-        item, drawing = part_query
-
-        # update the inspection report
-        results = session.query(inspection_reports).filter(inspection_reports.id == inspection_id)
-        ir_is_affected = 0
-        for k, v in form_data["content"].items():
-            if v == "-1":
-                ir_is_affected = results.update({ k: None }, synchronize_session = False)
-            else:
-                ir_is_affected = results.update({ k: v }, synchronize_session = False)
-
-        # commit to then close the session
-        session.commit()
-        session.close()
-
-        # open the database session
-        session = Session(engine)
-
-        # update the quantities
-        pa_is_affected = 0
-        for obj in form_data["sub_data"]:
-            results = session.query(parts)\
-                .filter(parts.item.ilike(f"%{item}%"))\
-                .filter(parts.drawing.ilike(f"%{drawing}%"))\
-                .filter(parts.revision.ilike(f"%{obj['revision']}%"))
-            pa_is_affected = results.update({ "full_inspect_interval": obj["full_inspect_interval"] }, synchronize_session = False)
-            pa_is_affected = results.update({ "completed_qty": obj["completed_qty"] }, synchronize_session = False)
-            pa_is_affected = results.update({ "released_qty": obj["released_qty"] }, synchronize_session = False)
-
-        # commit to then close the session
-        session.commit()
-        session.close()
-
-        # return the response
-        if ir_is_affected > 0 and pa_is_affected > 0:
-            return {
-                "status": "ok",
-                "response": "tables 'inspection_reports' and 'parts' successfully updated"
-            }
-        else:
-            return {
-                "status": "alert",
-                "response": "no records in 'inspection_reports' and 'parts' updated"
-            }
-
-    except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
-        return {
-            "status": "log",
-            "response": error_msg
-        }
-
-@app.route("/inspection_reports/metadata_get_parameters/", methods = ["POST"])
-def inspection_reports_metadata_get_parameters():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    inspection_id = form_data["inspection_id"]
-
-    # define the required columns
-    columns = [
-        inspection_reports.material_type_id,
-        inspection_reports.supplier_id,
-        inspection_reports.job_order_id,
-        inspection_reports.employee_id,
-        inspection_reports.disposition_id
-    ]
-
-    try:
-
-        # open the database session
-        session = Session(engine)
-
-        # query the database
-        results = session.query(*columns)\
-            .filter(inspection_reports.id == inspection_id)\
-            .first()
-
-        # close the database session
-        session.close()
-
-        # return the results
-        if results is not None:
-            material_type_id, supplier_id, job_order_id, employee_id, disposition_id = results
-            return {
-                "status": "ok",
-                "response": {
-                    "material_type_id": material_type_id,
-                    "supplier_id": supplier_id,
-                    "job_order_id": job_order_id,
-                    "employee_id": employee_id,
-                    "disposition_id": disposition_id
-                }
-            }
-        else:
-            return {
-                "status": "log",
-                "response": "no matching inspection report found"
-            }
-
-    except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
-        return {
-            "status": "log",
-            "response": error_msg
-        }
-
-@app.route("/inspection_reports/metadata_get_matching_revisions/", methods = ["POST"])
-def inspection_reports_metadata_get_matching_revisions():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    item = form_data["item"]
-    drawing = form_data["drawing"]
-
-    try:
-
-        # open the database session
-        session = Session(engine)
-
-        # query the database
-        results = session.query(parts.id, parts.revision, parts.full_inspect_interval, parts.released_qty, parts.completed_qty)\
-            .filter(and_(func.lower(parts.item) == item.lower(), func.lower(parts.drawing) == drawing.lower())).all()
-
-        # close the database session
-        session.close()
-
-        # return the results
-        if len(results) > 0:
-            output_arr = []
-            for id, revision, full_inspect_interval, released_qty, completed_qty in results:
-                output_arr.append({
-                    "id": id,
-                    "revision": revision.upper(),
-                    "full_inspect_interval": full_inspect_interval,
-                    "released_qty": released_qty,
-                    "completed_qty": completed_qty
-                })
-            return {
-                "status": "ok",
-                "response": output_arr
-            }
-        else:
-            return {
-                "status": "log",
-                "response": "no matching parts found"
-            }
-
-    except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
-        return {
-            "status": "log",
-            "response": error_msg
-        }
-
-#endregion
-
-#region inspection reports - receiver numbers / purchase orders / lot numbers
+#region inspection records - lot numbers
 
 # routes
 
-@app.route("/inspection_reports/reciever_numbers_assign_association/", methods = ["POST"])
-def inspection_reports_reciever_numbers_assign_association():
+@app.route("/inspection_records/lot_numbers/assign_lot_number/", methods = ["POST"])
+def inspection_records_lot_numbers_assign_lot_number():
 
     # interpret the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
     search_term = str(form_data["search_term"])
-    inspection_id = int(form_data["inspection_id"])
-    receiver_number_id = int(form_data["receiver_number_id"])
-
-    # run the targeted method
-    return func_inspection_association_add(
-        search_term,
-        inspection_id,
-        receiver_number_id,
-        "receiver number",
-        "receiver_number_id",
-        receiver_numbers,
-        inspection_receiver_numbers
-    )
-
-@app.route("/inspection_reports/reciever_numbers_remove_association/", methods = ["POST"])
-def inspection_reports_reciever_numbers_remove_association():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    search_term = str(form_data["search_term"])
-    inspection_id = int(form_data["inspection_id"])
-    receiver_number_id = int(form_data["receiver_number_id"])
-
-    # run the targeted method
-    return func_inspection_association_remove(
-        search_term,
-        inspection_id,
-        receiver_number_id,
-        "receiver_number_id",
-        receiver_numbers,
-        inspection_receiver_numbers
-    )
-
-@app.route("/inspection_reports/receiver_numbers_get_filtered_options/", methods = ["POST"])
-def inspection_reports_receiver_numbers_get_filtered_options():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    search_term = str(form_data["search_term"])
-
-    return func_inspection_get_filtered_potential_associations(
-        search_term,
-        receiver_numbers,
-    )
-
-@app.route("/inspection_reports/receiver_numbers_get_filtered_associations/", methods = ["POST"])
-def inspection_reports_receiver_numbers_get_filtered_associations():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    search_term = str(form_data["search_term"])
-    inspection_id = int(form_data["inspection_id"])
-
-    return func_inspection_get_filtered_associations(
-        search_term,
-        inspection_id,
-        "receiver_number_id",
-        receiver_numbers,
-        inspection_receiver_numbers
-    )
-
-@app.route("/inspection_reports/purchase_orders_assign_association/", methods = ["POST"])
-def inspection_reports_purchase_orders_assign_association():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    search_term = str(form_data["search_term"])
-    inspection_id = int(form_data["inspection_id"])
-    purchase_order_id = int(form_data["purchase_order_id"])
-
-    # run the targeted method
-    return func_inspection_association_add(
-        search_term,
-        inspection_id,
-        purchase_order_id,
-        "purchase number",
-        "purchase_order_id",
-        purchase_orders,
-        inspection_purchase_orders
-    )
-
-@app.route("/inspection_reports/purchase_orders_remove_association/", methods = ["POST"])
-def inspection_reports_purchase_orders_remove_association():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    search_term = str(form_data["search_term"])
-    inspection_id = int(form_data["inspection_id"])
-    purchase_order_id = int(form_data["purchase_order_id"])
-
-    # run the targeted method
-    return func_inspection_association_remove(
-        search_term,
-        inspection_id,
-        purchase_order_id,
-        "purchase_order_id",
-        purchase_orders,
-        inspection_purchase_orders
-    )
-
-@app.route("/inspection_reports/purchase_orders_get_filtered_options/", methods = ["POST"])
-def inspection_reports_purchase_orders_get_filtered_options():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    search_term = str(form_data["search_term"])
-
-    return func_inspection_get_filtered_potential_associations(
-        search_term,
-        purchase_orders,
-    )
-
-@app.route("/inspection_reports/purchase_orders_get_filtered_associations/", methods = ["POST"])
-def inspection_reports_purchase_order_get_filtered_associations():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    search_term = str(form_data["search_term"])
-    inspection_id = int(form_data["inspection_id"])
-
-    return func_inspection_get_filtered_associations(
-        search_term,
-        inspection_id,
-        "purchase_order_id",
-        purchase_orders,
-        inspection_purchase_orders
-    )
-
-@app.route("/inspection_reports/lot_numbers_assign_association/", methods = ["POST"])
-def inspection_reports_lot_numbers_assign_association():
-
-    # interpret the posted data
-    form_data = json.loads(request.data)
-
-    # get the required parameters
-    search_term = str(form_data["search_term"])
-    inspection_id = int(form_data["inspection_id"])
+    inspection_record_id = int(form_data["inspection_record_id"])
     lot_number_id = int(form_data["lot_number_id"])
 
     # run the targeted method
-    return func_inspection_association_add(
+    return func_lot_numbers_assign(
         search_term,
-        inspection_id,
-        lot_number_id,
-        "lot number",
-        "lot_number_id",
-        lot_numbers,
-        inspection_lot_numbers
+        inspection_record_id,
+        lot_number_id
     )
 
-@app.route("/inspection_reports/lot_numbers_remove_association/", methods = ["POST"])
-def inspection_reports_lot_numbers_remove_association():
+@app.route("/inspection_records/lot_numbers/unassign_lot_number/", methods = ["POST"])
+def inspection_records_lot_numbers_unassign_lot_number():
 
     # interpret the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
     search_term = str(form_data["search_term"])
-    inspection_id = int(form_data["inspection_id"])
+    inspection_record_id = int(form_data["inspection_record_id"])
     lot_number_id = int(form_data["lot_number_id"])
 
     # run the targeted method
-    return func_inspection_association_remove(
+    return func_lot_numbers_association_remove(
         search_term,
-        inspection_id,
-        lot_number_id,
-        "lot_number_id",
-        lot_numbers,
-        inspection_lot_numbers
+        inspection_record_id,
+        lot_number_id
     )
 
-@app.route("/inspection_reports/lot_numbers_get_filtered_options/", methods = ["POST"])
-def inspection_reports_lot_numbers_get_filtered_options():
+@app.route("/inspection_records/lot_numbers/get_filtered_options/", methods = ["POST"])
+def inspection_records_lot_numbers_get_filtered_options():
 
     # interpret the posted data
     form_data = json.loads(request.data)
@@ -4200,32 +3889,28 @@ def inspection_reports_lot_numbers_get_filtered_options():
     # get the required parameters
     search_term = str(form_data["search_term"])
 
-    return func_inspection_get_filtered_potential_associations(
-        search_term,
-        lot_numbers,
+    return func_lot_numbers_get_filtered_potential_associations(
+        search_term
     )
 
-@app.route("/inspection_reports/lot_numbers_get_filtered_associations/", methods = ["POST"])
-def inspection_reports_lot_numbers_get_filtered_associations():
+@app.route("/inspection_records/lot_numbers/get_filtered_associations/", methods = ["POST"])
+def inspection_records_lot_numbers_get_filtered_associations():
 
     # interpret the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
     search_term = str(form_data["search_term"])
-    inspection_id = int(form_data["inspection_id"])
+    inspection_record_id = int(form_data["inspection_record_id"])
 
-    return func_inspection_get_filtered_associations(
+    return func_lot_numbers_get_filtered_associations(
         search_term,
-        inspection_id,
-        "lot_number_id",
-        lot_numbers,
-        inspection_lot_numbers
+        inspection_record_id
     )
 
 # recycled methods
 
-def func_inspection_association_add(search_term:str, inspection_id:int, id:int, descriptor:str, link_field:str, solo_table, link_table):
+def func_lot_numbers_assign(search_term:str, inspection_record_id:int, lot_number_id:int):
 
     try:
 
@@ -4233,44 +3918,40 @@ def func_inspection_association_add(search_term:str, inspection_id:int, id:int, 
         session = Session(engine)
 
         # measurement_set if the association already exists
-        results = session.query(link_table.inspection_id)\
-            .filter(and_(link_table.inspection_id == inspection_id, link_table.__table__.c[link_field] == id)).all()
+        results = session.query(inspection_records_lot_numbers.inspection_id)\
+            .filter(inspection_records_lot_numbers.inspection_id == inspection_record_id)\
+            .filter(inspection_records_lot_numbers.lot_number_id == lot_number_id).all()
 
         # logic gate
         if len(results) > 0:
             session.close()
             return {
                 "status": "alert",
-                "response": f"this {descriptor} association already exists"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [inspection_records_lot_numbers])
             }
 
         # add the new association
-        kwargs = {
-            "inspection_id": inspection_id,
-            link_field: id
-        }
-        session.add(link_table(**kwargs))
+        session.add(inspection_records_lot_numbers(**{
+            "inspection_id": inspection_record_id,
+            "lot_number_id": lot_number_id
+        }))
         session.commit()
 
         # close the session
         session.close()
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
-    
-    return func_inspection_get_filtered_associations(
+
+    return func_lot_numbers_get_filtered_associations(
         search_term,
-        inspection_id,
-        link_field,
-        solo_table,
-        link_table
+        inspection_record_id
     )
 
-def func_inspection_association_remove(search_term:str, inspection_id:int, id:int, link_field:str, solo_table, link_table):
+def func_lot_numbers_association_remove(search_term:str, inspection_record_id:int, lot_number_id:int):
 
     try:
 
@@ -4278,8 +3959,9 @@ def func_inspection_association_remove(search_term:str, inspection_id:int, id:in
         session = Session(engine)
 
         # delete the record that matches the provided criteria
-        deleted_count = session.query(link_table)\
-            .filter(and_(link_table.inspection_id == inspection_id, link_table.__table__.c[link_field] == id))\
+        deleted_count = session.query(inspection_records_lot_numbers)\
+            .filter(inspection_records_lot_numbers.inspection_record_id == inspection_record_id)\
+            .filter(inspection_records_lot_numbers.lot_number_id == lot_number_id)\
             .delete()
 
         # logic gate
@@ -4287,7 +3969,7 @@ def func_inspection_association_remove(search_term:str, inspection_id:int, id:in
             session.close()
             return {
                 "status": "alert",
-                "response": f"no records deleted from {link_table.__table__.name}; none matched the provided criteria"
+                "response": text_response(stack()[0][3], message_type.records_not_deleted, tables = [inspection_records_lot_numbers])
             }
         else:
             session.commit()
@@ -4296,15 +3978,14 @@ def func_inspection_association_remove(search_term:str, inspection_id:int, id:in
         session.close()
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-    return func_inspection_get_filtered_associations(search_term, inspection_id, link_field, solo_table, link_table)
+    return func_lot_numbers_get_filtered_associations(search_term, inspection_record_id)
 
-def func_inspection_get_filtered_associations(search_term:str, inspection_id:int, link_field:str, solo_table, link_table):
+def func_lot_numbers_get_filtered_associations(search_term:str, inspection_record_id:int):
 
     try:
 
@@ -4312,12 +3993,12 @@ def func_inspection_get_filtered_associations(search_term:str, inspection_id:int
         session = Session(engine)
 
         # query the database
-        results = session.query(solo_table.id, solo_table.name)\
-            .join(link_table, (solo_table.id == link_table.__table__.c[link_field]))\
-            .join(inspection_reports, (inspection_reports.id == link_table.inspection_id))\
-            .filter(inspection_reports.id == inspection_id)\
-            .filter(solo_table.name.ilike(f"%{search_term}%"))\
-            .order_by(solo_table.name.asc()).all()
+        results = session.query(lot_numbers.id, lot_numbers.name)\
+            .join(inspection_records_lot_numbers, (lot_numbers.id == inspection_records_lot_numbers.lot_number_id))\
+            .join(inspection_records, (inspection_records.id == inspection_records_lot_numbers.inspection_record_id))\
+            .filter(inspection_records.id == inspection_record_id)\
+            .filter(lot_numbers.name.ilike(f"%{search_term}%"))\
+            .order_by(lot_numbers.name.asc()).all()
 
         # close the session
         session.close()
@@ -4328,35 +4009,27 @@ def func_inspection_get_filtered_associations(search_term:str, inspection_id:int
             output_arr = []
             for id, name in results:
                 output_arr.append({
-                    "inspection_id": inspection_id,
                     "id": id,
                     "name": name
                 })
 
             return {
                 "status": "ok",
-                "response": {
-                    "size": arr_size,
-                    "data": output_arr
-                }
+                "response": output_arr
             }
         else:
             return {
                 "status": "ok",
-                "response": {
-                    "size": 0,
-                    "message":f"no connection found between 'inspection_reports', '{solo_table.__table__.name}', and '{link_table.__table__.name}'"
-                }
+                "response": text_response(stack()[0][3], message_type.no_association_found, tables = [lot_numbers, inspection_records, inspection_records_lot_numbers])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-def func_inspection_get_filtered_potential_associations(search_term:str, solo_table):
+def func_lot_numbers_get_filtered_potential_associations(search_term:str):
 
     try:
 
@@ -4364,9 +4037,9 @@ def func_inspection_get_filtered_potential_associations(search_term:str, solo_ta
         session = Session(engine)
 
         # query the database
-        results = session.query(solo_table.id, solo_table.name)\
-            .filter(solo_table.name.ilike(f"%{search_term}%"))\
-            .order_by(solo_table.name.asc())\
+        results = session.query(lot_numbers.id, lot_numbers.name)\
+            .filter(lot_numbers.name.ilike(f"%{search_term}%"))\
+            .order_by(lot_numbers.name.asc())\
             .all()
 
         # close the session
@@ -4388,30 +4061,29 @@ def func_inspection_get_filtered_potential_associations(search_term:str, solo_ta
         else:
             return {
                 "status": "log",
-                "response": f"no matching records found in '{solo_table.__table__.name}'"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [lot_numbers])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
 #endregion
 
-#region inspection reports - deviations
+#region inspection records - deviations
 
 # routes
 
-@app.route("/inspection_reports/deviations_save/", methods = ["POST"])
-def inspection_reports_save_deviations():
+@app.route("/inspection_records/deviations/save_deviations/", methods = ["POST"])
+def inspection_records_deviations_save_deviations():
 
     # interpret the posted data
     form_data = json.loads(request.data)
-    
+
     # extract the required information
-    measurement_id = int(form_data["measurement_id"])
+    feature_id = int(form_data["feature_id"])
     data = list(form_data["data"])
 
     try:
@@ -4425,8 +4097,6 @@ def inspection_reports_save_deviations():
             deviation_id = int(row["id"])
             results = session.query(deviations).filter(deviations.id == deviation_id)
 
-
-
             is_affected = results.update({
                 "nominal": float(row["nominal"]),
                 "usl": float(row["usl"]),
@@ -4436,7 +4106,7 @@ def inspection_reports_save_deviations():
                 "notes": str(row["notes"]),
                 "deviation_type_id": int(row["deviation_type_id"]),
                 "employee_id": int(row["employee_id"]),
-                "measurement_id": measurement_id
+                "feature_id": feature_id
             })
 
             if is_affected > 0:
@@ -4452,39 +4122,38 @@ def inspection_reports_save_deviations():
         if rows_affected > 0:
             return {
                 "status": "alert",
-                "response": f"{rows_affected} record(s) in 'deviations' has been successfully updated"
+                "response": text_response(stack()[0][3], message_type.records_updated, qty = rows_affected, tables = [deviations])
             }
         else:
             return {
                 "status": "log",
-                "response": "no records in 'deviations' have been updated"
+                "response": text_response(stack()[0][3], message_type.records_not_updated, tables = [deviations])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/deviations_add_deviation/", methods = ["POST"])
+@app.route("/inspection_reports/deviations/add_deviation/", methods = ["POST"])
 def inspection_reports_deviations_add_deviation():
 
     # interpret the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
-    measurement_id = int(form_data["measurement_id"])
+    feature_id = int(form_data["feature_id"])
 
     try:
 
         # open the database session
         session = Session(engine)
 
-        # get the measurement set's employee
-        employee_id = session.query(measurement_sets.employee_id)\
-            .join(measurements, (measurements.measurement_set_id == measurement_sets.id))\
-            .filter(measurements.id == measurement_id)\
+        # get the inspection's employee
+        employee_id = session.query(inspections.employee_id)\
+            .join(features, (features.inspection_id == inspections.id))\
+            .filter(features.id == feature_id)\
             .first()[0]
 
         # add the placeholder data to the database
@@ -4497,7 +4166,7 @@ def inspection_reports_deviations_add_deviation():
             notes = "none",
             deviation_type_id = 0,
             employee_id = employee_id,
-            measurement_id = measurement_id
+            feature_id = feature_id
         )
         session.add(new_record)
         session.commit()
@@ -4506,23 +4175,22 @@ def inspection_reports_deviations_add_deviation():
         session.close()
 
         # return the new deviation data
-        return func_deviations_get_measurement_deviations(measurement_id)
+        return func_deviations_get_feature_deviations(feature_id)
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/deviations_delete_deviation/", methods = ["POST"])
+@app.route("/inspection_reports/deviations/delete_deviation/", methods = ["POST"])
 def inspection_reports_deviations_delete_deviation():
 
     # interpret the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
-    measurement_id = int(form_data["measurement_id"])
+    feature_id = int(form_data["feature_id"])
     deviation_id = int(form_data["deviation_id"])
 
     try:
@@ -4538,7 +4206,7 @@ def inspection_reports_deviations_delete_deviation():
             session.close()
             return {
                 "status": "log",
-                "response": "no records deleted in 'deviations'"
+                "response": text_response(stack()[0][3], message_type.records_not_deleted, tables = [deviations])
             }
 
         # commit the changes
@@ -4548,30 +4216,29 @@ def inspection_reports_deviations_delete_deviation():
         session.close()
 
         # return the updated deviations
-        return func_deviations_get_measurement_deviations(measurement_id)
+        return func_deviations_get_feature_deviations(feature_id)
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_reports/deviations_get_measurement_deviations/", methods = ["POST"])
-def inspection_reports_deviations_get_measurement_deviations():
+@app.route("/inspection_reports/deviations/get_feature_deviations/", methods = ["POST"])
+def inspection_reports_deviations_get_feature_deviations():
 
     # interpret the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
-    measurement_id = int(form_data["measurement_id"])
+    feature_id = int(form_data["feature_id"])
 
     # return the results
-    return func_deviations_get_measurement_deviations(measurement_id)
+    return func_deviations_get_feature_deviations(feature_id)
 
 # recycled methods
 
-def func_deviations_get_measurement_deviations(measurement_id:int):
+def func_deviations_get_feature_deviations(feature_id:int):
 
     # define the columns
     columns = [
@@ -4598,7 +4265,7 @@ def func_deviations_get_measurement_deviations(measurement_id:int):
         results = session.query(*columns)\
             .join(employees, (employees.id == deviations.employee_id))\
             .join(deviation_types, (deviation_types.id == deviations.deviation_type_id))\
-            .filter(deviations.measurement_id == measurement_id)\
+            .filter(deviations.feature_id == feature_id)\
             .order_by(deviations.id.asc())\
             .distinct(deviations.id).all()
 
@@ -4640,14 +4307,13 @@ def func_deviations_get_measurement_deviations(measurement_id:int):
         else:
             return {
                 "status": "log",
-                "response": "no matching deviations found"
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [deviations, employees, deviation_types])
             }
 
     except SQLAlchemyError as e:
-        error_msg = str(e.__dict__["orig"])
         return {
             "status": "log",
-            "response": error_msg
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
 #endregion
