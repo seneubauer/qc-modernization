@@ -191,7 +191,7 @@ create table purchase_orders
     constraint uc_purchase_orders unique (id),
 
     -- one purchase order is related to one supplier
-    supplier_id integer not null unique,
+    supplier_id integer not null,
     constraint fk_supplier_id foreign key (supplier_id) references suppliers(id)
 );
 
@@ -205,8 +205,8 @@ create table receiver_numbers
     constraint pk_receiver_numbers primary key (id),
     constraint uc_receiver_numbers unique (id),
 
-    -- many receiver numbers relate to one purchase order
-    purchase_order_id integer not null,
+    -- many receiver numbers can relate to one purchase order
+    purchase_order_id integer,
     constraint fk_purchase_order_id foreign key (purchase_order_id) references purchase_orders(id)
 );
 

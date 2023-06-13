@@ -3,8 +3,8 @@
 const navbar_info = d3.select("#navbar_info");
 
 // characteristics
-const vw_measurements_table = d3.select("#measurements_table");
-const vw_measurements_table_contextmenu = d3.select("#measurements_table_contextmenu");
+const vw_features_table = d3.select("#measurements_table");
+const vw_features_table_contextmenu = d3.select("#measurements_table_contextmenu");
 
 // inspection_reports
 const ir_button_new = d3.select("#inspection_reports_new");
@@ -45,7 +45,7 @@ const ms_ul_list_contextmenu = d3.select("#measurement_sets_list_contextmenu");
 const mt_button_update_display = d3.select("#measurements_apply_filter");
 const mt_button_save_characteristics = d3.select("#measurements_save_changes");
 const mt_select_display_type = d3.select("#measurements_display_type");
-const mt_select_measurement_type = d3.select("#measurements_measurement_type");
+const mt_select_inspection_type = d3.select("#measurements_measurement_type");
 const mt_input_name = d3.select("#measurements_dimension_name");
 const mt_select_frequency_type = d3.select("#measurements_frequency_type");
 const mt_select_has_deviations = d3.select("#measurements_has_deviations");
@@ -60,49 +60,30 @@ const mt_select_revision = d3.select("#measurements_revision");
 // manufactured
 const mn_button_add_job_order = d3.select("#manufactured_job_order_add");
 const mn_button_save_job_order = d3.select("#manufactured_job_order_save");
-const mn_input_job_order_search = d3.select("#manufactured_job_order_search_term");
+const mn_input_job_number_search = d3.select("#manufactured_job_order_search_term");
 const mn_select_job_order = d3.select("#manufactured_job_order");
 const mn_input_part_search = d3.select("#manufactured_part_search_term");
 const mn_select_part = d3.select("#manufactured_part");
-const mn_input_job_order_display_filter = d3.select("#manufactured_job_order_display_filter");
+const mn_input_job_number_display_filter = d3.select("#manufactured_job_order_display_filter");
 const mn_ul_list = d3.select("#manufactured_job_order_list");
 const mn_ul_list_contextmenu = d3.select("#manufactured_job_order_list_contextmenu");
 
 // received
-const rc_button_add_receiver_number = d3.select("#received_receiver_number_add");
 const rc_button_add_purchase_order = d3.select("#received_purchase_order_add");
-const rc_button_add_supplier = d3.select("#received_supplier_add");
-const rc_button_save_receiver_number = d3.select("#received_receiver_number_save");
-const rc_input_receiver_number_search = d3.select("#received_receiver_number_search_term");
+const rc_button_add_receiver_number = d3.select("#received_receiver_number_add");
+const rc_button_save_received_quantities = d3.select("#received_save_received_quantities");
 const rc_input_purchase_order_search = d3.select("#received_purchase_order_search_term");
-const rc_input_supplier_search = d3.select("#received_supplier_search_term");
-const rc_select_receiver_number = d3.select("#received_receiver_number");
 const rc_select_purchase_order = d3.select("#received_purchase_order");
+const rc_input_receiver_number_search = d3.select("#received_receiver_number_search_term");
+const rc_select_receiver_number = d3.select("#received_receiver_number");
+const rc_input_supplier_search = d3.select("#received_supplier_search_term");
 const rc_select_supplier = d3.select("#received_supplier");
-const rc_input_part_search = d3.select("#received_part_search_term");
-const rc_select_part = d3.select("#received_part");
-const rc_input_receiver_number_display_filter = d3.select("#received_receiver_number_display_filter");
 const rc_input_purchase_order_display_filter = d3.select("#received_purchase_order_display_filter");
-const rc_input_supplier_display_filter = d3.select("#received_supplier_display_filter");
-const rc_ul_receiver_number_list = d3.select("#received_receiver_number_list");
+const rc_input_receiver_number_display_filter = d3.select("#received_receiver_number_display_filter");
 const rc_ul_purchase_order_list = d3.select("#received_purchase_order_list");
-const rc_ul_supplier_list = d3.select("#received_suppliers_list");
+const rc_ul_receiver_number_list = d3.select("#received_receiver_number_list");
 const rc_ul_receiver_number_list_contextmenu = d3.select("#received_receiver_number_list_context_menu");
 const rc_ul_purchase_order_list_contextmenu = d3.select("#received_purchase_order_list_context_menu");
-const rc_ul_supplier_list_contextmenu = d3.select("#received_supplier_list_context_menu");
-
-const rn_input_selected_search_term = d3.select("#receiver_numbers_selected_search_term");
-const rn_select_selected = d3.select("#receiver_numbers_selected");
-const rn_input_search_term = d3.select("#receiver_numbers_search_term");
-const rn_button_add = d3.select("#receiver_numbers_add");
-const rn_ul_list = d3.select("#receiver_numbers_list");
-
-// purchase orders
-const po_input_selected_search_term = d3.select("#purchase_orders_selected_search_term");
-const po_select_selected = d3.select("#purchase_orders_selected");
-const po_input_search_term = d3.select("#purchase_orders_search_term");
-const po_button_add = d3.select("#purchase_orders_add");
-const po_ul_list = d3.select("#purchase_orders_list");
 
 // lot numbers
 const ln_input_selected_search_term = d3.select("#lot_numbers_selected_search_term");
@@ -124,7 +105,7 @@ var glist_employees = null;
 var glist_gauge_ids = null;
 var glist_deviations = null;
 var glist_material_types = null;
-var glist_measurement_types = null;
+var glist_inspection_types = null;
 var glist_dispositions = null;
 
 // open panel
@@ -209,8 +190,8 @@ async function init()
         if (ms_ul_list_contextmenu.style("display") == "block") {
             ms_ul_list_contextmenu.style("display", "none");
         }
-        if (vw_measurements_table_contextmenu.style("display") == "block") {
-            vw_measurements_table_contextmenu.style("display", "none");
+        if (vw_features_table_contextmenu.style("display") == "block") {
+            vw_features_table_contextmenu.style("display", "none");
         }
         if (mn_ul_list_contextmenu.style("display") == "block") {
             mn_ul_list_contextmenu.style("display", "none");
@@ -220,9 +201,6 @@ async function init()
         }
         if (rc_ul_receiver_number_list_contextmenu.style("display") == "block") {
             rc_ul_receiver_number_list_contextmenu.style("display", "none");
-        }
-        if (rc_ul_supplier_list_contextmenu.style("display") == "block") {
-            rc_ul_supplier_list_contextmenu.style("display", "none");
         }
         if (dv_ul_list_contextmenu.style("display") == "block") {
             dv_ul_list_contextmenu.style("display", "none");
@@ -303,11 +281,11 @@ function retrieve_global_enumerations()
     });
 
     // measurement types
-    d3.json("/get_all_measurement_types/", {
+    d3.json("/get_all_inspection_types/", {
         method: "GET"
     }).then((json) => {
         if (json.status == "ok") {
-            glist_measurement_types = json.response;
+            glist_inspection_types = json.response;
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -406,14 +384,14 @@ async function inspection_records_prepare_panel()
 
 async function inspection_records_create_new_report()
 {
-    await d3.json("/inspection_reports/inspection_reports_create_new_report/", {
+    await d3.json("/inspection_records/inspection_records/create_new_record/", {
         method: "POST",
         body: JSON.stringify({
             part_id: ir_select_part_new.property("value"),
             schema_id: ir_select_schema_new.property("value"),
             employee_id: ir_select_employee_new.property("value"),
             part_search_term: ir_input_part_list.property("value"),
-            job_order_search_term: ir_input_job_order_list.property("value"),
+            job_number_search_term: ir_input_job_order_list.property("value"),
             started_after: ir_input_started_after_list.property("value"),
             finished_before: ir_input_finished_before_list.property("value")
         }),
@@ -442,7 +420,7 @@ async function inspection_records_refresh_list()
     await inspection_records_update_filtered_reports();
 }
 
-async function inspection_records_delete(inspection_id)
+async function inspection_records_delete(inspection_record_id)
 {
     // request confirmation
     if (!confirm("This action will remove records from the database. Continue?")) {
@@ -450,14 +428,14 @@ async function inspection_records_delete(inspection_id)
     }
 
     // query the flask server
-    await d3.json("/inspection_reports/inspection_reports_delete/", {
+    await d3.json("/inspection_records/inspection_records/delete_record/", {
         method: "POST",
         body: JSON.stringify({
             part_search_term: ir_input_part_list.property("value"),
-            job_order_search_term: ir_input_job_order_list.property("value"),
+            job_number_search_term: ir_input_job_order_list.property("value"),
             started_after: ir_input_started_after_list.property("value"),
             finished_before: ir_input_finished_before_list.property("value"),
-            inspection_id: inspection_id
+            inspection_record_id: inspection_record_id
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -466,8 +444,8 @@ async function inspection_records_delete(inspection_id)
         if (json.status == "ok") {
 
             // clear the characteristic table
-            vw_measurements_table.select("thead").selectAll("th").remove();
-            vw_measurements_table.select("tbody").selectAll("td").remove();
+            vw_features_table.select("thead").selectAll("th").remove();
+            vw_features_table.select("tbody").selectAll("td").remove();
 
             // repopulate the inspection report list
             inspection_records_repopulate_report_list(json.response);
@@ -483,7 +461,7 @@ async function inspection_records_delete(inspection_id)
 
 async function inspection_records_update_filtered_reports()
 {
-    await d3.json("/inspection_reports/inspection_reports_get_filtered_reports/", {
+    await d3.json("/inspection_records/inspection_records/get_filtered_records/", {
         method: "POST",
         body: JSON.stringify({
             part: ir_input_part_list.property("value"),
@@ -494,7 +472,7 @@ async function inspection_records_update_filtered_reports()
             disposition: ir_input_disposition_list.property("value"),
             receiver_number: ir_input_receiver_number_list.property("value"),
             purchase_order: ir_input_purchase_order_list.property("value"),
-            job_order: ir_input_job_order_list.property("value"),
+            job_number: ir_input_job_order_list.property("value"),
             lot_number: ir_input_lot_number_list.property("value"),
             supplier: ir_input_supplier_list.property("value")
         }),
@@ -545,7 +523,7 @@ async function inspection_records_repopulate_report_list(data)
 
             // delete inspection report
             ir_ul_list_contextmenu.select("#context_menu_0").on("click", async () => {
-                await inspection_records_delete(x.inspection_id);
+                await inspection_records_delete(x.inspection_record_id);
                 ir_ul_list_contextmenu.style("display", "none");
             });
 
@@ -643,19 +621,19 @@ async function inspection_records_report_selected(event, data)
     set_disabled_state(false);
 
     // prepare the measurement sets panel
-    await inspections_prepare_panel(data.inspection_id, data.item, data.drawing);
+    await inspections_prepare_panel(data.inspection_record_id, data.item, data.drawing);
 
     // populate the measurements panel
-    await measurements_prepare_panel(data.inspection_id, data.item, data.drawing);    
+    await features_prepare_panel(data.inspection_record_id, data.item, data.drawing);    
 
     // populate the manufactured panel
-    await manufactured_prepare_panel(data.inspection_id);
+    await manufactured_prepare_panel(data.inspection_record_id);
 
     // populate the received panel
-    await received_prepare_panel(data.inspection_id);
+    await received_prepare_panel(data.inspection_record_id);
 
     // populate the lot numbers panel
-    await lot_numbers_prepare_panel(data.inspection_id);
+    await lot_numbers_prepare_panel(data.inspection_record_id);
 }
 
 async function inspection_records_report_unselected()
@@ -679,13 +657,13 @@ async function inspection_records_report_unselected()
     ms_ul_list.selectAll("li").remove();
 
     // depopulate the measurements
-    vw_measurements_table.selectAll("thead").remove();
-    vw_measurements_table.selectAll("tbody").remove();
+    vw_features_table.selectAll("thead").remove();
+    vw_features_table.selectAll("tbody").remove();
 }
 
 async function inspection_records_update_part_selector()
 {
-    await d3.json("/inspection_reports/inspection_reports_get_filtered_parts/", {
+    await d3.json("/inspection_records/inspection_records/get_filtered_parts/", {
         method: "POST",
         body: JSON.stringify({
             search_term: ir_input_part_new.property("value")
@@ -717,7 +695,7 @@ async function inspection_records_update_part_selector()
 
 async function inspection_records_update_schema_selector()
 {
-    await d3.json("/inspection_reports/inspection_reports_get_filtered_schemas/", {
+    await d3.json("/inspection_records/inspection_records/get_filtered_schemas/", {
         method: "POST",
         body: JSON.stringify({
             search_term: ir_input_part_new.property("value"),
@@ -757,7 +735,7 @@ async function inspection_records_update_schema_selector()
 
 async function inspection_records_update_employee_selector()
 {
-    await d3.json("/inspection_reports/inspection_reports_get_filtered_employees/", {
+    await d3.json("/inspection_records/inspection_records/get_filtered_employees/", {
         method: "POST",
         body: JSON.stringify({
             search_term: ir_input_employee_new.property("value")
@@ -791,36 +769,36 @@ async function inspection_records_update_employee_selector()
 
 // #region inspections
 
-async function inspections_prepare_panel(inspection_id, item, drawing)
+async function inspections_prepare_panel(inspection_record_id, item, drawing)
 {
     // clear out filters
     ms_input_schema_filter.property("value", "");
     ms_input_employee_filter.property("value", "");
 
     // populate the selectors
-    await inspections_update_set_schemas(inspection_id);
+    await inspections_update_set_schemas(inspection_record_id);
     await inspections_update_employees();
 
     // set up static input events
-    ms_input_schema_filter.on("change", () => inspections_update_set_schemas(inspection_id));
+    ms_input_schema_filter.on("change", () => inspections_update_set_schemas(inspection_record_id));
     ms_input_employee_filter.on("change", inspections_update_employees);
 
     // set up static button events
-    ms_button_create_new_set.on("click", () => inspections_create_new_set(inspection_id, item, drawing));
-    ms_button_refresh_list.on("click", () => inspections_refresh_list(inspection_id, item, drawing));
+    ms_button_create_new_set.on("click", () => inspections_create_new_set(inspection_record_id, item, drawing));
+    ms_button_refresh_list.on("click", () => inspections_refresh_list(inspection_record_id, item, drawing));
     ms_button_save_edits.on("click", inspections_save_edits);
 
     // populate the measurement set list
-    await inspections_update_filtered_sets(inspection_id);
+    await inspections_update_filtered_sets(inspection_record_id);
 }
 
-async function inspections_create_new_set(inspection_id, item, drawing)
+async function inspections_create_new_set(inspection_record_id, item, drawing)
 {
     // create a new set and repopulate the list display
-    await d3.json("/inspection_reports/measurement_sets_add_set/", {
+    await d3.json("/inspection_records/inspections/add_inspection/", {
         method: "POST",
         body: JSON.stringify({
-            inspection_id: inspection_id,
+            inspection_record_id: inspection_record_id,
             schema_id: ms_select_schema.property("value"),
             employee_id: ms_select_employee.property("value"),
             search_term: ms_input_display_filter.property("value")
@@ -841,15 +819,15 @@ async function inspections_create_new_set(inspection_id, item, drawing)
     });
 
     // refresh the measurement filter options
-    await measurements_get_filter_parameter_data(inspection_id, item, drawing);
+    await features_get_filter_parameters(inspection_id, item, drawing);
 
     // refresh the displayed measurements
-    await measurements_get_filtered_measurements(inspection_id, item, drawing);
+    await features_get_filtered_features(inspection_id, item, drawing);
 }
 
 async function inspections_save_edits()
 {
-    await d3.json("/inspection_reports/measurement_sets_save_edits/", {
+    await d3.json("/inspection_records/inspections/save_edits/", {
         method: "POST",
         body: JSON.stringify({
             data: ms_ul_list.selectAll("li").data()
@@ -870,19 +848,19 @@ async function inspections_save_edits()
     });
 }
 
-async function inspections_refresh_list(inspection_id, item, drawing)
+async function inspections_refresh_list(inspection_record_id, item, drawing)
 {
-    await inspections_update_filtered_sets(inspection_id);
-    await measurements_get_filtered_measurements(inspection_id, item, drawing);
+    await inspections_update_filtered_sets(inspection_record_id);
+    await features_get_filtered_features(inspection_record_id, item, drawing);
 }
 
-async function inspections_delete_set(measurement_set_id, inspection_id, item, drawing)
+async function inspections_delete_set(measurement_set_id, inspection_record_id, item, drawing)
 {
     // delete the selected set and repopulate the list display
-    await d3.json("/inspection_reports/measurement_sets_delete_set/", {
+    await d3.json("/inspection_records/inspections/delete_inspection/", {
         method: "POST",
         body: JSON.stringify({
-            inspection_id: inspection_id,
+            inspection_record_id: inspection_record_id,
             measurement_set_id: measurement_set_id,
             search_term: ms_input_display_filter.property("value")
         }),
@@ -902,18 +880,18 @@ async function inspections_delete_set(measurement_set_id, inspection_id, item, d
     });
     
     // refresh the measurement filter options
-    await measurements_get_filter_parameter_data(inspection_id, item, drawing);
+    await features_get_filter_parameters(inspection_id, item, drawing);
 
     // refresh the displayed measurements
-    await measurements_get_filtered_measurements(inspection_id, item, drawing);
+    await features_get_filtered_features(inspection_id, item, drawing);
 }
 
-async function inspections_update_filtered_sets(inspection_id)
+async function inspections_update_filtered_sets(inspection_record_id)
 {
-    await d3.json("/inspection_reports/measurement_sets_get_filtered_sets/", {
+    await d3.json("/inspection_records/inspections/get_filtered_inspections/", {
         method: "POST",
         body: JSON.stringify({
-            inspection_id: inspection_id,
+            inspection_record_id: inspection_record_id,
             search_term: ms_input_display_filter.property("value")
         }),
         headers: {
@@ -960,7 +938,7 @@ async function inspections_repopulate_set_list(data)
 
             // delete the set
             ms_ul_list_contextmenu.select("#context_menu_0").on("click", () => {
-                inspections_delete_set(x.measurement_set_id, x.inspection_id, x.item, x.drawing);
+                inspections_delete_set(x.measurement_set_id, x.inspection_record_id, x.item, x.drawing);
                 ms_ul_list_contextmenu.style("display", "none");
             });
 
@@ -1013,19 +991,19 @@ async function inspections_repopulate_set_list(data)
         .style("--grid-row", "1")
         .attr("class", "list-item-label-dark")
         .property("value", (x) => x.revision);
-    let measurement_type_select = items.append("select");
-    measurement_type_select.selectAll("option")
-        .data(glist_measurement_types)
+    let inspection_type_select = items.append("select");
+    inspection_type_select.selectAll("option")
+        .data(glist_inspection_types)
         .join("option")
         .attr("value", (x) => x.id)
         .text((x) => x.name);
-    measurement_type_select
+    inspection_type_select
         .style("--grid-column", "5")
         .style("--grid-row", "1")
         .attr("class", "list-item-select-dark")
-        .property("value", (x) => x.measurement_type_id)
+        .property("value", (x) => x.inspection_type_id)
         .on("change", (e, x) => {
-            x.measurement_type_id == e.srcElement.value;
+            x.inspection_type_id == e.srcElement.value;
         });
     items.append("input")
         .style("--grid-column", "6")
@@ -1035,16 +1013,16 @@ async function inspections_repopulate_set_list(data)
         .property("checked", (x) => x.display_state)
         .on("change", (e, x) => {
             x.display_state = e.srcElement.checked;
-            measurements_get_filtered_measurements(x.inspection_id, x.item, x.drawing);
+            features_get_filtered_features(x.inspection_id, x.item, x.drawing);
         });
 }
 
-async function inspections_update_set_schemas(inspection_id)
+async function inspections_update_set_schemas(inspection_record_id)
 {
-    await d3.json("/inspection_reports/measurement_sets_get_filtered_set_schemas/", {
+    await d3.json("/inspection_records/inspections/get_filtered_schemas/", {
         method: "POST",
         body: JSON.stringify({
-            inspection_id: inspection_id,
+            inspection_record_id: inspection_record_id,
             search_term: ms_input_schema_filter.property("value")
         }),
         headers: {
@@ -1106,56 +1084,56 @@ async function inspections_update_employees()
 
 // #endregion
 
-// #region measurements
+// #region features
 
-async function measurements_prepare_panel(inspection_id, item, drawing)
+async function features_prepare_panel(inspection_record_id, item, drawing)
 {
     // clear out filters
     ms_input_schema_filter.property("value", "");
     ms_input_employee_filter.property("value", "");
 
     // populate the selectors
-    await measurements_get_filter_parameter_data(inspection_id, item, drawing);
+    await features_get_filter_parameters(inspection_record_id, item, drawing);
 
     // set up static input events
     mt_input_name.on("click", (e, _) => { e.srcElement.select(); });
 
     // set up static button events
-    mt_button_update_display.on("click", () => measurements_get_filtered_measurements(inspection_id, item, drawing));
-    mt_button_save_characteristics.on("click", measurements_save_edits);
+    mt_button_update_display.on("click", () => features_get_filtered_features(inspection_record_id, item, drawing));
+    mt_button_save_characteristics.on("click", features_save_features);
 
     // populate the measurements table
-    await measurements_get_filtered_measurements(inspection_id, item, drawing);
+    await features_get_filtered_features(inspection_record_id, item, drawing);
 }
 
-async function measurements_get_filtered_measurements(inspection_id, item, drawing)
+async function features_get_filtered_features(inspection_record_id, item, drawing)
 {
     // get the list of measurement sets
-    let measurement_sets = [];
+    let inspections = [];
     ms_ul_list.selectAll("li").data().forEach((e) => {
-        measurement_sets.push({
-            measurement_set_id: e.measurement_set_id,
+        inspections.push({
+            inspection_id: e.inspection_id,
             display_state: e.display_state
         });
     });
 
     // logic gate
-    if (measurement_sets.length == 0) {
+    if (inspections.length == 0) {
         return;
     }
 
     // query the database
-    await d3.json("/inspection_reports/measurements_get_filtered_measurements/", {
+    await d3.json("/inspection_records/features/get_filtered_features/", {
         method: "POST",
         body: JSON.stringify({
             identity: {
-                inspection_id: inspection_id,
+                inspection_record_id: inspection_record_id,
                 item: item,
                 drawing: drawing
             },
             content: {
                 has_deviations: mt_select_has_deviations.property("value"),
-                measurement_type_id: mt_select_measurement_type.property("value"),
+                inspection_type_id: mt_select_inspection_type.property("value"),
                 employee_id: mt_select_inspector.property("value"),
                 part_index: mt_select_part_index.property("value"),
                 revision: mt_select_revision.property("value"),
@@ -1165,7 +1143,7 @@ async function measurements_get_filtered_measurements(inspection_id, item, drawi
                 gauge_type_id: mt_select_gauge_type.property("value"),
                 specification_type_id: mt_select_specification_type.property("value"),
                 dimension_type_id: mt_select_dimension_type.property("value"),
-                measurement_sets: measurement_sets
+                inspections: inspections
             }
         }),
         headers: {
@@ -1174,13 +1152,13 @@ async function measurements_get_filtered_measurements(inspection_id, item, drawi
     }).then((json) => {
 
         // the table must always be reset
-        vw_measurements_table.selectAll("thead").remove();
-        vw_measurements_table.selectAll("tbody").remove();
+        vw_features_table.selectAll("thead").remove();
+        vw_features_table.selectAll("tbody").remove();
 
         if (json.status == "ok") {
 
             // repopulate the characteristic table
-            measurements_repopulate_table(json.response);
+            features_repopulate_table(json.response);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -1191,7 +1169,7 @@ async function measurements_get_filtered_measurements(inspection_id, item, drawi
     });
 }
 
-async function measurements_save_edits()
+async function features_save_features()
 {
     // request confirmation
     if (!confirm("This action will write to the database and cannot be reversed. Continue?")) {
@@ -1199,10 +1177,10 @@ async function measurements_save_edits()
     }
 
     // query the flask server
-    d3.json("/inspection_reports/measurements_save_measurements/", {
+    d3.json("/inspection_records/features/save_features/", {
         method: "POST",
         body: JSON.stringify({
-            data: vw_measurements_table.select("tbody").selectAll("td").data()
+            data: vw_features_table.select("tbody").selectAll("td").data()
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -1220,12 +1198,12 @@ async function measurements_save_edits()
     });
 }
 
-async function measurements_tunnel_to_physical_part(inspection_id, part_id, part_index)
+async function features_tunnel_to_physical_part(inspection_record_id, part_id, part_index)
 {
-    await d3.json("/inspection_reports/measurements_tunnel_to_physical_part/", {
+    await d3.json("/inspection_records/features/tunnel_to_physical_part/", {
         method: "POST",
         body: JSON.stringify({
-            inspection_id: inspection_id,
+            inspection_record_id: inspection_record_id,
             part_id: part_id,
             part_index: part_index
         }),
@@ -1235,13 +1213,13 @@ async function measurements_tunnel_to_physical_part(inspection_id, part_id, part
     }).then((json) => {
 
         // the table must always be reset
-        vw_measurements_table.selectAll("thead").remove();
-        vw_measurements_table.selectAll("tbody").remove();
+        vw_features_table.selectAll("thead").remove();
+        vw_features_table.selectAll("tbody").remove();
 
         if (json.status == "ok") {
 
             // repopulate the characteristic table
-            measurements_repopulate_table(json.response);
+            features_repopulate_table(json.response);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -1252,7 +1230,7 @@ async function measurements_tunnel_to_physical_part(inspection_id, part_id, part
     });
 }
 
-async function measurements_view_deviations(measurement_id, part_index, revision, name, inspection_id, item, drawing)
+async function features_view_deviations(feature_id, part_index, revision, name, inspection_record_id, item, drawing)
 {
     // close any panel that is already open
     if (open_panel != null && open_panel != "deviations") {
@@ -1260,19 +1238,19 @@ async function measurements_view_deviations(measurement_id, part_index, revision
     }
 
     // prepare the deviations panel
-    await deviations_prepare_panel(measurement_id, part_index, revision, name, inspection_id, item, drawing);
+    await deviations_prepare_panel(feature_id, part_index, revision, name, inspection_record_id, item, drawing);
 
     // open the deviations panel
     if (open_panel != "deviations")
         await toggle_options("deviations", "1000px");
 }
 
-async function measurements_get_filter_parameter_data(inspection_id, item, drawing)
+async function features_get_filter_parameters(inspection_record_id, item, drawing)
 {
-    await d3.json("/inspection_reports/measurements_get_filter_parameter_data/", {
+    await d3.json("/inspection_reports/features/get_filter_parameters/", {
         method: "POST",
         body: JSON.stringify({
-            inspection_id: inspection_id,
+            inspection_record_id: inspection_record_id,
             item: item,
             drawing: drawing
         }),
@@ -1282,11 +1260,11 @@ async function measurements_get_filter_parameter_data(inspection_id, item, drawi
     }).then((json) => {
         if (json.status == "ok") {
 
-            // update the measurement types
-            mt_select_measurement_type.selectAll("option").remove();
-            json.response.measurement_types.unshift({ id: -1, name: "n/a" });
-            mt_select_measurement_type.selectAll("option")
-                .data(json.response.measurement_types)
+            // update the inspection types
+            mt_select_inspection_type.selectAll("option").remove();
+            json.response.inspection_types.unshift({ id: -1, name: "n/a" });
+            mt_select_inspection_type.selectAll("option")
+                .data(json.response.inspection_types)
                 .join("option")
                 .attr("value", (x) => x.id)
                 .text((x) => x.name);
@@ -1372,7 +1350,7 @@ async function measurements_get_filter_parameter_data(inspection_id, item, drawi
     });
 }
 
-async function measurements_repopulate_table(data)
+async function features_repopulate_table(data)
 {
     // get the current display type
     let display_type = mt_select_display_type.property("value");
@@ -1381,10 +1359,10 @@ async function measurements_repopulate_table(data)
     let table_schema = main_table_columns[display_type];
 
     // clear the old columns
-    vw_measurements_table.selectAll("thead").remove();
+    vw_features_table.selectAll("thead").remove();
 
     // add the columns
-    vw_measurements_table.append("thead")
+    vw_features_table.append("thead")
         .selectAll("tr")
         .data(table_schema)
         .join("th")
@@ -1393,33 +1371,33 @@ async function measurements_repopulate_table(data)
         .text((x) => x.col.display);
 
     // clear the old rows
-    vw_measurements_table.selectAll("tbody").remove();
+    vw_features_table.selectAll("tbody").remove();
 
     // add the rows
-    let rows = vw_measurements_table.append("tbody")
+    let rows = vw_features_table.append("tbody")
         .selectAll("tr")
         .data(data)
         .join("tr")
-        .on("click", (_, x) => deviations_prepare_panel(x.measurement_id, x.part_index, x.revision, x.name, x.inspection_id, x.item, x.drawing))
+        .on("click", (_, x) => deviations_prepare_panel(x.feature_id, x.part_index, x.revision, x.name, x.inspection_record_id, x.item, x.drawing))
         .on("contextmenu", (e, x) => {
 
             // position and show the context menu
-            vw_measurements_table_contextmenu
+            vw_features_table_contextmenu
                 .style("position", "absolute")
                 .style("left", `${e.pageX}px`)
                 .style("top", `${e.pageY}px`)
                 .style("display", "block");
 
             // tunnel to physical part
-            vw_measurements_table_contextmenu.select("#context_menu_0").on("click", () => {
-                measurements_tunnel_to_physical_part(x.inspection_id, x.part_id, x.part_index);
-                vw_measurements_table_contextmenu.style("display", "none");
+            vw_features_table_contextmenu.select("#context_menu_0").on("click", () => {
+                features_tunnel_to_physical_part(x.inspection_record_id, x.part_id, x.part_index);
+                vw_features_table_contextmenu.style("display", "none");
             });
 
             // view deviations
-            vw_measurements_table_contextmenu.select("#context_menu_1").on("click", () => {
-                measurements_view_deviations(x.measurement_id, x.part_index, x.revision, x.name, x.inspection_id, x.item, x.drawing);
-                vw_measurements_table_contextmenu.style("display", "none");
+            vw_features_table_contextmenu.select("#context_menu_1").on("click", () => {
+                features_view_deviations(x.feature_id, x.part_index, x.revision, x.name, x.inspection_record_id, x.item, x.drawing);
+                vw_features_table_contextmenu.style("display", "none");
             });
 
             // prevent the default behavior
@@ -1436,12 +1414,12 @@ async function measurements_repopulate_table(data)
                         value: r[c.col.key],
                         has_deviations: r.has_deviations,
                         precision: r.precision,
-                        measurement_id: r.measurement_id,
+                        feature_id: r.feature_id,
                         part_index: r.part_index,
-                        measurement_set_id: r.measurement_set_id,
+                        inspection_id: r.inspection_id,
                         gauge_type_id: r.gauge_type_id,
                         part_id: r.part_id,
-                        inspection_id: r.inspection_id,
+                        inspection_record_id: r.inspection_record_id,
                         item: r.item,
                         drawing: r.drawing,
                         revision: r.revision,
@@ -1508,7 +1486,7 @@ async function measurements_repopulate_table(data)
             if (x.column.datatype == "decimal") {
                 e.srcElement.value = x.row.value.toFixed(x.row.precision);
             }
-            measurements_apply_color_code();
+            features_apply_color_code();
         });
 
     // gauges
@@ -1540,12 +1518,12 @@ async function measurements_repopulate_table(data)
         });
 
     // assign color codes
-    await measurements_apply_color_code();
+    await features_apply_color_code();
 }
 
-async function measurements_apply_color_code()
+async function features_apply_color_code()
 {
-    vw_measurements_table.select("tbody").node().childNodes.forEach((row) => {
+    vw_features_table.select("tbody").node().childNodes.forEach((row) => {
         let measured_raw = [].filter.call(row.childNodes, (x) => {
             if (x.__data__.column.key == "measured") {
                 return true;
@@ -1577,37 +1555,37 @@ async function measurements_apply_color_code()
 
 // #region manufactured
 
-async function manufactured_prepare_panel(inspection_id)
+async function manufactured_prepare_panel(inspection_record_id)
 {
     // clear the inputs
-    mn_input_job_order_search.property("value", "");
+    mn_input_job_number_search.property("value", "");
     mn_input_part_search.property("value", "");
-    mn_input_job_order_display_filter.property("value", "");
+    mn_input_job_number_display_filter.property("value", "");
 
     // populate the new association selects
     await manufactured_get_filtered_job_orders();
-    await manufactured_get_filtered_parts(inspection_id);
+    await manufactured_get_filtered_parts(inspection_record_id);
 
     // set up static button events
-    mn_button_add_job_order.on("click", () => { manufactured_add_associated_job_order(inspection_id); });
+    mn_button_add_job_order.on("click", () => { manufactured_add_associated_job_order(inspection_record_id); });
     mn_button_save_job_order.on("click", manufactured_save_associated_job_order);
 
     // set up static input events
-    mn_input_job_order_search.on("change", manufactured_get_filtered_job_orders);
-    mn_input_part_search.on("change", () => { manufactured_get_filtered_parts(inspection_id); });
-    mn_input_job_order_display_filter.on("change", () => { manufactured_get_associated_job_orders(inspection_id); });
+    mn_input_job_number_search.on("change", manufactured_get_filtered_job_orders);
+    mn_input_part_search.on("change", () => { manufactured_get_filtered_parts(inspection_record_id); });
+    mn_input_job_number_display_filter.on("change", () => { manufactured_get_associated_job_orders(inspection_record_id); });
 
     // populate the association list
-    await manufactured_get_associated_job_orders(inspection_id);
+    await manufactured_get_associated_job_orders(inspection_record_id);
 }
 
-async function manufactured_add_associated_job_order(inspection_id)
+async function manufactured_add_associated_job_order(inspection_record_id)
 {
-    await d3.json("/inspection_reports/manufactured_add_associated_job_order/", {
+    await d3.json("/inspection_records/manufactured/add_associated_job_number/", {
         method: "POST",
         body: JSON.stringify({
-            search_term: mn_input_job_order_display_filter.property("value"),
-            inspection_id: inspection_id,
+            search_term: mn_input_job_number_display_filter.property("value"),
+            inspection_record_id: inspection_record_id,
             part_id: mn_select_part.property("value"),
             job_order_id: mn_select_job_order.property("value")
         }),
@@ -1616,7 +1594,7 @@ async function manufactured_add_associated_job_order(inspection_id)
         }
     }).then((json) => {
         if (json.status == "ok") {
-            manufactured_repopulate_association_list(json.response, inspection_id);
+            manufactured_repopulate_association_list(json.response, inspection_record_id);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -1635,7 +1613,7 @@ async function manufactured_save_associated_job_order()
     }
 
     // query the flask server
-    await d3.json("/inspection_reports/manufactured_save_associated_job_orders/", {
+    await d3.json("/inspection_records/manufactured/save_associated_job_numbers/", {
         method: "POST",
         body: JSON.stringify({
             data: mn_ul_list.selectAll("li").data()
@@ -1656,7 +1634,7 @@ async function manufactured_save_associated_job_order()
     });
 }
 
-async function manufactured_delete_associated_job_order(inspection_id, job_order_id, part_id)
+async function manufactured_delete_associated_job_order(inspection_record_id, job_number_id, part_id)
 {
     // request confirmation
     if (!confirm("This action will delete from the database and cannot be reverted. Continue?")) {
@@ -1664,20 +1642,20 @@ async function manufactured_delete_associated_job_order(inspection_id, job_order
     }
 
     // query the flask server
-    await d3.json("/inspection_reports/manufactured_delete_associated_job_order/", {
+    await d3.json("/inspection_records/manufactured/delete_associated_job_number/", {
         method: "POST",
         body: JSON.stringify({
-            search_term: mn_input_job_order_display_filter.property("value"),
-            inspection_id: inspection_id,
+            search_term: mn_input_job_number_display_filter.property("value"),
+            inspection_record_id: inspection_record_id,
             part_id: part_id,
-            job_order_id: job_order_id
+            job_number_id: job_number_id
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
         if (json.status == "ok") {
-            manufactured_repopulate_association_list(json.response, inspection_id);
+            manufactured_repopulate_association_list(json.response, inspection_record_id);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -1688,13 +1666,13 @@ async function manufactured_delete_associated_job_order(inspection_id, job_order
     });
 }
 
-async function manufactured_get_associated_job_orders(inspection_id)
+async function manufactured_get_associated_job_orders(inspection_record_id)
 {
-    await d3.json("/inspection_reports/manufactured_get_associated_job_orders/", {
+    await d3.json("/inspection_records/manufactured/get_associated_job_numbers/", {
         method: "POST",
         body: JSON.stringify({
-            search_term: mn_input_job_order_display_filter.property("value"),
-            inspection_id: inspection_id
+            search_term: mn_input_job_number_display_filter.property("value"),
+            inspection_record_id: inspection_record_id
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -1706,7 +1684,7 @@ async function manufactured_get_associated_job_orders(inspection_id)
 
         // interpret the output
         if (json.status == "ok") {
-            manufactured_repopulate_association_list(json.response, inspection_id);
+            manufactured_repopulate_association_list(json.response, inspection_record_id);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -1717,7 +1695,7 @@ async function manufactured_get_associated_job_orders(inspection_id)
     });
 }
 
-async function manufactured_repopulate_association_list(data, inspection_id)
+async function manufactured_repopulate_association_list(data, inspection_record_id)
 {
     // clear the old entries
     mn_ul_list.selectAll("li").remove();
@@ -1740,7 +1718,7 @@ async function manufactured_repopulate_association_list(data, inspection_id)
             
             // delete the job order
             mn_ul_list_contextmenu.select("#context_menu_0").on("click", async () => {
-                manufactured_delete_associated_job_order(inspection_id, x.id, x.part_id);
+                manufactured_delete_associated_job_order(inspection_record_id, x.id, x.part_id);
                 mn_ul_list_contextmenu.style("display", "none");
             });
 
@@ -1805,10 +1783,10 @@ async function manufactured_repopulate_association_list(data, inspection_id)
 
 async function manufactured_get_filtered_job_orders()
 {
-    await d3.json("/inspection_reports/manufactured_get_filtered_job_orders/", {
+    await d3.json("/inspection_records/manufactured/get_filtered_job_numbers/", {
         method: "POST",
         body: JSON.stringify({
-            search_term: mn_input_job_order_search.property("value")
+            search_term: mn_input_job_number_search.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -1835,13 +1813,13 @@ async function manufactured_get_filtered_job_orders()
     });
 }
 
-async function manufactured_get_filtered_parts(inspection_id)
+async function manufactured_get_filtered_parts(inspection_record_id)
 {
-    await d3.json("/inspection_reports/manufactured_get_filtered_parts/", {
+    await d3.json("/inspection_records/manufactured/get_filtered_parts/", {
         method: "POST",
         body: JSON.stringify({
             search_term: mn_input_part_search.property("value"),
-            inspection_id: inspection_id
+            inspection_record_id: inspection_record_id
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -1872,7 +1850,7 @@ async function manufactured_get_filtered_parts(inspection_id)
 
 // #region received
 
-async function received_prepare_panel(inspection_id)
+async function received_prepare_panel(inspection_record_id)
 {
     // clear the inputs
     rc_input_receiver_number_search.property("value", "");
@@ -1880,72 +1858,35 @@ async function received_prepare_panel(inspection_id)
     rc_input_purchase_order_search.property("value", "");
     rc_input_purchase_order_display_filter.property("value", "");
     rc_input_supplier_search.property("value", "");
-    rc_input_supplier_display_filter.property("value", "");
 
     // populate the selects
-    await received_get_filtered_receiver_numbers();
-    await received_get_filtered_purchase_orders();
-    await received_get_filtered_suppliers();
-    await received_get_filtered_parts(inspection_id);
+    await received_get_filtered_receiver_number_options();
+    await received_get_filtered_purchase_order_options();
+    await received_get_filtered_supplier_options();
 
     // set up static input events
-    rc_input_receiver_number_search.on("change", received_get_filtered_receiver_numbers);
-    rc_input_receiver_number_display_filter.on("change", () => { received_get_filtered_receiver_number_associations(inspection_id); });
-    rc_input_purchase_order_search.on("change", received_get_filtered_purchase_orders);
-    rc_input_purchase_order_display_filter.on("change", () => { received_get_filtered_purchase_order_associations(inspection_id); });
-    rc_input_supplier_search.on("change", received_get_filtered_suppliers);
-    rc_input_supplier_display_filter.on("change", () => { received_get_filtered_supplier_associations(inspection_id); });
-    rc_input_part_search.on("change", () => { received_get_filtered_parts(inspection_id); });
+    rc_input_receiver_number_search.on("change", received_get_filtered_receiver_number_options);
+    rc_input_receiver_number_display_filter.on("change", () => { received_get_filtered_child_associations(inspection_record_id); });
+    rc_input_purchase_order_search.on("change", received_get_filtered_purchase_order_options);
+    rc_input_purchase_order_display_filter.on("change", () => { received_get_filtered_purchase_order_associations(inspection_record_id); });
+    rc_input_supplier_search.on("change", received_get_filtered_supplier_options);
 
     // set up static button events
-    rc_button_add_receiver_number.on("click", () => { received_add_associated_receiver_number(inspection_id); });
-    rc_button_save_receiver_number.on("click", received_save_associated_receiver_numbers);
-    rc_button_add_purchase_order.on("click", () => { received_add_associated_purchase_order(inspection_id); });
-    rc_button_add_supplier.on("click", () => { received_add_associated_supplier(inspection_id); });
+    rc_button_add_purchase_order.on("click", () => { received_assign_purchase_order_association(inspection_record_id); });
+    rc_button_save_received_quantities.on("click", received_save_received_quantities);
 
     // populate the association lists
-    await received_get_filtered_receiver_number_associations(inspection_id);
-    await received_get_filtered_purchase_order_associations(inspection_id);
-    await received_get_filtered_supplier_associations(inspection_id);
+    await received_get_filtered_purchase_order_associations(inspection_record_id);
 }
 
-async function received_add_associated_receiver_number(inspection_id)
+async function received_assign_purchase_order_association(inspection_record_id)
 {
-    await d3.json("/inspection_reports/received_add_association/", {
-        method: "POST",
-        body: JSON.stringify({
-            search_term: rc_input_receiver_number_display_filter.property("value"),
-            target: "receiver_numbers",
-            inspection_id: inspection_id,
-            part_id: -1,
-            item_id: rc_select_receiver_number.property("value")
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-            received_repopulate_receiver_number_association_list(json.response);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-}
-
-async function received_add_associated_purchase_order(inspection_id)
-{
-    await d3.json("/inspection_reports/received_add_association/", {
+    await d3.json("/inspection_records/received/assign_purchase_order_association/", {
         method: "POST",
         body: JSON.stringify({
             search_term: rc_input_purchase_order_display_filter.property("value"),
-            target: "purchase_orders",
-            inspection_id: inspection_id,
-            part_id: -1,
-            item_id: rc_select_purchase_order.property("value")
+            inspection_record_id: inspection_record_id,
+            purchase_order_id: rc_select_purchase_order.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -1963,23 +1904,21 @@ async function received_add_associated_purchase_order(inspection_id)
     });
 }
 
-async function received_add_associated_supplier(inspection_id)
+async function received_assign_receiver_number_association(purchase_order_id)
 {
-    await d3.json("/inspection_reports/received_add_association/", {
+    await d3.json("/inspection_records/received/assign_receiver_number_association/", {
         method: "POST",
         body: JSON.stringify({
-            search_term: rc_input_supplier_display_filter.property("value"),
-            target: "suppliers",
-            inspection_id: inspection_id,
-            part_id: rc_select_part.property("value"),
-            item_id: rc_select_supplier.property("value")
+            search_term: rc_input_receiver_number_display_filter.property("value"),
+            purchase_order_id: purchase_order_id,
+            receiver_number_id: rc_select_receiver_number.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
         if (json.status == "ok") {
-            received_repopulate_supplier_association_list(json.response);
+            received_repopulate_child_association_lists(json.response);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -1990,7 +1929,31 @@ async function received_add_associated_supplier(inspection_id)
     });
 }
 
-async function received_save_associated_receiver_numbers()
+async function received_set_associated_supplier(purchase_order_id)
+{
+    await d3.json("/inspection_records/received/set_associated_supplier/", {
+        method: "POST",
+        body: JSON.stringify({
+            purchase_order_id: purchase_order_id,
+            supplier_id: rc_select_supplier.property("value")
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+async function received_save_received_quantities()
 {
     // request confirmation
     if (!confirm("This action will write to the database and cannot be reverted. Continue?")) {
@@ -1998,7 +1961,7 @@ async function received_save_associated_receiver_numbers()
     }
 
     // query the flask server
-    await d3.json("/inspection_reports/received_save_receiver_number_associations/", {
+    await d3.json("/inspection_records/received/save_received_quantities/", {
         method: "POST",
         body: JSON.stringify({
             data: rc_ul_receiver_number_list.selectAll("li").data()
@@ -2019,42 +1982,13 @@ async function received_save_associated_receiver_numbers()
     });
 }
 
-async function received_delete_associated_receiver_number(inspection_id, receiver_number_id)
+async function received_delete_associated_purchase_order(inspection_record_id, purchase_order_id)
 {
-    await d3.json("/inspection_reports/received_delete_association/", {
-        method: "POST",
-        body: JSON.stringify({
-            search_term: rc_input_receiver_number_display_filter.property("value"),
-            target: "receiver_numbers",
-            inspection_id: inspection_id,
-            part_id: -1,
-            item_id: receiver_number_id
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-            received_repopulate_receiver_number_association_list(json.response);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-}
-
-async function received_delete_associated_purchase_order(inspection_id, purchase_order_id)
-{
-    await d3.json("/inspection_reports/received_delete_association/", {
+    await d3.json("/inspection_records/received/remove_purchase_order_association/", {
         method: "POST",
         body: JSON.stringify({
             search_term: rc_input_purchase_order_display_filter.property("value"),
-            target: "purchase_orders",
-            inspection_id: inspection_id,
-            part_id: -1,
+            inspection_record_id: inspection_record_id,
             item_id: purchase_order_id
         }),
         headers: {
@@ -2071,25 +2005,24 @@ async function received_delete_associated_purchase_order(inspection_id, purchase
             alert(json.response);
         }
     });
+    await received_purchase_order_unselected();
 }
 
-async function received_delete_associated_supplier(inspection_id, supplier_id, part_id)
+async function received_delete_associated_receiver_number(purchase_order_id, receiver_number_id)
 {
-    await d3.json("/inspection_reports/received_delete_association/", {
+    await d3.json("/inspection_records/received/remove_receiver_number_association/", {
         method: "POST",
         body: JSON.stringify({
-            search_term: rc_input_supplier_display_filter.property("value"),
-            target: "suppliers",
-            inspection_id: inspection_id,
-            part_id: part_id,
-            item_id: supplier_id
+            search_term: rc_input_receiver_number_display_filter.property("value"),
+            purchase_order_id: purchase_order_id,
+            receiver_number_id: receiver_number_id
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
         if (json.status == "ok") {
-            received_repopulate_supplier_association_list(json.response);
+            received_repopulate_child_association_lists(json.response);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -2100,54 +2033,18 @@ async function received_delete_associated_supplier(inspection_id, supplier_id, p
     });
 }
 
-async function received_get_filtered_receiver_number_associations(inspection_id)
+async function received_get_filtered_purchase_order_associations(inspection_record_id)
 {
-    await d3.json("/inspection_reports/received_get_filtered_associations/", {
-        method: "POST",
-        body: JSON.stringify({
-            search_term: rc_input_receiver_number_search.property("value"),
-            inspection_id: inspection_id,
-            target: "receiver_numbers"
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-
-        // always reset the list
-        rc_ul_receiver_number_list.selectAll("li").remove();
-
-        // interpret the output
-        if (json.status == "ok") {
-            received_repopulate_receiver_number_association_list(json.response);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-}
-
-async function received_get_filtered_purchase_order_associations(inspection_id)
-{
-    await d3.json("/inspection_reports/received_get_filtered_associations/", {
+    await d3.json("/inspection_records/received/get_filtered_purchase_order_associations/", {
         method: "POST",
         body: JSON.stringify({
             search_term: rc_input_purchase_order_search.property("value"),
-            inspection_id: inspection_id,
-            target: "purchase_orders"
+            inspection_record_id: inspection_record_id
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-
-        // always reset the list
-        rc_ul_purchase_order_list.selectAll("li").remove();
-
-        // interpret the output
         if (json.status == "ok") {
             received_repopulate_purchase_order_association_list(json.response);
         }
@@ -2160,26 +2057,20 @@ async function received_get_filtered_purchase_order_associations(inspection_id)
     });
 }
 
-async function received_get_filtered_supplier_associations(inspection_id)
+async function received_get_filtered_child_associations(purchase_order_id)
 {
-    await d3.json("/inspection_reports/received_get_filtered_associations/", {
+    await d3.json("/inspection_records/received/get_filtered_child_associations/", {
         method: "POST",
         body: JSON.stringify({
-            search_term: rc_input_purchase_order_search.property("value"),
-            inspection_id: inspection_id,
-            target: "suppliers"
+            search_term: rc_input_receiver_number_search.property("value"),
+            purchase_order_id: purchase_order_id,
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
-
-        // always reset the list
-        rc_ul_supplier_list.selectAll("li").remove();
-
-        // interpret the output
         if (json.status == "ok") {
-            received_repopulate_supplier_association_list(json.response);
+            received_repopulate_child_association_lists(json.response);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -2190,63 +2081,15 @@ async function received_get_filtered_supplier_associations(inspection_id)
     });
 }
 
-async function received_repopulate_receiver_number_association_list(data)
-{
-    // clear the old entries
-    rc_ul_receiver_number_list.selectAll("li").remove();
-
-    // populate the inspection reports list
-    let items = rc_ul_receiver_number_list.selectAll("li")
-        .data(data)
-        .join("li")
-        .append("div")
-        .attr("class", "list-item-dark")
-        .style("--grid-template-columns", "repeat(2, minmax(0, 1fr))")
-        .on("contextmenu", (e, x) => {
-
-            // position and show the context menu
-            rc_ul_receiver_number_list_contextmenu
-                .style("position", "absolute")
-                .style("left", `${e.pageX}px`)
-                .style("top", `${e.pageY}px`)
-                .style("display", "block")
-            
-            // delete the job order
-            rc_ul_receiver_number_list_contextmenu.select("#context_menu_0").on("click", () => {
-                received_delete_associated_receiver_number(x.inspection_id, x.id);
-                rc_ul_receiver_number_list_contextmenu.style("display", "none");
-            });
-
-            // prevent default behavior
-            e.preventDefault();
-        });
-    items.append("label")
-        .style("--grid-column", "1")
-        .style("--grid-row", "1")
-        .style("border-radius", "6px 0px 0px 6px")
-        .attr("class", "list-item-label-dark")
-        .text((x) => x.name);
-    items.append("input")
-        .style("--grid-column", "2")
-        .style("--grid-row", "1")
-        .style("border-radius", "0px 6px 6px 0px")
-        .attr("type", "number")
-        .attr("step", "any")
-        .attr("class", "list-item-input-dark")
-        .property("value", (x) => x.received_qty)
-        .on("change", (e, x) => {
-            x.received_qty = parseInt(e.srcElement.value);
-            e.srcElement.blur();
-        })
-        .on("click", (e, _) => {
-            e.srcElement.select();
-        });
-}
-
 async function received_repopulate_purchase_order_association_list(data)
 {
     // clear the old entries
     rc_ul_purchase_order_list.selectAll("li").remove();
+
+    // logic gate
+    if (data == null) {
+        return;
+    }
 
     // populate the inspection reports list
     let items = rc_ul_purchase_order_list.selectAll("li")
@@ -2263,108 +2106,94 @@ async function received_repopulate_purchase_order_association_list(data)
                 .style("left", `${e.pageX}px`)
                 .style("top", `${e.pageY}px`)
                 .style("display", "block")
-            
+
             // delete the job order
             rc_ul_purchase_order_list_contextmenu.select("#context_menu_0").on("click", () => {
-                received_delete_associated_purchase_order(x.inspection_id, x.id);
+                received_delete_associated_purchase_order(x.inspection_record_id, x.purchase_order_id);
                 rc_ul_purchase_order_list_contextmenu.style("display", "none");
             });
 
             // prevent default behavior
             e.preventDefault();
+        })
+        .on("click", (e, x) => {
+            received_purchase_order_clicked(e, x);
         });
-    items.append("label")
+    items.append("input")
         .style("--grid-column", "1")
         .style("--grid-row", "1")
         .style("border-radius", "6px")
-        .attr("class", "list-item-label-dark")
-        .text((x) => x.name);
+        .attr("disabled", true)
+        .attr("class", "list-item-input-dark")
+        .property("value", (x) => x.name);
 }
 
-async function received_repopulate_supplier_association_list(data)
+async function received_repopulate_child_association_lists(data)
 {
     // clear the old entries
-    rc_ul_supplier_list.selectAll("li").remove();
+    rc_ul_receiver_number_list.selectAll("li").remove();
 
-    // populate the inspection reports list
-    let items = rc_ul_supplier_list.selectAll("li")
-        .data(data)
-        .join("li")
-        .append("div")
-        .attr("class", "list-item-dark")
-        .style("--grid-template-columns", "repeat(2, minmax(0, 1fr))")
-        .on("contextmenu", (e, x) => {
+    // assign the supplier
+    rc_select_supplier.property("value", data.supplier_id);
 
-            // position and show the context menu
-            rc_ul_supplier_list_contextmenu
-                .style("position", "absolute")
-                .style("left", `${e.pageX}px`)
-                .style("top", `${e.pageY}px`)
-                .style("display", "block")
+    // populate the receiver numbers list
+    if (data.receiver_numbers != null) {
+        let items = rc_ul_receiver_number_list.selectAll("li")
+            .data(data.receiver_numbers)
+            .join("li")
+            .append("div")
+            .attr("class", "list-item-dark")
+            .style("--grid-template-columns", "repeat(2, minmax(0, 1fr))")
+            .on("contextmenu", (e, x) => {
 
-            // delete the job order
-            rc_ul_supplier_list_contextmenu.select("#context_menu_0").on("click", () => {
-                received_delete_associated_supplier(x.inspection_id, x.id, x.part_id);
-                rc_ul_supplier_list_contextmenu.style("display", "none");
+                // position and show the context menu
+                rc_ul_receiver_number_list_contextmenu
+                    .style("position", "absolute")
+                    .style("left", `${e.pageX}px`)
+                    .style("top", `${e.pageY}px`)
+                    .style("display", "block")
+                
+                // delete the job order
+                rc_ul_receiver_number_list_contextmenu.select("#context_menu_0").on("click", () => {
+                    received_delete_associated_receiver_number(x.purchase_order_id, x.id);
+                    rc_ul_receiver_number_list_contextmenu.style("display", "none");
+                });
+
+                // prevent default behavior
+                e.preventDefault();
             });
+        items.append("label")
+            .style("--grid-column", "1")
+            .style("--grid-row", "1")
+            .style("border-radius", "6px 0px 0px 6px")
+            .attr("class", "list-item-label-dark")
+            .text((x) => x.name);
+        items.append("input")
+            .style("--grid-column", "2")
+            .style("--grid-row", "1")
+            .style("border-radius", "0px 6px 6px 0px")
+            .attr("type", "number")
+            .attr("step", "any")
+            .attr("class", "list-item-input-dark")
+            .property("value", (x) => x.received_qty)
+            .on("change", (e, x) => {
+                x.received_qty = parseInt(e.srcElement.value);
+                e.srcElement.blur();
+            })
+            .on("click", (e, _) => {
+                e.srcElement.select();
+            });
+    }
 
-            // prevent default behavior
-            e.preventDefault();
-        });
-    items.append("label")
-        .style("--grid-column", "1")
-        .style("--grid-row", "1")
-        .style("border-radius", "6px 0px 0px 6px")
-        .attr("class", "list-item-label-dark")
-        .text((x) => x.revision);
-    items.append("label")
-        .style("--grid-column", "2")
-        .style("--grid-row", "1")
-        .style("border-radius", "0px 6px 6px 0px")
-        .attr("class", "list-item-label-dark")
-        .text((x) => x.name);
+    
 }
 
-async function received_get_filtered_receiver_numbers()
+async function received_get_filtered_purchase_order_options()
 {
-    await d3.json("/inspection_reports/received_get_filtered_options/", {
+    await d3.json("/inspection_records/received/get_filtered_purchase_order_options/", {
         method: "POST",
         body: JSON.stringify({
-            search_term: rc_input_receiver_number_search.property("value"),
-            target: "receiver_numbers"
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-
-            // clear the old entries
-            rc_select_receiver_number.selectAll("option").remove();
-
-            // add new entries
-            rc_select_receiver_number.selectAll("option")
-                .data(json.response)
-                .join("option")
-                .attr("value", (x) => x.id)
-                .text((x) => x.name);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-}
-
-async function received_get_filtered_purchase_orders()
-{
-    await d3.json("/inspection_reports/received_get_filtered_options/", {
-        method: "POST",
-        body: JSON.stringify({
-            search_term: rc_input_purchase_order_search.property("value"),
-            target: "purchase_orders"
+            search_term: rc_input_purchase_order_search.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -2391,13 +2220,44 @@ async function received_get_filtered_purchase_orders()
     });
 }
 
-async function received_get_filtered_suppliers()
+async function received_get_filtered_receiver_number_options()
 {
-    await d3.json("/inspection_reports/received_get_filtered_options/", {
+    await d3.json("/inspection_records/received/get_filtered_receiver_number_options/", {
         method: "POST",
         body: JSON.stringify({
-            search_term: rc_input_supplier_search.property("value"),
-            target: "suppliers"
+            search_term: rc_input_receiver_number_search.property("value")
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            // clear the old entries
+            rc_select_receiver_number.selectAll("option").remove();
+
+            // add new entries
+            rc_select_receiver_number.selectAll("option")
+                .data(json.response)
+                .join("option")
+                .attr("value", (x) => x.id)
+                .text((x) => x.name);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+async function received_get_filtered_supplier_options()
+{
+    await d3.json("/inspection_records/received/get_filtered_supplier_options/", {
+        method: "POST",
+        body: JSON.stringify({
+            search_term: rc_input_supplier_search.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -2407,6 +2267,9 @@ async function received_get_filtered_suppliers()
 
             // clear the old entries
             rc_select_supplier.selectAll("option").remove();
+
+            // add the null condition
+            json.response.unshift({ id: -1, name: "n/a" });
 
             // add new entries
             rc_select_supplier.selectAll("option")
@@ -2424,742 +2287,57 @@ async function received_get_filtered_suppliers()
     });
 }
 
-async function received_get_filtered_parts(inspection_id)
-{
-    await d3.json("/inspection_reports/received_get_filtered_parts/", {
-        method: "POST",
-        body: JSON.stringify({
-            search_term: rc_input_part_search.property("value"),
-            inspection_id: inspection_id
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-
-            // clear the old entries
-            rc_select_part.selectAll("option").remove();
-
-            // add new entries
-            rc_select_part.selectAll("option")
-                .data(json.response)
-                .join("option")
-                .attr("value", (x) => x.id)
-                .text((x) => x.name);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-}
-
-// #endregion
-
-// #region metadata
-
-async function metadata_prepare_panel(inspection_id, item, drawing)
-{
-    // populate the selectors
-    await d3.json("/get_all_disposition_types/", {
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-
-            // clear the old entries
-            md_select_disposition.selectAll("option").remove();
-
-            // populate the item numbers
-            md_select_disposition.selectAll("option")
-                .data(json.response)
-                .join("option")
-                .attr("value", (x) => x.id)
-                .text((x) => x.name);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-    await d3.json("/get_all_material_types/", {
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-
-            // clear the old entries
-            md_select_material_type.selectAll("option").remove();
-
-            // populate the item numbers
-            md_select_material_type.selectAll("option")
-                .data(json.response)
-                .join("option")
-                .attr("value", (x) => x.id)
-                .text((x) => x.name);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-    await d3.json("/get_all_employees/", {
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-
-            // clear the old entries
-            md_select_inspector.selectAll("option").remove();
-
-            // add to the dataset
-            json.response.unshift({ id: -1 });
-
-            // populate the item numbers
-            md_select_inspector.selectAll("option")
-                .data(json.response)
-                .join("option")
-                .attr("value", (x) => x.id)
-                .text((x) => {
-                    if (x.id > 0) {
-                        return x.name;
-                    }
-                    else {
-                        return "n/a";
-                    }});
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-    await d3.json("/get_all_job_orders/", {
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-
-            // clear the old entries
-            md_select_job_order.selectAll("option").remove();
-
-            // add to the dataset
-            json.response.unshift({ id: -1 });
-
-            // populate the item numbers
-            md_select_job_order.selectAll("option")
-                .data(json.response)
-                .join("option")
-                .attr("value", (x) => x.id)
-                .text((x) => {
-                    if (x.id > 0) {
-                        return x.name;
-                    }
-                    else {
-                        return "n/a";
-                    }});
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-    await d3.json("/get_all_suppliers/", {
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-
-            // clear the old entries
-            md_select_supplier.selectAll("option").remove();
-
-            // add to the dataset
-            json.response.unshift({ id: -1 });
-
-            // populate the item numbers
-            md_select_supplier.selectAll("option")
-                .data(json.response)
-                .join("option")
-                .attr("value", (x) => x.id)
-                .text((x) => {
-                    if (x.id > 0) {
-                        return x.name;
-                    }
-                    else {
-                        return "n/a";
-                    }});
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-    await d3.json("/inspection_reports/metadata_get_parameters/", {
-        method: "POST",
-        body: JSON.stringify({
-            inspection_id: inspection_id
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-            md_select_disposition.property("value", json.response.disposition_id);
-            md_select_material_type.property("value", json.response.material_type_id);
-            md_select_inspector.property("value", json.response.employee_id);
-            md_select_job_order.property("value", json.response.job_order_id);
-            md_select_supplier.property("value", json.response.supplier_id);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-
-    // set up static button events
-    md_button_save.on("click", () => metadata_save(inspection_id));
-
-    // populate the revisions list
-    await metadata_get_matching_revisions(item, drawing)
-}
-
-async function metadata_save(inspection_id)
-{
-    // request confirmation
-    if (!confirm("This will write to the database and cannot be reverted. Continue?")) {
-        return;
-    }
-
-    // query the flask server
-    await d3.json("/inspection_reports/metadata_save/", {
-        method: "POST",
-        body: JSON.stringify({
-            inspection_id: inspection_id,
-            sub_data: md_ul_list.selectAll("li").data(),
-            content: {
-                disposition_id: md_select_disposition.property("value"),
-                material_type_id: md_select_material_type.property("value"),
-                employee_id: md_select_inspector.property("value"),
-                job_order_id: md_select_job_order.property("value"),
-                supplier_id: md_select_supplier.property("value")
-            }
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-            ir_ul_list.selectAll("li").data().forEach((x) => {
-                if (x.inspection_id == inspection_id) {
-                    x.disposition_type_id = md_select_disposition.property("value");
-                    x.disposition = md_select_disposition.select("option:checked").text();
-                    x.material_type_id = md_select_material_type.property("value");
-                    x.employee_id = md_select_inspector.property("value");
-                    x.job_order_id = md_select_job_order.property("value");
-                    x.job_order = md_select_job_order.select("option:checked").text();
-                    x.supplier_id = md_select_supplier.property("value");
-                }
-            });
-            alert(json.response);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-
-    // reapply the inspection report list formatting
-    inspection_records_repopulate_report_list(ir_ul_list.selectAll("li").data());
-}
-
-async function metadata_get_matching_revisions(item, drawing)
-{
-    await d3.json("/inspection_reports/metadata_get_matching_revisions/", {
-        method: "POST",
-        body: JSON.stringify({
-            item: item,
-            drawing: drawing
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-            metadata_repopulate_revision_list(json.response);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-}
-
-async function metadata_repopulate_revision_list(data)
-{
-    // remove the old entries
-    md_ul_list.selectAll("li").remove();
-
-    // repopulate the revisions list
-    let items = md_ul_list.selectAll("li")
-        .data(data)
-        .join("li")
-        .append("div")
-        .attr("class", "list-item-dark")
-        .style("--grid-template-columns", "repeat(4, minmax(0, 1fr))")
-        .on("click", (e, _) => metadata_revision_clicked(e));
-    items.append("label")
-        .style("--grid-column", "1")
-        .style("--grid-row", "1")
-        .style("border-radius", "6px 0px 0px 6px")
-        .attr("class", "list-item-label-dark")
-        .text((x) => x.revision)
-    items.append("input")
-        .style("--grid-column", "2")
-        .style("--grid-row", "1")
-        .attr("type", "number")
-        .attr("class", "list-item-input-dark")
-        .property("value", (x) => x.full_inspect_interval)
-        .on("drag", (e, _) => e.preventDefault)
-        .on("drop", (e, _) => e.preventDefault)
-        .on("change", (e, x) => {
-            x.full_inspect_interval = parseInt(e.srcElement.value);
-        })
-        .on("click", (e, _) => {
-            e.srcElement.select();
-        });
-    items.append("input")
-        .style("--grid-column", "3")
-        .style("--grid-row", "1")
-        .attr("type", "number")
-        .attr("class", "list-item-input-dark")
-        .property("value", (x) => x.released_qty)
-        .on("drag", (e, _) => e.preventDefault)
-        .on("drop", (e, _) => e.preventDefault)
-        .on("change", (e, x) => {
-            x.released_qty = parseInt(e.srcElement.value);
-        })
-        .on("click", (e, _) => {
-            e.srcElement.select();
-        });
-    items.append("input")
-        .style("--grid-column", "4")
-        .style("--grid-row", "1")
-        .style("border-radius", "0px 6px 6px 0px")
-        .attr("type", "number")
-        .attr("class", "list-item-input-dark")
-        .property("value", (x) => x.completed_qty)
-        .on("drag", (e, _) => e.preventDefault)
-        .on("drop", (e, _) => e.preventDefault)
-        .on("change", (e, x) => {
-            x.completed_qty = parseInt(e.srcElement.value);
-        })
-        .on("click", (e, _) => {
-            e.srcElement.select();
-        });
-}
-
-async function metadata_revision_clicked(event)
+async function received_purchase_order_clicked(event, data)
 {
     // check if the item is already selected
     let is_selected = event.srcElement.parentNode.classList.contains("list-item-dark-selected");
 
     // reset/set the selected class
-    for (let i = 0; i < md_ul_list.node().childNodes.length; i++) {
-        let current_node = md_ul_list.node().childNodes[i].children[0];
+    for (let i = 0; i < rc_ul_purchase_order_list.node().childNodes.length; i++) {
+        let current_node = rc_ul_purchase_order_list.node().childNodes[i].children[0];
         current_node.classList.remove("list-item-dark-selected");
     }
 
     // filter actions
     if (!is_selected) {
-        event.srcElement.parentNode.classList.add("list-item-dark-selected");
+        await received_purchase_order_selected(event, data);
     }
     else {
-        event.srcElement.blur();
+        await received_purchase_order_unselected();
     }
 }
 
-// #endregion
-
-// #region receiver numbers
-
-async function receiver_numbers_prepare_panel(inspection_id)
+async function received_purchase_order_selected(event, data)
 {
-    // clear the inputs
-    rn_input_selected_search_term.property("value", "");
-    rn_input_search_term.property("value", "");
+    // set the visual flags
+    event.srcElement.parentNode.classList.add("list-item-dark-selected");
 
-    // populate the selector
-    await receiver_numbers_update_filtered_selector();
+    // populate the supplier selector and receiver numbers
+    received_get_filtered_child_associations(data.purchase_order_id);
 
-    // set up static input events
-    rn_input_selected_search_term.on("change", receiver_numbers_update_filtered_selector);
-    rn_input_selected_search_term.on("click", (e, _) => { e.srcElement.select(); });
-    rn_input_search_term.on("change", () => receiver_numbers_update_filtered_list(inspection_id));
-    rn_input_search_term.on("click", (e, _) => { e.srcElement.select(); });
-
-    // set up static button events
-    rn_button_add.on("click", () => receiver_numbers_assign_association(inspection_id));
-
-    // populate the list
-    await receiver_numbers_update_filtered_list(inspection_id);
+    // set the events
+    rc_select_supplier.on("change", () => { received_set_associated_supplier(data.purchase_order_id); });
+    rc_button_add_receiver_number.on("click", () => { received_assign_receiver_number_association(data.purchase_order_id); });
 }
 
-async function receiver_numbers_assign_association(inspection_id)
+async function received_purchase_order_unselected()
 {
-    // request confirmation
-    if (!confirm("This action will write to the database and cannot be reverted. Continue?")) {
-        return;
-    }
+    // depopulate the supplier selector
+    rc_select_supplier.property("value", -1);
 
-    // query the flask server
-    await d3.json("/inspection_reports/reciever_numbers_assign_association/", {
-        method: "POST",
-        body: JSON.stringify({
-            search_term: rn_input_search_term.property("value"),
-            inspection_id: inspection_id,
-            receiver_number_id: rn_select_selected.property("value")
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-            receiver_numbers_repopulate_list(json.response);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-}
+    // depopulate the receiver numbers
+    rc_ul_receiver_number_list.selectAll("li").remove();
 
-async function receiver_numbers_remove_association(inspection_id, id)
-{
-    // request confirmation
-    if (!confirm("This action will remove records from the database and cannot be reverted. Continue?")) {
-        return;
-    }
-
-    // query the flask server
-    await d3.json("/inspection_reports/reciever_numbers_remove_association/", {
-        method: "POST",
-        body: JSON.stringify({
-            search_term: rn_input_search_term.property("value"),
-            inspection_id: inspection_id,
-            receiver_number_id: id
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-            receiver_numbers_repopulate_list(json.response);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-}
-
-async function receiver_numbers_update_filtered_selector()
-{
-    await d3.json("/inspection_reports/receiver_numbers_get_filtered_options/", {
-        method: "POST",
-        body: JSON.stringify({
-            search_term: rn_input_selected_search_term.property("value")
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-
-            // clear the old entries
-            rn_select_selected.selectAll("option").remove();
-
-            // populate the selector
-            rn_select_selected.selectAll("option")
-                .data(json.response)
-                .join("option")
-                .attr("value", (x) => x.id)
-                .text((x) => x.name);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-}
-
-async function receiver_numbers_update_filtered_list(inspection_id)
-{
-    await d3.json("/inspection_reports/receiver_numbers_get_filtered_associations/", {
-        method: "POST",
-        body: JSON.stringify({
-            inspection_id: inspection_id,
-            search_term: rn_input_search_term.property("value")
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-            receiver_numbers_repopulate_list(json.response);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-}
-
-async function receiver_numbers_repopulate_list(data)
-{
-    // clear the old entries
-    rn_ul_list.selectAll("li").remove();
-
-    // logic gate
-    if (data.size == 0) {
-        return;
-    }
-
-    // populate the list
-    let items = rn_ul_list.selectAll("li")
-        .data(data.data)
-        .join("li")
-        .append("div")
-        .attr("class", "list-item-dark")
-        .style("--grid-template-columns", "3fr 1fr");
-    items.append("label")
-        .style("--grid-column", "1")
-        .style("--grid-row", "1")
-        .style("text-align", "left")
-        .style("border-radius", "6px 0px 0px 6px")
-        .attr("class", "list-item-label-dark")
-        .text((x) => x.name);
-    items.append("button")
-        .style("--grid-column", "2")
-        .style("--grid-row", "1")
-        .style("border-radius", "0px 6px 6px 0px")
-        .attr("class", "list-item-button-dark")
-        .text("Delete")
-        .on("click", (_, x) => receiver_numbers_remove_association(x.inspection_id, x.id));
-}
-
-// #endregion
-
-// #region purchase orders
-
-async function purchase_orders_prepare_panel(inspection_id)
-{
-    // clear the inputs
-    po_input_selected_search_term.property("value", "");
-    po_input_search_term.property("value", "");
-
-    // populate the selector
-    await purchase_orders_update_filtered_selector();
-
-    // set up static input events
-    po_input_selected_search_term.on("change", purchase_orders_update_filtered_selector);
-    po_input_selected_search_term.on("click", (e, _) => { e.srcElement.select(); });
-    po_input_search_term.on("change", () => purchase_orders_update_filtered_list(inspection_id));
-    po_input_search_term.on("click", (e, _) => { e.srcElement.select(); });
-
-    // set up static button events
-    po_button_add.on("click", () => purchase_orders_assign_association(inspection_id));
-
-    // populate the list
-    await purchase_orders_update_filtered_list(inspection_id);
-}
-
-async function purchase_orders_assign_association(inspection_id)
-{
-    // request confirmation
-    if (!confirm("This action will write to the database and cannot be reverted. Continue?")) {
-        return;
-    }
-
-    // query the flask server
-    await d3.json("/inspection_reports/purchase_orders_assign_association/", {
-        method: "POST",
-        body: JSON.stringify({
-            search_term: po_input_search_term.property("value"),
-            inspection_id: inspection_id,
-            purchase_order_id: po_select_selected.property("value")
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-            purchase_orders_repopulate_list(json.response);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-}
-
-async function purchase_orders_remove_association(inspection_id, id)
-{
-    // request confirmation
-    if (!confirm("This action will remove records from the database and cannot be reverted. Continue?")) {
-        return;
-    }
-
-    // query the flask server
-    await d3.json("/inspection_reports/purchase_orders_remove_association/", {
-        method: "POST",
-        body: JSON.stringify({
-            search_term: po_input_search_term.property("value"),
-            inspection_id: inspection_id,
-            purchase_order_id: id
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-            purchase_orders_repopulate_list(json.response);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-}
-
-async function purchase_orders_update_filtered_selector()
-{
-    await d3.json("/inspection_reports/purchase_orders_get_filtered_options/", {
-        method: "POST",
-        body: JSON.stringify({
-            search_term: po_input_selected_search_term.property("value")
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-
-            // clear the old entries
-            po_select_selected.selectAll("option").remove();
-
-            // populate the selector
-            po_select_selected.selectAll("option")
-                .data(json.response)
-                .join("option")
-                .attr("value", (x) => x.id)
-                .text((x) => x.name);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-}
-
-async function purchase_orders_update_filtered_list(inspection_id)
-{
-    await d3.json("/inspection_reports/purchase_orders_get_filtered_associations/", {
-        method: "POST",
-        body: JSON.stringify({
-            inspection_id: inspection_id,
-            search_term: po_input_search_term.property("value")
-        }),
-        headers: {
-            "Content-type": "application/json; charset=UTF-8"
-        }
-    }).then((json) => {
-        if (json.status == "ok") {
-            purchase_orders_repopulate_list(json.response);
-        }
-        else if (json.status == "log") {
-            console.log(json.response);
-        }
-        else if (json.status == "alert") {
-            alert(json.response);
-        }
-    });
-}
-
-async function purchase_orders_repopulate_list(data)
-{
-    // clear the old entries
-    po_ul_list.selectAll("li").remove();
-
-    // logic gate
-    if (data.size == 0) {
-        return;
-    }
-
-    // populate the list
-    let items = po_ul_list.selectAll("li")
-        .data(data.data)
-        .join("li")
-        .append("div")
-        .attr("class", "list-item-dark")
-        .style("--grid-template-columns", "3fr 1fr");
-    items.append("label")
-        .style("--grid-column", "1")
-        .style("--grid-row", "1")
-        .style("text-align", "left")
-        .style("border-radius", "6px 0px 0px 6px")
-        .attr("class", "list-item-label-dark")
-        .text((x) => x.name);
-    items.append("button")
-        .style("--grid-column", "2")
-        .style("--grid-row", "1")
-        .style("border-radius", "0px 6px 6px 0px")
-        .attr("class", "list-item-button-dark")
-        .text("Delete")
-        .on("click", (_, x) => purchase_orders_remove_association(x.inspection_id, x.id));
+    // unset the supplier event
+    rc_select_supplier.on("change", null);
+    rc_button_add_receiver_number.on("click", null);
 }
 
 // #endregion
 
 // #region lot numbers
 
-async function lot_numbers_prepare_panel(inspection_id)
+async function lot_numbers_prepare_panel(inspection_record_id)
 {
     // clear the inputs
     ln_input_selected_search_term.property("value", "");
@@ -3171,17 +2349,17 @@ async function lot_numbers_prepare_panel(inspection_id)
     // set up static input events
     ln_input_selected_search_term.on("change", lot_numbers_update_filtered_selector);
     ln_input_selected_search_term.on("click", (e, _) => { e.srcElement.select(); });
-    ln_input_search_term.on("change", () => lot_numbers_update_filtered_list(inspection_id));
+    ln_input_search_term.on("change", () => lot_numbers_update_filtered_list(inspection_record_id));
     ln_input_search_term.on("click", (e, _) => { e.srcElement.select(); });
 
     // set up static button events
-    ln_button_add.on("click", () => lot_numbers_assign_association(inspection_id));
+    ln_button_add.on("click", () => lot_numbers_assign_association(inspection_record_id));
 
     // populate the list
-    await lot_numbers_update_filtered_list(inspection_id);
+    await lot_numbers_update_filtered_list(inspection_record_id);
 }
 
-async function lot_numbers_assign_association(inspection_id)
+async function lot_numbers_assign_association(inspection_record_id)
 {
     // request confirmation
     if (!confirm("This action will write to the database and cannot be reverted. Continue?")) {
@@ -3189,11 +2367,11 @@ async function lot_numbers_assign_association(inspection_id)
     }
 
     // query the flask server
-    await d3.json("/inspection_reports/lot_numbers_assign_association/", {
+    await d3.json("/inspection_records/lot_numbers/assign_lot_number/", {
         method: "POST",
         body: JSON.stringify({
             search_term: ln_input_search_term.property("value"),
-            inspection_id: inspection_id,
+            inspection_record_id: inspection_record_id,
             lot_number_id: ln_select_selected.property("value")
         }),
         headers: {
@@ -3212,7 +2390,7 @@ async function lot_numbers_assign_association(inspection_id)
     });
 }
 
-async function lot_numbers_remove_association(inspection_id, id)
+async function lot_numbers_remove_association(inspection_record_id, id)
 {
     // request confirmation
     if (!confirm("This action will remove records from the database and cannot be reverted. Continue?")) {
@@ -3220,11 +2398,11 @@ async function lot_numbers_remove_association(inspection_id, id)
     }
 
     // query the flask server
-    await d3.json("/inspection_reports/lot_numbers_remove_association/", {
+    await d3.json("/inspection_records/lot_numbers/unassign_lot_number/", {
         method: "POST",
         body: JSON.stringify({
             search_term: ln_input_search_term.property("value"),
-            inspection_id: inspection_id,
+            inspection_record_id: inspection_record_id,
             lot_number_id: id
         }),
         headers: {
@@ -3245,7 +2423,7 @@ async function lot_numbers_remove_association(inspection_id, id)
 
 async function lot_numbers_update_filtered_selector()
 {
-    await d3.json("/inspection_reports/lot_numbers_get_filtered_options/", {
+    await d3.json("/inspection_records/lot_numbers/get_filtered_options/", {
         method: "POST",
         body: JSON.stringify({
             search_term: ln_input_selected_search_term.property("value")
@@ -3275,12 +2453,12 @@ async function lot_numbers_update_filtered_selector()
     });
 }
 
-async function lot_numbers_update_filtered_list(inspection_id)
+async function lot_numbers_update_filtered_list(inspection_record_id)
 {
-    await d3.json("/inspection_reports/lot_numbers_get_filtered_associations/", {
+    await d3.json("/inspection_records/lot_numbers/get_filtered_associations/", {
         method: "POST",
         body: JSON.stringify({
-            inspection_id: inspection_id,
+            inspection_record_id: inspection_record_id,
             search_term: ln_input_search_term.property("value")
         }),
         headers: {
@@ -3305,13 +2483,13 @@ async function lot_numbers_repopulate_list(data)
     ln_ul_list.selectAll("li").remove();
 
     // logic gate
-    if (data.size == 0) {
+    if (data == null) {
         return;
     }
 
     // populate the list
     let items = ln_ul_list.selectAll("li")
-        .data(data.data)
+        .data(data)
         .join("li")
         .append("div")
         .attr("class", "list-item-dark")
@@ -3329,14 +2507,14 @@ async function lot_numbers_repopulate_list(data)
         .style("border-radius", "0px 6px 6px 0px")
         .attr("class", "list-item-button-dark")
         .text("Delete")
-        .on("click", (_, x) => lot_numbers_remove_association(x.inspection_id, x.id));
+        .on("click", (_, x) => lot_numbers_remove_association(x.inspection_record_id, x.id));
 }
 
 // #endregion
 
 // #region deviations
 
-async function deviations_prepare_panel(measurement_id, part_index, revision, name, inspection_id, item, drawing)
+async function deviations_prepare_panel(feature_id, part_index, revision, name, inspection_record_id, item, drawing)
 {
     // set the visual flag
     dv_label_current.text(`${part_index} // ${revision} // ${name}`);
@@ -3351,27 +2529,27 @@ async function deviations_prepare_panel(measurement_id, part_index, revision, na
     dv_input_notes.on("click", (e, _) => { e.srcElement.select(); });
 
     // set up static button events
-    dv_button_add.on("click", () => deviations_add(measurement_id, inspection_id, item, drawing));
-    dv_button_save.on("click", () => deviations_save(measurement_id));
+    dv_button_add.on("click", () => deviations_add(feature_id, inspection_record_id, item, drawing));
+    dv_button_save.on("click", () => deviations_save(feature_id));
 
     // populate the list
-    await deviations_get_measurement_deviations(measurement_id, inspection_id, item, drawing);
+    await deviations_get_measurement_deviations(feature_id, inspection_record_id, item, drawing);
 }
 
-async function deviations_add(measurement_id, inspection_id, item, drawing)
+async function deviations_add(feature_id, inspection_record_id, item, drawing)
 {
     // add a new deviation
-    await d3.json("/inspection_reports/deviations_add_deviation/", {
+    await d3.json("/inspection_reports/deviations/add_deviation/", {
         method: "POST",
         body: JSON.stringify({
-            measurement_id: measurement_id
+            feature_id: feature_id
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
         if (json.status == "ok") {
-            deviations_repopulate_deviations_list(json.response, measurement_id, inspection_id, item, drawing);
+            deviations_repopulate_deviations_list(json.response, feature_id, inspection_record_id, item, drawing);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -3382,15 +2560,15 @@ async function deviations_add(measurement_id, inspection_id, item, drawing)
     });
 
     // requery for measurements
-    await measurements_get_filtered_measurements(inspection_id, item, drawing);
+    await features_get_filtered_features(inspection_record_id, item, drawing);
 }
 
-async function deviations_save(measurement_id)
+async function deviations_save(feature_id)
 {
-    await d3.json("/inspection_reports/deviations_save/", {
+    await d3.json("/inspection_records/deviations/save_deviations/", {
         method: "POST",
         body: JSON.stringify({
-            measurement_id: measurement_id,
+            feature_id: feature_id,
             data: dv_ul_list.selectAll("li").data()
         }),
         headers: {
@@ -3409,12 +2587,12 @@ async function deviations_save(measurement_id)
     });
 }
 
-async function deviations_delete(measurement_id, deviation_id, inspection_id, item, drawing)
+async function deviations_delete(feature_id, deviation_id, inspection_record_id, item, drawing)
 {
-    await d3.json("/inspection_reports/deviations_delete_deviation/", {
+    await d3.json("/inspection_reports/deviations/delete_deviation/", {
         method: "POST",
         body: JSON.stringify({
-            measurement_id: measurement_id,
+            feature_id: feature_id,
             deviation_id: deviation_id
         }),
         headers: {
@@ -3426,7 +2604,7 @@ async function deviations_delete(measurement_id, deviation_id, inspection_id, it
         dv_ul_list.selectAll("li").remove();
 
         if (json.status == "ok") {
-            deviations_repopulate_deviations_list(json.response, measurement_id, inspection_id, item, drawing);
+            deviations_repopulate_deviations_list(json.response, feature_id, inspection_record_id, item, drawing);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -3437,22 +2615,22 @@ async function deviations_delete(measurement_id, deviation_id, inspection_id, it
     });
 
     // requery for measurements
-    await measurements_get_filtered_measurements(inspection_id, item, drawing);
+    await features_get_filtered_features(inspection_id, item, drawing);
 }
 
-async function deviations_get_measurement_deviations(measurement_id, inspection_id, item, drawing)
+async function deviations_get_measurement_deviations(feature_id, inspection_record_id, item, drawing)
 {
-    await d3.json("/inspection_reports/deviations_get_measurement_deviations/", {
+    await d3.json("/inspection_reports/deviations/get_feature_deviations/", {
         method: "POST",
         body: JSON.stringify({
-            measurement_id: measurement_id
+            feature_id: feature_id
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
         if (json.status == "ok") {
-            deviations_repopulate_deviations_list(json.response, measurement_id, inspection_id, item, drawing);
+            deviations_repopulate_deviations_list(json.response, feature_id, inspection_record_id, item, drawing);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -3501,7 +2679,7 @@ async function deviations_unselected(e)
     dv_input_notes.property("value", "");
 }
 
-async function deviations_repopulate_deviations_list(data, measurement_id, inspection_id, item, drawing)
+async function deviations_repopulate_deviations_list(data, feature_id, inspection_record_id, item, drawing)
 {
     // clear the old entries
     dv_ul_list.selectAll("li").remove();
@@ -3524,7 +2702,7 @@ async function deviations_repopulate_deviations_list(data, measurement_id, inspe
 
             // delete deviation
             dv_ul_list_contextmenu.select("#context_menu_0").on("click", () => {
-                deviations_delete(measurement_id, x.id, inspection_id, item, drawing);
+                deviations_delete(feature_id, x.id, inspection_record_id, item, drawing);
                 dv_ul_list_contextmenu.style("display", "none");
             });
 
