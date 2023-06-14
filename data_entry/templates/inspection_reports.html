@@ -59,7 +59,7 @@
     <div class="container" style="margin: 60px 250px 30px 250px; --grid-template-columns: repeat(0, minmax(0, 1fr));">
 
         <!-- table -->
-        <table class="data-table data-table-highlight-all" id="measurements_table" style="
+        <table class="data-table" id="measurements_table" style="
             --grid-column: 1;
             --grid-row: 1;
             margin-top: 18px;"></table>
@@ -71,17 +71,17 @@
         <button class="context-menu-button" id="context_menu_1">View Deviations</button>
     </div>
 
-    <!-- inspection report controls -->
-    <div class="sidebar" id="inspection_reports_sidebar">
+    <!-- inspection record -->
+    <div class="sidebar" id="inspection_records_sidebar">
         <div class="container" style="--grid-template-columns: repeat(3, minmax(0, 1fr));">
 
             <!-- row -->
-            <button class="button-dark" id="inspection_reports_new" type="button" style="
+            <button class="button-dark" id="inspection_records_new" type="button" style="
                 --grid-column: 1 / 4;
                 --grid-row: 1;">New Inspection Report</button>
 
             <!-- row -->
-            <button class="button-dark" id="inspection_reports_refresh" type="button" style="
+            <button class="button-dark" id="inspection_records_refresh" type="button" style="
                 --grid-column: 1 / 4;
                 --grid-row: 2;">Refresh List</button>
 
@@ -91,37 +91,37 @@
                 --grid-row: 3;">New Inspection Report</label>
 
             <!-- row -->
-            <label class="label-dark" for="inspection_reports_part_filter_new" style="
+            <label class="label-dark" for="inspection_records_part_filter_new" style="
                 --grid-column: 1;
                 --grid-row: 4;">Part ID</label>
-            <input class="input-dark" id="inspection_reports_part_filter_new" type="text" style="
+            <input class="input-dark" id="inspection_records_part_filter_new" type="text" style="
                 --grid-column: 1;
                 --grid-row: 5;
                 text-align: left;"
                 ondrag="return false;" ondrop="return false;">
-            <select class="select-dark" id="inspection_reports_part_new" style="
+            <select class="select-dark" id="inspection_records_part_new" style="
                 --grid-column: 1;
                 --grid-row: 6;"></select>
-            <label class="label-dark" for="inspection_reports_schema_filter_new" style="
+            <label class="label-dark" for="inspection_records_schema_filter_new" style="
                 --grid-column: 2;
                 --grid-row: 4;">Filter</label>
-            <input class="input-dark" id="inspection_reports_schema_filter_new" type="text" style="
+            <input class="input-dark" id="inspection_records_schema_filter_new" type="text" style="
                 --grid-column: 2;
                 --grid-row: 5;
                 text-align: left;"
                 ondrag="return false;" ondrop="return false;">
-            <select class="select-dark" id="inspection_reports_schema_new" style="
+            <select class="select-dark" id="inspection_records_schema_new" style="
                 --grid-column: 2;
                 --grid-row: 6;"></select>
-            <label class="label-dark" for="inspection_reports_employee_filter_new" style="
+            <label class="label-dark" for="inspection_records_employee_filter_new" style="
                 --grid-column: 3;
                 --grid-row: 4;">Employee</label>
-            <input class="input-dark" id="inspection_reports_employee_filter_new" type="text" style="
+            <input class="input-dark" id="inspection_records_employee_filter_new" type="text" style="
                 --grid-column: 3;
                 --grid-row: 5;
                 text-align: left;"
                 ondrag="return false;" ondrop="return false;">
-            <select class="select-dark" id="inspection_reports_employee_new" style="
+            <select class="select-dark" id="inspection_records_employee_new" style="
                 --grid-column: 3;
                 --grid-row: 6;"></select>
 
@@ -131,50 +131,50 @@
                 --grid-row: 7;">Existing Inspection Reports</label>
 
             <!-- row -->
-            <label class="label-dark" for="inspection_reports_part_list" style="
+            <label class="label-dark" for="inspection_records_part_list" style="
                 --grid-column: 1;
                 --grid-row: 8;">Part ID</label>
-            <input class="input-dark" id="inspection_reports_part_list" type="text" style="
+            <input class="input-dark" id="inspection_records_part_list" type="text" style="
                 --grid-column: 1;
                 --grid-row: 9;
                 text-align: left;"
                 ondrag="return false;" ondrop="return false;">
-            <label class="label-dark" for="inspection_reports_started_after_list" style="
+            <label class="label-dark" for="inspection_records_started_after_list" style="
                 --grid-column: 2;
                 --grid-row: 8;">Started After</label>
-            <input class="input-dark" id="inspection_reports_started_after_list" type="date" style="
+            <input class="input-dark" id="inspection_records_started_after_list" type="date" style="
                 --grid-column: 2;
                 --grid-row: 9"
                 ondrag="return false;" ondrop="return false;">
-            <label class="label-dark" for="inspection_reports_finished_before_list" style="
+            <label class="label-dark" for="inspection_records_finished_before_list" style="
                 --grid-column: 3;
                 --grid-row: 8;">Finished Before</label>
-            <input class="input-dark" id="inspection_reports_finished_before_list" type="date" style="
+            <input class="input-dark" id="inspection_records_finished_before_list" type="date" style="
                 --grid-column: 3;
                 --grid-row: 9"
                 ondrag="return false;" ondrop="return false;">
 
             <!-- row -->
-            <label class="label-dark" for="inspection_reports_material_type_list" style="
+            <label class="label-dark" for="inspection_records_material_type_list" style="
                 --grid-column: 1;
                 --grid-row: 10;">Material Type</label>
-            <input class="input-dark" id="inspection_reports_material_type_list" style="
+            <input class="input-dark" id="inspection_records_material_type_list" style="
                 --grid-column: 1;
                 --grid-row: 11;
                 text-align: left;"
                 ondrag="return false;" ondrop="return false;">
-            <label class="label-dark" for="inspection_reports_employee_list" style="
+            <label class="label-dark" for="inspection_records_employee_list" style="
                 --grid-column: 2;
                 --grid-row: 10;">Employee</label>
-            <input class="input-dark" id="inspection_reports_employee_list" style="
+            <input class="input-dark" id="inspection_records_employee_list" style="
                 --grid-column: 2;
                 --grid-row: 11;
                 text-align: left;"
                 ondrag="return false;" ondrop="return false;">
-            <label class="label-dark" for="inspection_reports_disposition_list" style="
+            <label class="label-dark" for="inspection_records_disposition_list" style="
                 --grid-column: 3;
                 --grid-row: 10;">Disposition</label>
-            <input class="input-dark" id="inspection_reports_disposition_list" style="
+            <input class="input-dark" id="inspection_records_disposition_list" style="
                 --grid-column: 3;
                 --grid-row: 11;
                 text-align: left;"
@@ -185,42 +185,42 @@
                 --grid-template-columns: repeat(5, minmax(0, 1fr));
                 --grid-column: 1 / 4;
                 --grid-row: 12;">
-                <label class="label-dark" for="inspection_reports_receiver_number_list" style="
+                <label class="label-dark" for="inspection_records_receiver_number_list" style="
                     --grid-column: 1;
                     --grid-row: 1;">Receiver Number</label>
-                <input class="input-dark" id="inspection_reports_receiver_number_list" style="
+                <input class="input-dark" id="inspection_records_receiver_number_list" style="
                     --grid-column: 1;
                     --grid-row: 2;
                     text-align: left;"
                     ondrag="return false;" ondrop="return false;">
-                <label class="label-dark" for="inspection_reports_purchase_order_list" style="
+                <label class="label-dark" for="inspection_records_purchase_order_list" style="
                     --grid-column: 2;
                     --grid-row: 1;">Purchase Order</label>
-                <input class="input-dark" id="inspection_reports_purchase_order_list" style="
+                <input class="input-dark" id="inspection_records_purchase_order_list" style="
                     --grid-column: 2;
                     --grid-row: 2;
                     text-align: left;"
                     ondrag="return false;" ondrop="return false;">
-                <label class="label-dark" for="inspection_reports_job_order_list" style="
+                <label class="label-dark" for="inspection_records_job_order_list" style="
                     --grid-column: 3;
                     --grid-row: 1;">Job Order</label>
-                <input class="input-dark" id="inspection_reports_job_order_list" style="
+                <input class="input-dark" id="inspection_records_job_order_list" style="
                     --grid-column: 3;
                     --grid-row: 2;
                     text-align: left;"
                     ondrag="return false;" ondrop="return false;">
-                <label class="label-dark" for="inspection_reports_lot_number_list" style="
+                <label class="label-dark" for="inspection_records_lot_number_list" style="
                     --grid-column: 4;
                     --grid-row: 1;">Lot Number</label>
-                <input class="input-dark" id="inspection_reports_lot_number_list" style="
+                <input class="input-dark" id="inspection_records_lot_number_list" style="
                     --grid-column: 4;
                     --grid-row: 2;
                     text-align: left;"
                     ondrag="return false;" ondrop="return false;">
-                <label class="label-dark" for="inspection_reports_supplier_list" style="
+                <label class="label-dark" for="inspection_records_supplier_list" style="
                     --grid-column: 5;
                     --grid-row: 1;">Supplier</label>
-                <input class="input-dark" id="inspection_reports_supplier_list" style="
+                <input class="input-dark" id="inspection_records_supplier_list" style="
                     --grid-column: 5;
                     --grid-row: 2;
                     text-align: left;"
@@ -241,78 +241,78 @@
                     </div>
                 </li>
             </ul>
-            <ul class="item-list" id="inspection_reports_filtered_list" style="
+            <ul class="item-list" id="inspection_records_filtered_list" style="
                 --grid-column: 1 / 4;
                 --grid-row: 14;"></ul>
         </div>
     </div>
-    <div class="sidebar-toggle" id="inspection_reports_btn" style="top: calc(0 * (12px + 42px) + 12px + 54px);">
-        <button class="sidebar-button" id="inspection_reports_button" type="button" onclick="toggle_options('inspection_reports', '1000px')">
+    <div class="sidebar-toggle" id="inspection_records_btn" style="top: calc(0 * (12px + 42px) + 12px + 54px);">
+        <button class="sidebar-button" id="inspection_records_button" type="button" onclick="toggle_options('inspection_records', '1000px')">
             Inspection Reports
         </button>
     </div>
 
-    <!-- filtered inspection report list context menu -->
-    <div class="context-menu" id="inspection_reports_list_contextmenu">
+    <!-- inspection record context menu -->
+    <div class="context-menu" id="inspection_records_list_contextmenu">
         <button class="context-menu-button" id="context_menu_0">Delete Report</button>
     </div>
 
-    <!-- view/edit the measurement sets -->
-    <div class="sidebar" id="measurement_sets_sidebar">
+    <!-- inspections -->
+    <div class="sidebar" id="inspections_sidebar">
         <div class="container" style="--grid-template-columns: repeat(2, minmax(0, 1fr));">
 
             <!-- row -->
-            <button class="button-dark" id="measurement_sets_add" type="button" style="
+            <button class="button-dark" id="inspections_add" type="button" style="
                 --grid-column: 1 / 3;
                 --grid-row: 1;">Add Measurement Set</button>
 
             <!-- row -->
-            <button class="button-dark" id="measurement_sets_refresh_list" type="button" style="
+            <button class="button-dark" id="inspections_refresh_list" type="button" style="
                 --grid-column: 1 / 3;
                 --grid-row: 2;">Refresh List</button>
 
             <!-- row -->
-            <button class="button-dark" id="measurement_sets_save" type="button" style="
+            <button class="button-dark" id="inspections_save" type="button" style="
                 --grid-column: 1 / 3;
-                --grid-row: 3;">Save Set Edits</button>
+                --grid-row: 3;">Save</button>
 
             <!-- row -->
-            <label class="label-dark" for="measurement_sets_schema_filter" style="
+            <label class="label-dark" for="inspections_schema_filter" style="
                 --grid-column: 1;
                 --grid-row: 4;">Filter</label>
-            <input class="input-dark" type="text" id="measurement_sets_schema_filter" style="
+            <input class="input-dark" type="text" id="inspections_schema_filter" style="
                 --grid-column: 1;
                 --grid-row: 5;
                 text-align: left;"
                 ondrag="return false;" ondrop="return false;">
-            <label class="label-dark" for="measurement_sets_schema" style="
+            <label class="label-dark" for="inspections_schema" style="
                 --grid-column: 2;
                 --grid-row: 4;">Measurement Schema</label>
-            <select class="select-dark" id="measurement_sets_schema" style="
+            <select class="select-dark" id="inspections_schema" style="
                 --grid-column: 2;
                 --grid-row: 5;"></select>
 
             <!-- row -->
-            <label class="label-dark" for="measurement_sets_employee_filter" style="
+            <label class="label-dark" for="inspections_employee_filter" style="
                 --grid-column: 1;
                 --grid-row: 6;">Filter</label>
-            <input class="input-dark" type="text" id="measurement_sets_employee_filter" style="
+            <input class="input-dark" type="text" id="inspections_employee_filter" style="
                 --grid-column: 1;
                 --grid-row: 7;
                 text-align: left;"
                 ondrag="return false;" ondrop="return false;">
-            <label class="label-dark" for="measurement_sets_employee" style="
+            <label class="label-dark" for="inspections_employee" style="
                 --grid-column: 2;
                 --grid-row: 6;">Employee</label>
-            <select class="select-dark" id="measurement_sets_employee" style="
+            <select class="select-dark" id="inspections_employee" style="
                 --grid-column: 2;
                 --grid-row: 7;"></select>
 
             <!-- row -->
-            <label class="label-dark" for="measurement_sets_display_filter" style="
+            <label class="label-dark" for="inspections_display_filter" style="
                 --grid-column: 1 / 3;
                 --grid-row: 8;">Display Filter</label>
-            <input class="input-dark" type="text" id="measurement_sets_display_filter" style="
+            <input class="input-dark" type="text" id="inspections_display_filter" style="
                 --grid-column: 1 / 3;
                 --grid-row: 9;
                 text-align: left;"
@@ -331,46 +331,46 @@
                         <label class="list-item-header-label-dark" style="--grid-column: 2;--grid-row: 1;">Employee</label>
                         <label class="list-item-header-label-dark" style="--grid-column: 3;--grid-row: 1;">Part Index</label>
                         <label class="list-item-header-label-dark" style="--grid-column: 4;--grid-row: 1;">Revision</label>
-                        <label class="list-item-header-label-dark" style="--grid-column: 5;--grid-row: 1;">Measurement Type</label>
+                        <label class="list-item-header-label-dark" style="--grid-column: 5;--grid-row: 1;">Inspection Type</label>
                         <label class="list-item-header-label-dark" style="--grid-column: 6;--grid-row: 1;">Display State</label>
                     </div>
                 </li>
             </ul>
-            <ul class="item-list" id="measurement_sets_list" style="
+            <ul class="item-list" id="inspections_list" style="
                 --grid-column: 1 / 3;
                 --grid-row: 12;"></ul>
         </div>
     </div>
-    <div class="sidebar-toggle" id="measurement_sets_btn" style="top: calc(1 * (12px + 42px) + 12px + 54px);">
-        <button class="sidebar-button" id="measurement_sets_button" type="button" onclick="toggle_options('measurement_sets', '1000px')">
-            Measurement Sets
+    <div class="sidebar-toggle" id="inspections_btn" style="top: calc(1 * (12px + 42px) + 12px + 54px);">
+        <button class="sidebar-button" id="inspections_button" type="button" onclick="toggle_options('inspections', '1000px')">
+            Inspections
         </button>
     </div>
 
-    <!-- measurement sets list context menu -->
-    <div class="context-menu" id="measurement_sets_list_contextmenu">
+    <!-- inspections context menu -->
+    <div class="context-menu" id="inspections_list_contextmenu">
         <button class="context-menu-button" id="context_menu_0">Delete Set</button>
     </div>
 
-    <!-- set/apply a filter for the measurements -->
-    <div class="sidebar" id="measurements_sidebar">
+    <!-- features -->
+    <div class="sidebar" id="features_sidebar">
         <div class="container" style="--grid-template-columns: repeat(2, minmax(0, 1fr));">
 
             <!-- row -->
-            <button class="button-dark" id="measurements_apply_filter" type="button" style="
+            <button class="button-dark" id="features_apply_filter" type="button" style="
                 --grid-column: 1 / 3;
                 --grid-row: 1;">Update View</button>
 
             <!-- row -->
-            <button class="button-dark" id="measurements_save_changes" type="button" style="
+            <button class="button-dark" id="features_save_changes" type="button" style="
                 --grid-column: 1 / 3;
                 --grid-row: 2;">Save Edits</button>
 
             <!-- row -->
-            <label class="label-dark" for="measurements_display_type" style="
+            <label class="label-dark" for="features_display_type" style="
                 --grid-column: 1;
                 --grid-row: 3;">Display Type</label>
-            <select class="select-dark" id="measurements_display_type" style="
+            <select class="select-dark" id="features_display_type" style="
                 --grid-column: 1;
                 --grid-row: 4;">
                 <option value="0">Data Entry</option>
@@ -378,10 +378,10 @@
                 <option value="2">Data Entry with Set Info</option>
                 <option value="3">Metadata with Set Info</option>
             </select>
-            <label class="label-dark" for="measurements_has_deviations" style="
+            <label class="label-dark" for="features_has_deviations" style="
                 --grid-column: 2;
                 --grid-row: 3;">Has Deviations</label>
-            <select class="select-dark" id="measurements_has_deviations" style="
+            <select class="select-dark" id="features_has_deviations" style="
                 --grid-column: 2;
                 --grid-row: 4;">
                 <option value="-1">n/a</option>
@@ -390,85 +390,85 @@
             </select>
 
             <!-- row -->
-            <label class="label-dark" for="measurements_measurement_type" style="
+            <label class="label-dark" for="features_inspection_type" style="
                 --grid-column: 1;
-                --grid-row: 5;">Measurement Type</label>
-            <select class="select-dark" id="measurements_measurement_type" style="
+                --grid-row: 5;">Inspection Type</label>
+            <select class="select-dark" id="features_inspection_type" style="
                 --grid-column: 1;
                 --grid-row: 6;"></select>
-            <label class="label-dark" for="measurements_inspector" style="
+            <label class="label-dark" for="features_inspector" style="
                 --grid-column: 2;
                 --grid-row: 5;">Employee</label>
-            <select class="select-dark" id="measurements_inspector" style="
+            <select class="select-dark" id="features_inspector" style="
                 --grid-column: 2;
                 --grid-row: 6;"></select>
 
             <!-- row -->
-            <label class="label-dark" for="measurements_part_index" style="
+            <label class="label-dark" for="features_part_index" style="
                 --grid-column: 1;
                 --grid-row: 7;">Part Index</label>
-            <select class="select-dark" id="measurements_part_index" style="
+            <select class="select-dark" id="features_part_index" style="
                 --grid-column: 1;
                 --grid-row: 8;"></select>
-            <label class="label-dark" for="measurements_revision" style="
+            <label class="label-dark" for="features_revision" style="
                 --grid-column: 2;
                 --grid-row: 7;">Revision</label>
-            <select class="select-dark" id="measurements_revision" style="
+            <select class="select-dark" id="features_revision" style="
                 --grid-column: 2;
                 --grid-row: 8;"></select>
 
             <!-- row -->
-            <label class="label-dark" for="measurements_dimension_name" style="
+            <label class="label-dark" for="features_dimension_name" style="
                 --grid-column: 1;
                 --grid-row: 9;">Dimension Name</label>
-            <input class="input-dark" id="measurements_dimension_name" type="text" style="
+            <input class="input-dark" id="features_dimension_name" type="text" style="
                 --grid-column: 1;
                 --grid-row: 10;
                 text-align: left;"
                 ondrag="return false;" ondrop="return false;">
-            <label class="label-dark" for="measurements_frequency_type" style="
+            <label class="label-dark" for="features_frequency_type" style="
                 --grid-column: 2;
                 --grid-row: 9;">Frequency Type</label>
-            <select class="select-dark" id="measurements_frequency_type" style="
+            <select class="select-dark" id="features_frequency_type" style="
                 --grid-column: 2;
                 --grid-row: 10;"></select>
 
             <!-- row -->
-            <label class="label-dark" for="measurements_gauge" style="
+            <label class="label-dark" for="features_gauge" style="
                 --grid-column: 1;
                 --grid-row: 11;">Gauge</label>
-            <select class="select-dark" id="measurements_gauge" style="
+            <select class="select-dark" id="features_gauge" style="
                 --grid-column: 1;
                 --grid-row: 12;"></select>
-            <label class="label-dark" for="measurements_gauge_type" style="
+            <label class="label-dark" for="features_gauge_type" style="
                 --grid-column: 2;
                 --grid-row: 11;">Gauge Type</label>
-            <select class="select-dark" id="measurements_gauge_type" style="
+            <select class="select-dark" id="features_gauge_type" style="
                 --grid-column: 2;
                 --grid-row: 12;"></select>
 
             <!-- row -->
-            <label class="label-dark" for="measurements_specification_type" style="
+            <label class="label-dark" for="features_specification_type" style="
                 --grid-column: 1;
                 --grid-row: 13;">Specification Type</label>
-            <select class="select-dark" id="measurements_specification_type" style="
+            <select class="select-dark" id="features_specification_type" style="
                 --grid-column: 1;
                 --grid-row: 14;"></select>
-            <label class="label-dark" for="measurements_dimension_type" style="
+            <label class="label-dark" for="features_dimension_type" style="
                 --grid-column: 2;
                 --grid-row: 13;">Dimension Type</label>
-            <select class="select-dark" id="measurements_dimension_type" style="
+            <select class="select-dark" id="features_dimension_type" style="
                 --grid-column: 2;
                 --grid-row: 14;"></select>
         </div>
     </div>
-    <div class="sidebar-toggle" id="measurements_btn" style="top: calc(2 * (12px + 42px) + 12px + 54px);">
-        <button class="sidebar-button" id="measurements_button" type="button" onclick="toggle_options('measurements', '500px')">
-            Measurements
+    <div class="sidebar-toggle" id="features_btn" style="top: calc(2 * (12px + 42px) + 12px + 54px);">
+        <button class="sidebar-button" id="features_button" type="button" onclick="toggle_options('features', '500px')">
+            Features
         </button>
     </div>
 
-    <!-- view/edit manufacturing records -->
+    <!-- manufactured -->
     <div class="sidebar" id="manufactured_sidebar">
         <div class="container" style="--grid-template-columns: repeat(2, minmax(0, 1fr));">
 
@@ -559,12 +559,12 @@
         </button>
     </div>
 
-    <!-- manufactured list context menus -->
+    <!-- manufactured context menus -->
     <div class="context-menu" id="manufactured_job_order_list_contextmenu">
         <button class="context-menu-button" id="context_menu_0">Delete</button>
     </div>
 
-    <!-- view/edit received records -->
+    <!-- received -->
     <div class="sidebar" id="received_sidebar">
         <div class="container" style="--grid-template-columns: repeat(4, minmax(0, 1fr));">
 
@@ -687,7 +687,7 @@
         </button>
     </div>
 
-    <!-- received list context menus -->
+    <!-- received context menus -->
     <div class="context-menu" id="received_receiver_number_list_context_menu">
         <button class="context-menu-button" id="context_menu_0">Delete</button>
     </div>
@@ -695,7 +695,7 @@
         <button class="context-menu-button" id="context_menu_0">Delete</button>
     </div>
 
-    <!-- view/edit lot numbers -->
+    <!-- lot numbers -->
     <div class="sidebar" id="lot_numbers_sidebar">
         <div class="container" style="--grid-template-columns: repeat(2, minmax(0, 1fr));">
 
@@ -745,7 +745,7 @@
         </button>
     </div>
 
-    <!-- view/edit deviations -->
+    <!-- deviations -->
     <div class="sidebar" id="deviations_sidebar">
         <div class="container" style="--grid-template-columns: repeat(1, minmax(0, 1fr));">
 
@@ -803,7 +803,7 @@
         </button>
     </div>
 
-    <!-- filtered deviations list context menu -->
+    <!-- deviations context menu -->
     <div class="context-menu" id="deviations_list_contextmenu">
         <button class="context-menu-button" id="context_menu_0">Delete Deviation</button>
     </div>

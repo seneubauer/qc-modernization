@@ -2013,8 +2013,8 @@ def func_inspection_records_get_filtered_records(part_search_term:str, started_a
             }
         else:
             return {
-                "status": "alert",
-                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [inspection_records, inspections, parts, material_types, employees, disposition_types, receiver_numbers, purchase_orders, parts_job_numbers, job_numbers, inspection_records_lot_numbers, lot_numbers, suppliers])
+                "status": "ok",
+                "response": None
             }
 
     except SQLAlchemyError as e:
@@ -2137,7 +2137,7 @@ def inspection_records_inspections_save_edits():
         rows_affected = 0
         for x in data_object:
             inspections_query = session.query(inspections)\
-                .filter(inspections.id == x["inspections_id"])
+                .filter(inspections.id == x["inspection_id"])
 
             is_affected = 0
             for k, v in x["data"].items():
@@ -2464,8 +2464,8 @@ def func_inspections_get_filtered_inspections(inspection_record_id:int, search_t
             }
         else:
             return {
-                "status": "log",
-                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts, inspections])
+                "status": "ok",
+                "response": None
             }
 
     except SQLAlchemyError as e:
@@ -2976,8 +2976,8 @@ def func_features_get_filtered_features(inspection_record_id:int, item:str, draw
             }
         else:
             return {
-                "status": "log",
-                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts, inspections, inspection_records, gauges, gauge_types, specification_types, dimension_types, frequency_types, inspection_types, features])
+                "status": "ok",
+                "response": None
             }
 
     except SQLAlchemyError as e:
@@ -3307,8 +3307,8 @@ def func_manufactured_get_associated_job_numbers(inspection_record_id:int, searc
             }
         else:
             return {
-                "status": "log",
-                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts_job_numbers, job_numbers, parts, inspections, inspection_records])
+                "status": "ok",
+                "response": None
             }
 
     except SQLAlchemyError as e:
@@ -3353,8 +3353,8 @@ def inspection_records_received_assign_purchase_order_asociation():
         
         # add the association
         session.add(inspection_records_purchase_orders(**{
-            inspection_record_id: inspection_record_id,
-            purchase_order_id: purchase_order_id
+            "inspection_record_id": inspection_record_id,
+            "purchase_order_id": purchase_order_id
         }))
 
         # commit the changes
@@ -3390,6 +3390,7 @@ def inspection_records_received_assign_receiver_number_association():
 
         # check if the association already exists
         exists = session.query(receiver_numbers.id)\
+            .filter(receiver_numbers.id == receiver_number_id)\
             .filter(receiver_numbers.purchase_order_id == purchase_order_id)\
             .first()
         if exists is not None:
@@ -3926,7 +3927,7 @@ def inspection_records_lot_numbers_get_filtered_options():
     # get the required parameters
     search_term = str(form_data["search_term"])
 
-    return func_lot_numbers_get_filtered_potential_associations(
+    return func_lot_numbers_get_filtered_options(
         search_term
     )
 
@@ -3955,8 +3956,8 @@ def func_lot_numbers_assign(search_term:str, inspection_record_id:int, lot_numbe
         session = Session(engine)
 
         # measurement_set if the association already exists
-        results = session.query(inspection_records_lot_numbers.inspection_id)\
-            .filter(inspection_records_lot_numbers.inspection_id == inspection_record_id)\
+        results = session.query(inspection_records_lot_numbers.inspection_record_id)\
+            .filter(inspection_records_lot_numbers.inspection_record_id == inspection_record_id)\
             .filter(inspection_records_lot_numbers.lot_number_id == lot_number_id).all()
 
         # logic gate
@@ -3964,12 +3965,12 @@ def func_lot_numbers_assign(search_term:str, inspection_record_id:int, lot_numbe
             session.close()
             return {
                 "status": "alert",
-                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [inspection_records_lot_numbers])
+                "response": text_response(stack()[0][3], message_type.record_already_exists, tables = [inspection_records_lot_numbers])
             }
 
         # add the new association
         session.add(inspection_records_lot_numbers(**{
-            "inspection_id": inspection_record_id,
+            "inspection_record_id": inspection_record_id,
             "lot_number_id": lot_number_id
         }))
         session.commit()
@@ -4047,7 +4048,8 @@ def func_lot_numbers_get_filtered_associations(search_term:str, inspection_recor
             for id, name in results:
                 output_arr.append({
                     "id": id,
-                    "name": name
+                    "name": name,
+                    "inspection_record_id": inspection_record_id
                 })
 
             return {
@@ -4066,7 +4068,7 @@ def func_lot_numbers_get_filtered_associations(search_term:str, inspection_recor
             "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-def func_lot_numbers_get_filtered_potential_associations(search_term:str):
+def func_lot_numbers_get_filtered_options(search_term:str):
 
     try:
 
@@ -4097,8 +4099,8 @@ def func_lot_numbers_get_filtered_potential_associations(search_term:str):
             }
         else:
             return {
-                "status": "log",
-                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [lot_numbers])
+                "status": "ok",
+                "response": None
             }
 
     except SQLAlchemyError as e:
@@ -4343,8 +4345,8 @@ def func_deviations_get_feature_deviations(feature_id:int):
             }
         else:
             return {
-                "status": "log",
-                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [deviations, employees, deviation_types])
+                "status": "ok",
+                "response": None
             }
 
     except SQLAlchemyError as e:

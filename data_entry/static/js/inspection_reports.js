@@ -6,56 +6,56 @@ const navbar_info = d3.select("#navbar_info");
 const vw_features_table = d3.select("#measurements_table");
 const vw_features_table_contextmenu = d3.select("#measurements_table_contextmenu");
 
-// inspection_reports
-const ir_button_new = d3.select("#inspection_reports_new");
-const ir_button_refresh = d3.select("#inspection_reports_refresh");
-const ir_input_part_new = d3.select("#inspection_reports_part_filter_new");
-const ir_select_part_new = d3.select("#inspection_reports_part_new");
-const ir_input_schema_new = d3.select("#inspection_reports_schema_filter_new");
-const ir_select_schema_new = d3.select("#inspection_reports_schema_new");
-const ir_input_employee_new = d3.select("#inspection_reports_employee_filter_new");
-const ir_select_employee_new = d3.select("#inspection_reports_employee_new");
-const ir_input_part_list = d3.select("#inspection_reports_part_list");
-const ir_input_started_after_list = d3.select("#inspection_reports_started_after_list");
-const ir_input_finished_before_list = d3.select("#inspection_reports_finished_before_list");
-const ir_input_material_type_list = d3.select("#inspection_reports_material_type_list");
-const ir_input_employee_list = d3.select("#inspection_reports_employee_list");
-const ir_input_disposition_list = d3.select("#inspection_reports_disposition_list");
-const ir_input_receiver_number_list = d3.select("#inspection_reports_receiver_number_list");
-const ir_input_purchase_order_list = d3.select("#inspection_reports_purchase_order_list");
-const ir_input_job_order_list = d3.select("#inspection_reports_job_order_list");
-const ir_input_lot_number_list = d3.select("#inspection_reports_lot_number_list");
-const ir_input_supplier_list = d3.select("#inspection_reports_supplier_list");
-const ir_ul_list = d3.select("#inspection_reports_filtered_list");
-const ir_ul_list_contextmenu = d3.select("#inspection_reports_list_contextmenu");
+// inspection records
+const ir_button_new = d3.select("#inspection_records_new");
+const ir_button_refresh = d3.select("#inspection_records_refresh");
+const ir_input_part_new = d3.select("#inspection_records_part_filter_new");
+const ir_select_part_new = d3.select("#inspection_records_part_new");
+const ir_input_schema_new = d3.select("#inspection_records_schema_filter_new");
+const ir_select_schema_new = d3.select("#inspection_records_schema_new");
+const ir_input_employee_new = d3.select("#inspection_records_employee_filter_new");
+const ir_select_employee_new = d3.select("#inspection_records_employee_new");
+const ir_input_part_list = d3.select("#inspection_records_part_list");
+const ir_input_started_after_list = d3.select("#inspection_records_started_after_list");
+const ir_input_finished_before_list = d3.select("#inspection_records_finished_before_list");
+const ir_input_material_type_list = d3.select("#inspection_records_material_type_list");
+const ir_input_employee_list = d3.select("#inspection_records_employee_list");
+const ir_input_disposition_list = d3.select("#inspection_records_disposition_list");
+const ir_input_receiver_number_list = d3.select("#inspection_records_receiver_number_list");
+const ir_input_purchase_order_list = d3.select("#inspection_records_purchase_order_list");
+const ir_input_job_order_list = d3.select("#inspection_records_job_order_list");
+const ir_input_lot_number_list = d3.select("#inspection_records_lot_number_list");
+const ir_input_supplier_list = d3.select("#inspection_records_supplier_list");
+const ir_ul_list = d3.select("#inspection_records_filtered_list");
+const ir_ul_list_contextmenu = d3.select("#inspection_records_list_contextmenu");
 
-// measurement sets
-const ms_button_create_new_set = d3.select("#measurement_sets_add");
-const ms_button_refresh_list = d3.select("#measurement_sets_refresh_list");
-const ms_button_save_edits = d3.select("#measurement_sets_save");
-const ms_input_schema_filter = d3.select("#measurement_sets_schema_filter");
-const ms_select_schema = d3.select("#measurement_sets_schema");
-const ms_input_employee_filter = d3.select("#measurement_sets_employee_filter");
-const ms_select_employee = d3.select("#measurement_sets_employee");
-const ms_input_display_filter = d3.select("#measurement_sets_display_filter");
-const ms_ul_list = d3.select("#measurement_sets_list");
-const ms_ul_list_contextmenu = d3.select("#measurement_sets_list_contextmenu");
+// inspections
+const in_button_create_new_set = d3.select("#inspections_add");
+const in_button_refresh_list = d3.select("#inspections_refresh_list");
+const in_button_save_edits = d3.select("#inspections_save");
+const in_input_schema_filter = d3.select("#inspections_schema_filter");
+const in_select_schema = d3.select("#inspections_schema");
+const in_input_employee_filter = d3.select("#inspections_employee_filter");
+const in_select_employee = d3.select("#inspections_employee");
+const in_input_display_filter = d3.select("#inspections_display_filter");
+const in_ul_list = d3.select("#inspections_list");
+const in_ul_list_contextmenu = d3.select("#inspections_list_contextmenu");
 
-// measurements
-const mt_button_update_display = d3.select("#measurements_apply_filter");
-const mt_button_save_characteristics = d3.select("#measurements_save_changes");
-const mt_select_display_type = d3.select("#measurements_display_type");
-const mt_select_inspection_type = d3.select("#measurements_measurement_type");
-const mt_input_name = d3.select("#measurements_dimension_name");
-const mt_select_frequency_type = d3.select("#measurements_frequency_type");
-const mt_select_has_deviations = d3.select("#measurements_has_deviations");
-const mt_select_inspector = d3.select("#measurements_inspector");
-const mt_select_gauge = d3.select("#measurements_gauge");
-const mt_select_gauge_type = d3.select("#measurements_gauge_type");
-const mt_select_specification_type = d3.select("#measurements_specification_type");
-const mt_select_dimension_type = d3.select("#measurements_dimension_type");
-const mt_select_part_index = d3.select("#measurements_part_index");
-const mt_select_revision = d3.select("#measurements_revision");
+// features
+const ft_button_update_display = d3.select("#features_apply_filter");
+const ft_button_save_characteristics = d3.select("#features_save_changes");
+const ft_select_display_type = d3.select("#features_display_type");
+const ft_select_inspection_type = d3.select("#features_inspection_type");
+const ft_input_name = d3.select("#features_dimension_name");
+const ft_select_frequency_type = d3.select("#features_frequency_type");
+const ft_select_has_deviations = d3.select("#features_has_deviations");
+const ft_select_inspector = d3.select("#features_inspector");
+const ft_select_gauge = d3.select("#features_gauge");
+const ft_select_gauge_type = d3.select("#features_gauge_type");
+const ft_select_specification_type = d3.select("#features_specification_type");
+const ft_select_dimension_type = d3.select("#features_dimension_type");
+const ft_select_part_index = d3.select("#features_part_index");
+const ft_select_revision = d3.select("#features_revision");
 
 // manufactured
 const mn_button_add_job_order = d3.select("#manufactured_job_order_add");
@@ -110,6 +110,17 @@ var glist_dispositions = null;
 
 // open panel
 var open_panel = null;
+
+// feature table color code
+var pass_static = "hsl(120, 50%, 35%)";
+var pass_hover = "hsl(120, 50%, 30%)";
+var pass_active = "hsl(120, 50%, 25%)";
+var fail_static = "hsl(0, 50%, 35%)";
+var fail_hover = "hsl(0, 50%, 30%)";
+var fail_active = "hsl(0, 50%, 25%)";
+var incomplete_static = "hsl(0, 0%, 45%)";
+var incomplete_hover = "hsl(0, 0%, 40%)";
+var incomplete_active = "hsl(0, 0%, 35%)";
 
 // individual columns
 const col_part_index =  { display: "Part Index",            key: "part_index",          type: "label",  datatype: "integer" };
@@ -187,8 +198,8 @@ async function init()
         if (ir_ul_list_contextmenu.style("display") == "block") {
             ir_ul_list_contextmenu.style("display", "none");
         }
-        if (ms_ul_list_contextmenu.style("display") == "block") {
-            ms_ul_list_contextmenu.style("display", "none");
+        if (in_ul_list_contextmenu.style("display") == "block") {
+            in_ul_list_contextmenu.style("display", "none");
         }
         if (vw_features_table_contextmenu.style("display") == "block") {
             vw_features_table_contextmenu.style("display", "none");
@@ -210,8 +221,8 @@ async function init()
 
 function set_disabled_state(state)
 {
-    document.getElementById("measurement_sets_button").disabled = state;
-    document.getElementById("measurements_button").disabled = state;
+    document.getElementById("inspections_button").disabled = state;
+    document.getElementById("features_button").disabled = state;
     document.getElementById("manufactured_button").disabled = state;
     document.getElementById("received_button").disabled = state;
     document.getElementById("lot_numbers_button").disabled = state;
@@ -505,6 +516,11 @@ async function inspection_records_repopulate_report_list(data)
     // clear the old entries
     ir_ul_list.selectAll("li").remove();
 
+    // logic gate
+    if (data == null) {
+        return;
+    }
+
     // populate the inspection reports list
     let items = ir_ul_list.selectAll("li")
         .data(data)
@@ -530,18 +546,24 @@ async function inspection_records_repopulate_report_list(data)
             // prevent default behavior
             e.preventDefault();
         });
-    items.append("label")
+    items.append("input")
         .style("--grid-column", "1")
         .style("--grid-row", "1")
         .style("border-radius", "6px 0px 0px 6px")
-        .attr("class", "list-item-label-dark")
-        .text((x) => x.item)
+        .style("cursor", "pointer")
+        .attr("type", "text")
+        .attr("readonly", true)
+        .attr("class", "list-item-input-dark")
+        .property("value", (x) => x.item)
         .on("click", (e, x) => inspection_records_report_clicked(e, x));
-    items.append("label")
+    items.append("input")
         .style("--grid-column", "2")
         .style("--grid-row", "1")
-        .attr("class", "list-item-label-dark")
-        .text((x) => x.drawing)
+        .style("cursor", "pointer")
+        .attr("type", "text")
+        .attr("readonly", true)
+        .attr("class", "list-item-input-dark")
+        .property("value", (x) => x.drawing)
         .on("click", (e, x) => inspection_records_report_clicked(e, x));
     let material_types = items.append("select")
         .style("--grid-column", "3")
@@ -645,16 +667,16 @@ async function inspection_records_report_unselected()
     set_disabled_state(true);
 
     // depopulate the measurement sets
-    ms_button_create_new_set.on("click", null);
-    ms_button_refresh_list.on("click", null);
-    ms_input_schema_filter.on("change", null);
-    ms_input_employee_filter.on("change", null);
-    ms_input_schema_filter.property("value", "");
-    ms_input_employee_filter.property("value", "");
-    ms_input_display_filter.property("value", "");
-    ms_select_schema.selectAll("option").remove();
-    ms_select_employee.selectAll("option").remove();
-    ms_ul_list.selectAll("li").remove();
+    in_button_create_new_set.on("click", null);
+    in_button_refresh_list.on("click", null);
+    in_input_schema_filter.on("change", null);
+    in_input_employee_filter.on("change", null);
+    in_input_schema_filter.property("value", "");
+    in_input_employee_filter.property("value", "");
+    in_input_display_filter.property("value", "");
+    in_select_schema.selectAll("option").remove();
+    in_select_employee.selectAll("option").remove();
+    in_ul_list.selectAll("li").remove();
 
     // depopulate the measurements
     vw_features_table.selectAll("thead").remove();
@@ -772,21 +794,21 @@ async function inspection_records_update_employee_selector()
 async function inspections_prepare_panel(inspection_record_id, item, drawing)
 {
     // clear out filters
-    ms_input_schema_filter.property("value", "");
-    ms_input_employee_filter.property("value", "");
+    in_input_schema_filter.property("value", "");
+    in_input_employee_filter.property("value", "");
 
     // populate the selectors
     await inspections_update_set_schemas(inspection_record_id);
     await inspections_update_employees();
 
     // set up static input events
-    ms_input_schema_filter.on("change", () => inspections_update_set_schemas(inspection_record_id));
-    ms_input_employee_filter.on("change", inspections_update_employees);
+    in_input_schema_filter.on("change", () => inspections_update_set_schemas(inspection_record_id));
+    in_input_employee_filter.on("change", inspections_update_employees);
 
     // set up static button events
-    ms_button_create_new_set.on("click", () => inspections_create_new_set(inspection_record_id, item, drawing));
-    ms_button_refresh_list.on("click", () => inspections_refresh_list(inspection_record_id, item, drawing));
-    ms_button_save_edits.on("click", inspections_save_edits);
+    in_button_create_new_set.on("click", () => inspections_create_new_set(inspection_record_id, item, drawing));
+    in_button_refresh_list.on("click", () => inspections_refresh_list(inspection_record_id, item, drawing));
+    in_button_save_edits.on("click", inspections_save_edits);
 
     // populate the measurement set list
     await inspections_update_filtered_sets(inspection_record_id);
@@ -799,16 +821,16 @@ async function inspections_create_new_set(inspection_record_id, item, drawing)
         method: "POST",
         body: JSON.stringify({
             inspection_record_id: inspection_record_id,
-            schema_id: ms_select_schema.property("value"),
-            employee_id: ms_select_employee.property("value"),
-            search_term: ms_input_display_filter.property("value")
+            schema_id: in_select_schema.property("value"),
+            employee_id: in_select_employee.property("value"),
+            search_term: in_input_display_filter.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
         if (json.status == "ok") {
-            inspections_repopulate_set_list(json.response);
+            inspections_repopulate_list(json.response);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -819,10 +841,10 @@ async function inspections_create_new_set(inspection_record_id, item, drawing)
     });
 
     // refresh the measurement filter options
-    await features_get_filter_parameters(inspection_id, item, drawing);
+    await features_get_filter_parameters(inspection_record_id, item, drawing);
 
     // refresh the displayed measurements
-    await features_get_filtered_features(inspection_id, item, drawing);
+    await features_get_filtered_features(inspection_record_id, item, drawing);
 }
 
 async function inspections_save_edits()
@@ -830,7 +852,7 @@ async function inspections_save_edits()
     await d3.json("/inspection_records/inspections/save_edits/", {
         method: "POST",
         body: JSON.stringify({
-            data: ms_ul_list.selectAll("li").data()
+            data: in_ul_list.selectAll("li").data()
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -854,22 +876,22 @@ async function inspections_refresh_list(inspection_record_id, item, drawing)
     await features_get_filtered_features(inspection_record_id, item, drawing);
 }
 
-async function inspections_delete_set(measurement_set_id, inspection_record_id, item, drawing)
+async function inspections_delete_set(inspection_id, inspection_record_id, item, drawing)
 {
     // delete the selected set and repopulate the list display
     await d3.json("/inspection_records/inspections/delete_inspection/", {
         method: "POST",
         body: JSON.stringify({
             inspection_record_id: inspection_record_id,
-            measurement_set_id: measurement_set_id,
-            search_term: ms_input_display_filter.property("value")
+            inspection_id: inspection_id,
+            search_term: in_input_display_filter.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
         if (json.status == "ok") {
-            inspections_repopulate_set_list(json.response);
+            inspections_repopulate_list(json.response);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -880,10 +902,10 @@ async function inspections_delete_set(measurement_set_id, inspection_record_id, 
     });
     
     // refresh the measurement filter options
-    await features_get_filter_parameters(inspection_id, item, drawing);
+    await features_get_filter_parameters(inspection_record_id, item, drawing);
 
     // refresh the displayed measurements
-    await features_get_filtered_features(inspection_id, item, drawing);
+    await features_get_filtered_features(inspection_record_id, item, drawing);
 }
 
 async function inspections_update_filtered_sets(inspection_record_id)
@@ -892,14 +914,14 @@ async function inspections_update_filtered_sets(inspection_record_id)
         method: "POST",
         body: JSON.stringify({
             inspection_record_id: inspection_record_id,
-            search_term: ms_input_display_filter.property("value")
+            search_term: in_input_display_filter.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
     }).then((json) => {
         if (json.status == "ok") {
-            inspections_repopulate_set_list(json.response);
+            inspections_repopulate_list(json.response);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -910,18 +932,23 @@ async function inspections_update_filtered_sets(inspection_record_id)
     });
 }
 
-async function inspections_repopulate_set_list(data)
+async function inspections_repopulate_list(data)
 {
     // add the display state value to incoming data
     for (let i = 0; i < data.length; i++) {
-        data[i]["display_state"] = 1;
+        data[i]["display_state"] = 0;
     }
 
     // clear the old entries
-    ms_ul_list.selectAll("li").remove();
+    in_ul_list.selectAll("li").remove();
+
+    // logic gate
+    if (data == null) {
+        return;
+    }
 
     // populate the inspection reports list
-    let items = ms_ul_list.selectAll("li")
+    let items = in_ul_list.selectAll("li")
         .data(data)
         .join("li")
         .append("div")
@@ -930,16 +957,16 @@ async function inspections_repopulate_set_list(data)
         .on("contextmenu", (e, x) => {
 
             // position and show the context menu
-            ms_ul_list_contextmenu
+            in_ul_list_contextmenu
                 .style("position", "absolute")
                 .style("left", `${e.pageX}px`)
                 .style("top", `${e.pageY}px`)
                 .style("display", "block");
 
             // delete the set
-            ms_ul_list_contextmenu.select("#context_menu_0").on("click", () => {
-                inspections_delete_set(x.measurement_set_id, x.inspection_record_id, x.item, x.drawing);
-                ms_ul_list_contextmenu.style("display", "none");
+            in_ul_list_contextmenu.select("#context_menu_0").on("click", () => {
+                inspections_delete_set(x.inspection_id, x.inspection_record_id, x.item, x.drawing);
+                in_ul_list_contextmenu.style("display", "none");
             });
 
             // prevent the default behavior
@@ -956,20 +983,10 @@ async function inspections_repopulate_set_list(data)
             x.timestamp = e.srcElement.value;
             e.srcElement.blur();
         });
-    let employee_select = items.append("select");
-    employee_select.selectAll("option")
-        .data(glist_employees)
-        .join("option")
-        .attr("value", (x) => x.id)
-        .text((x) => x.name);
-    employee_select
+    let employees = items.append("select")
         .style("--grid-column", "2")
         .style("--grid-row", "1")
-        .attr("class", "list-item-select-dark")
-        .property("value", (x) => x.employee_id)
-        .on("change", (e, x) => {
-            x.employee_id == e.srcElement.value;
-        });
+        .attr("class", "list-item-select-dark");
     items.append("input")
         .style("--grid-column", "3")
         .style("--grid-row", "1")
@@ -986,25 +1003,17 @@ async function inspections_repopulate_set_list(data)
         .on("click", (e, _) => {
             e.srcElement.select();
         });
-    items.append("label")
+    items.append("input")
         .style("--grid-column", "4")
         .style("--grid-row", "1")
-        .attr("class", "list-item-label-dark")
+        .attr("type", "text")
+        .attr("disabled", true)
+        .attr("class", "list-item-input-dark")
         .property("value", (x) => x.revision);
-    let inspection_type_select = items.append("select");
-    inspection_type_select.selectAll("option")
-        .data(glist_inspection_types)
-        .join("option")
-        .attr("value", (x) => x.id)
-        .text((x) => x.name);
-    inspection_type_select
+    let inspection_types = items.append("select")
         .style("--grid-column", "5")
         .style("--grid-row", "1")
-        .attr("class", "list-item-select-dark")
-        .property("value", (x) => x.inspection_type_id)
-        .on("change", (e, x) => {
-            x.inspection_type_id == e.srcElement.value;
-        });
+        .attr("class", "list-item-select-dark");
     items.append("input")
         .style("--grid-column", "6")
         .style("--grid-row", "1")
@@ -1013,7 +1022,29 @@ async function inspections_repopulate_set_list(data)
         .property("checked", (x) => x.display_state)
         .on("change", (e, x) => {
             x.display_state = e.srcElement.checked;
-            features_get_filtered_features(x.inspection_id, x.item, x.drawing);
+            features_get_filtered_features(x.inspection_record_id, x.item, x.drawing);
+        });
+
+    // populate the employee options & value
+    employees.selectAll("option")
+        .data(glist_employees)
+        .join("option")
+        .attr("value", (x) => x.id)
+        .text((x) => x.name);
+    employees.property("value", (x) => x.employee_id)
+        .on("change", (e, x) => {
+            x.employee_id = parseInt(e.srcElement.value);
+        });
+
+    // populate the inspection type options and value
+    inspection_types.selectAll("option")
+        .data(glist_inspection_types)
+        .join("option")
+        .attr("value", (x) => x.id)
+        .text((x) => x.name);
+    inspection_types.property("value", (x) => x.inspection_type_id)
+        .on("change", (e, x) => {
+            x.inspection_type_id = parseInt(e.srcElement.value);
         });
 }
 
@@ -1023,7 +1054,7 @@ async function inspections_update_set_schemas(inspection_record_id)
         method: "POST",
         body: JSON.stringify({
             inspection_record_id: inspection_record_id,
-            search_term: ms_input_schema_filter.property("value")
+            search_term: in_input_schema_filter.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -1032,10 +1063,10 @@ async function inspections_update_set_schemas(inspection_record_id)
         if (json.status == "ok") {
 
             // clear the old entries
-            ms_select_schema.selectAll("option").remove();
+            in_select_schema.selectAll("option").remove();
 
             // repopulate the selector
-            ms_select_schema.selectAll("option")
+            in_select_schema.selectAll("option")
                 .data(json.response)
                 .join("option")
                 .attr("value", (x) => x.schema_id)
@@ -1055,7 +1086,7 @@ async function inspections_update_employees()
     await d3.json("/get_filtered_employees/", {
         method: "POST",
         body: JSON.stringify({
-            search_term: ms_input_employee_filter.property("value")
+            search_term: in_input_employee_filter.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -1064,10 +1095,10 @@ async function inspections_update_employees()
         if (json.status == "ok") {
 
             // clear the old entries
-            ms_select_employee.selectAll("option").remove();
+            in_select_employee.selectAll("option").remove();
 
             // repopulate the selector
-            ms_select_employee.selectAll("option")
+            in_select_employee.selectAll("option")
                 .data(json.response)
                 .join("option")
                 .attr("value", (x) => x.id)
@@ -1089,18 +1120,18 @@ async function inspections_update_employees()
 async function features_prepare_panel(inspection_record_id, item, drawing)
 {
     // clear out filters
-    ms_input_schema_filter.property("value", "");
-    ms_input_employee_filter.property("value", "");
+    in_input_schema_filter.property("value", "");
+    in_input_employee_filter.property("value", "");
 
     // populate the selectors
     await features_get_filter_parameters(inspection_record_id, item, drawing);
 
     // set up static input events
-    mt_input_name.on("click", (e, _) => { e.srcElement.select(); });
+    ft_input_name.on("click", (e, _) => { e.srcElement.select(); });
 
     // set up static button events
-    mt_button_update_display.on("click", () => features_get_filtered_features(inspection_record_id, item, drawing));
-    mt_button_save_characteristics.on("click", features_save_features);
+    ft_button_update_display.on("click", () => features_get_filtered_features(inspection_record_id, item, drawing));
+    ft_button_save_characteristics.on("click", features_save_features);
 
     // populate the measurements table
     await features_get_filtered_features(inspection_record_id, item, drawing);
@@ -1110,7 +1141,7 @@ async function features_get_filtered_features(inspection_record_id, item, drawin
 {
     // get the list of measurement sets
     let inspections = [];
-    ms_ul_list.selectAll("li").data().forEach((e) => {
+    in_ul_list.selectAll("li").data().forEach((e) => {
         inspections.push({
             inspection_id: e.inspection_id,
             display_state: e.display_state
@@ -1132,17 +1163,17 @@ async function features_get_filtered_features(inspection_record_id, item, drawin
                 drawing: drawing
             },
             content: {
-                has_deviations: mt_select_has_deviations.property("value"),
-                inspection_type_id: mt_select_inspection_type.property("value"),
-                employee_id: mt_select_inspector.property("value"),
-                part_index: mt_select_part_index.property("value"),
-                revision: mt_select_revision.property("value"),
-                name: mt_input_name.property("value"),
-                frequency_type_id: mt_select_frequency_type.property("value"),
-                gauge_id: mt_select_gauge.property("value"),
-                gauge_type_id: mt_select_gauge_type.property("value"),
-                specification_type_id: mt_select_specification_type.property("value"),
-                dimension_type_id: mt_select_dimension_type.property("value"),
+                has_deviations: ft_select_has_deviations.property("value"),
+                inspection_type_id: ft_select_inspection_type.property("value"),
+                employee_id: ft_select_inspector.property("value"),
+                part_index: ft_select_part_index.property("value"),
+                revision: ft_select_revision.property("value"),
+                name: ft_input_name.property("value"),
+                frequency_type_id: ft_select_frequency_type.property("value"),
+                gauge_id: ft_select_gauge.property("value"),
+                gauge_type_id: ft_select_gauge_type.property("value"),
+                specification_type_id: ft_select_specification_type.property("value"),
+                dimension_type_id: ft_select_dimension_type.property("value"),
                 inspections: inspections
             }
         }),
@@ -1261,81 +1292,81 @@ async function features_get_filter_parameters(inspection_record_id, item, drawin
         if (json.status == "ok") {
 
             // update the inspection types
-            mt_select_inspection_type.selectAll("option").remove();
+            ft_select_inspection_type.selectAll("option").remove();
             json.response.inspection_types.unshift({ id: -1, name: "n/a" });
-            mt_select_inspection_type.selectAll("option")
+            ft_select_inspection_type.selectAll("option")
                 .data(json.response.inspection_types)
                 .join("option")
                 .attr("value", (x) => x.id)
                 .text((x) => x.name);
 
             // update the part index
-            mt_select_part_index.selectAll("option").remove();
+            ft_select_part_index.selectAll("option").remove();
             json.response.part_indices.unshift({ id: -1, name: "n/a" });
-            mt_select_part_index.selectAll("option")
+            ft_select_part_index.selectAll("option")
                 .data(json.response.part_indices)
                 .join("option")
                 .attr("value", (x) => x.id)
                 .text((x) => x.name);
 
             // update the revision
-            mt_select_revision.selectAll("option").remove();
+            ft_select_revision.selectAll("option").remove();
             json.response.revisions.unshift({ id: "", name: "n/a" });
-            mt_select_revision.selectAll("option")
+            ft_select_revision.selectAll("option")
                 .data(json.response.revisions)
                 .join("option")
                 .attr("value", (x) => x.id)
                 .text((x) => x.name);
 
             // update the frequency types
-            mt_select_frequency_type.selectAll("option").remove();
+            ft_select_frequency_type.selectAll("option").remove();
             json.response.frequency_types.unshift({ id: -1, name: "n/a" });
-            mt_select_frequency_type.selectAll("option")
+            ft_select_frequency_type.selectAll("option")
                 .data(json.response.frequency_types)
                 .join("option")
                 .attr("value", (x) => x.id)
                 .text((x) => x.name);
 
             // update the inspectors
-            mt_select_inspector.selectAll("option").remove();
+            ft_select_inspector.selectAll("option").remove();
             json.response.inspectors.unshift({ id: -1, name: "n/a" });
-            mt_select_inspector.selectAll("option")
+            ft_select_inspector.selectAll("option")
                 .data(json.response.inspectors)
                 .join("option")
                 .attr("value", (x) => x.id)
                 .text((x) => x.name);
 
             // update the gauges
-            mt_select_gauge.selectAll("option").remove();
+            ft_select_gauge.selectAll("option").remove();
             json.response.gauges.unshift({ id: -1, name: "n/a" });
-            mt_select_gauge.selectAll("option")
+            ft_select_gauge.selectAll("option")
                 .data(json.response.gauges)
                 .join("option")
                 .attr("value", (x) => x.id)
                 .text((x) => x.name);
 
             // update the gauge types
-            mt_select_gauge_type.selectAll("option").remove();
+            ft_select_gauge_type.selectAll("option").remove();
             json.response.gauge_types.unshift({ id: -1, name: "n/a" });
-            mt_select_gauge_type.selectAll("option")
+            ft_select_gauge_type.selectAll("option")
                 .data(json.response.gauge_types)
                 .join("option")
                 .attr("value", (x) => x.id)
                 .text((x) => x.name);
 
             // update the specification types
-            mt_select_specification_type.selectAll("option").remove();
+            ft_select_specification_type.selectAll("option").remove();
             json.response.specification_types.unshift({ id: -1, name: "n/a" });
-            mt_select_specification_type.selectAll("option")
+            ft_select_specification_type.selectAll("option")
                 .data(json.response.specification_types)
                 .join("option")
                 .attr("value", (x) => x.id)
                 .text((x) => x.name);
 
             // update the dimension types
-            mt_select_dimension_type.selectAll("option").remove();
+            ft_select_dimension_type.selectAll("option").remove();
             json.response.dimension_types.unshift({ id: -1, name: "n/a" });
-            mt_select_dimension_type.selectAll("option")
+            ft_select_dimension_type.selectAll("option")
                 .data(json.response.dimension_types)
                 .join("option")
                 .attr("value", (x) => x.id)
@@ -1353,13 +1384,21 @@ async function features_get_filter_parameters(inspection_record_id, item, drawin
 async function features_repopulate_table(data)
 {
     // get the current display type
-    let display_type = mt_select_display_type.property("value");
+    let display_type = ft_select_display_type.property("value");
 
     // table schema
     let table_schema = main_table_columns[display_type];
 
     // clear the old columns
     vw_features_table.selectAll("thead").remove();
+
+    // clear the old rows
+    vw_features_table.selectAll("tbody").remove();
+
+    // logic gate
+    if (data == null) {
+        return;
+    }
 
     // add the columns
     vw_features_table.append("thead")
@@ -1368,16 +1407,73 @@ async function features_repopulate_table(data)
         .join("th")
         .attr("scope", "col")
         .style("width", (x) => x.width)
-        .text((x) => x.col.display);
-
-    // clear the old rows
-    vw_features_table.selectAll("tbody").remove();
+        .text((x) => x.col.display);    
 
     // add the rows
     let rows = vw_features_table.append("tbody")
         .selectAll("tr")
         .data(data)
         .join("tr")
+        .on("mouseenter", (e, x) => {
+            switch (x.state) {
+                case "pass":
+                    e.srcElement.style.backgroundColor = pass_hover;
+                    break;
+                case "fail":
+                    e.srcElement.style.backgroundColor = fail_hover;
+                    break;
+                case "incomplete":
+                    e.srcElement.style.backgroundColor = incomplete_hover;
+                    break;
+                default:
+                    e.srcElement.style.backgroundColor = "inherit";
+            }
+        })
+        .on("mouseleave", (e, x) => {
+            switch (x.state) {
+                case "pass":
+                    e.srcElement.style.backgroundColor = pass_static;
+                    break;
+                case "fail":
+                    e.srcElement.style.backgroundColor = fail_static;
+                    break;
+                case "incomplete":
+                    e.srcElement.style.backgroundColor = incomplete_static;
+                    break;
+                default:
+                    e.srcElement.style.backgroundColor = "inherit";
+            }
+        })
+        .on("mousedown", (e, x) => {
+            switch (x.state) {
+                case "pass":
+                    e.srcElement.parentElement.parentElement.style.backgroundColor = pass_active;
+                    break;
+                case "fail":
+                    e.srcElement.parentElement.parentElement.style.backgroundColor = fail_active;
+                    break;
+                case "incomplete":
+                    e.srcElement.parentElement.parentElement.style.backgroundColor = incomplete_active;
+                    break;
+                default:
+                    e.srcElement.parentElement.parentElement.style.backgroundColor = "inherit";
+            }
+        })
+        .on("mouseup", (e, x) => {
+            switch (x.state) {
+                case "pass":
+                    e.srcElement.parentElement.parentElement.style.backgroundColor = pass_hover;
+                    break;
+                case "fail":
+                    e.srcElement.parentElement.parentElement.style.backgroundColor = fail_hover;
+                    break;
+                case "incomplete":
+                    e.srcElement.parentElement.parentElement.style.backgroundColor = incomplete_hover;
+                    break;
+                default:
+                    e.srcElement.parentElement.parentElement.style.backgroundColor = "inherit";
+            }
+        })
         .on("click", (_, x) => deviations_prepare_panel(x.feature_id, x.part_index, x.revision, x.name, x.inspection_record_id, x.item, x.drawing))
         .on("contextmenu", (e, x) => {
 
@@ -1412,6 +1508,8 @@ async function features_repopulate_table(data)
                     column: c.col,
                     row: {
                         value: r[c.col.key],
+                        usl: r.usl,
+                        lsl: r.lsl,
                         has_deviations: r.has_deviations,
                         precision: r.precision,
                         feature_id: r.feature_id,
@@ -1423,8 +1521,7 @@ async function features_repopulate_table(data)
                         item: r.item,
                         drawing: r.drawing,
                         revision: r.revision,
-                        name: r.name,
-                        state: r.state
+                        name: r.name
                     }
                 };
             });
@@ -1459,6 +1556,7 @@ async function features_repopulate_table(data)
             }
         })
         .insert("input")
+        .style("cursor", "text")
         .attr("class", "data-table-cell-dark")
         .attr("type", (x) => {
             switch (x.column.datatype) {
@@ -1483,10 +1581,19 @@ async function features_repopulate_table(data)
             }
         }).on("change", (e, x) => {
             x.row.value = parseFloat(e.srcElement.value);
-            if (x.column.datatype == "decimal") {
+            let row_data = d3.select(e.srcElement.parentElement.parentElement).data()[0];
+            row_data.measured = x.row.value;
+            if (x.column.datatype == "decimal" && !isNaN(x.row.value)) {
                 e.srcElement.value = x.row.value.toFixed(x.row.precision);
             }
-            features_apply_color_code();
+            features_apply_row_color(e.srcElement.parentElement.parentElement, row_data.measured, row_data.usl, row_data.lsl, row_data.precision);
+            e.srcElement.blur();
+        }).on("keydown", (e, _) => {
+            if (e.keyCode == 13) {
+                e.srcElement.blur();
+            }
+        }).on("click", (e, _) => {
+            e.srcElement.select();
         });
 
     // gauges
@@ -1524,31 +1631,34 @@ async function features_repopulate_table(data)
 async function features_apply_color_code()
 {
     vw_features_table.select("tbody").node().childNodes.forEach((row) => {
-        let measured_raw = [].filter.call(row.childNodes, (x) => {
-            if (x.__data__.column.key == "measured") {
-                return true;
-            }
-        })[0].__data__.row.value;
-
-        if (measured_raw != null) {
-
-            let measured = Number(measured_raw.toFixed(row.__data__.precision));
-            let usl = Number((row.__data__.usl).toFixed(row.__data__.precision));
-            let lsl = Number((row.__data__.lsl).toFixed(row.__data__.precision));
-
-            if (!(lsl <= measured && measured <= usl)) {
-                row.style.backgroundColor = "hsl(10, 100%, 25%)";
-                row.__data__.state = "fail";
-            }
-            else {
-                row.style.backgroundColor = "inherit";
-                row.__data__.state = "pass";
-            }
-        }
-        else {
-            row.__data__.state = "incomplete";
-        }
+        let row_data = d3.select(row).data()[0];
+        features_apply_row_color(row, row_data.measured, row_data.usl, row_data.lsl, row_data.precision);
     });
+}
+
+async function features_apply_row_color(r, input_measured, input_usl, input_lsl, precision)
+{
+    // logic gate
+    if (isNaN(input_measured) || input_measured == null) {
+        r.style.backgroundColor = incomplete_static;
+        d3.select(r).data()[0].state = "incomplete";
+        return;
+    }
+
+    // extract info
+    let measured = Number(input_measured.toFixed(precision));
+    let usl = Number(input_usl.toFixed(precision));
+    let lsl = Number(input_lsl.toFixed(precision));
+
+    // apply condition
+    if (!(lsl <= measured && measured <= usl)) {
+        r.style.backgroundColor = fail_static;
+        d3.select(r).data()[0].state = "fail";
+    }
+    else {
+        r.style.backgroundColor = pass_static;
+        d3.select(r).data()[0].state = "pass";
+    }
 }
 
 // #endregion
@@ -1587,7 +1697,7 @@ async function manufactured_add_associated_job_order(inspection_record_id)
             search_term: mn_input_job_number_display_filter.property("value"),
             inspection_record_id: inspection_record_id,
             part_id: mn_select_part.property("value"),
-            job_order_id: mn_select_job_order.property("value")
+            job_number_id: mn_select_job_order.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -1700,6 +1810,11 @@ async function manufactured_repopulate_association_list(data, inspection_record_
     // clear the old entries
     mn_ul_list.selectAll("li").remove();
 
+    // logic gate
+    if (data == null) {
+        return;
+    }
+
     // populate the inspection reports list
     let items = mn_ul_list.selectAll("li")
         .data(data)
@@ -1725,17 +1840,21 @@ async function manufactured_repopulate_association_list(data, inspection_record_
             // prevent default behavior
             e.preventDefault();
         });
-    items.append("label")
+    items.append("input")
         .style("--grid-column", "1")
         .style("--grid-row", "1")
         .style("border-radius", "6px 0px 0px 6px")
-        .attr("class", "list-item-label-dark")
-        .text((x) => x.revision);
-    items.append("label")
+        .attr("type", "text")
+        .attr("disabled", true)
+        .attr("class", "list-item-input-dark")
+        .property("value", (x) => x.revision);
+    items.append("input")
         .style("--grid-column", "2")
         .style("--grid-row", "1")
-        .attr("class", "list-item-label-dark")
-        .text((x) => x.name);
+        .attr("type", "text")
+        .attr("disabled", true)
+        .attr("class", "list-item-input-dark")
+        .property("value", (x) => x.name);
     items.append("input")
         .style("--grid-column", "3")
         .style("--grid-row", "1")
@@ -1989,7 +2108,7 @@ async function received_delete_associated_purchase_order(inspection_record_id, p
         body: JSON.stringify({
             search_term: rc_input_purchase_order_display_filter.property("value"),
             inspection_record_id: inspection_record_id,
-            item_id: purchase_order_id
+            purchase_order_id: purchase_order_id
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -2162,12 +2281,14 @@ async function received_repopulate_child_association_lists(data)
                 // prevent default behavior
                 e.preventDefault();
             });
-        items.append("label")
+        items.append("input")
             .style("--grid-column", "1")
             .style("--grid-row", "1")
             .style("border-radius", "6px 0px 0px 6px")
-            .attr("class", "list-item-label-dark")
-            .text((x) => x.name);
+            .attr("type", "text")
+            .attr("disabled", true)
+            .attr("class", "list-item-input-dark")
+            .property("value", (x) => x.name);
         items.append("input")
             .style("--grid-column", "2")
             .style("--grid-row", "1")
@@ -2437,6 +2558,11 @@ async function lot_numbers_update_filtered_selector()
             // clear the old entries
             ln_select_selected.selectAll("option").remove();
 
+            // logic gate
+            if (json.response == null) {
+                return;
+            }
+
             // populate the selector
             ln_select_selected.selectAll("option")
                 .data(json.response)
@@ -2494,13 +2620,15 @@ async function lot_numbers_repopulate_list(data)
         .append("div")
         .attr("class", "list-item-dark")
         .style("--grid-template-columns", "3fr 1fr");
-    items.append("label")
+    items.append("input")
         .style("--grid-column", "1")
         .style("--grid-row", "1")
         .style("text-align", "left")
         .style("border-radius", "6px 0px 0px 6px")
-        .attr("class", "list-item-label-dark")
-        .text((x) => x.name);
+        .attr("type", "text")
+        .attr("disabled", true)
+        .attr("class", "list-item-input-dark")
+        .property("value", (x) => x.name);
     items.append("button")
         .style("--grid-column", "2")
         .style("--grid-row", "1")
@@ -2615,7 +2743,7 @@ async function deviations_delete(feature_id, deviation_id, inspection_record_id,
     });
 
     // requery for measurements
-    await features_get_filtered_features(inspection_id, item, drawing);
+    await features_get_filtered_features(inspection_record_id, item, drawing);
 }
 
 async function deviations_get_measurement_deviations(feature_id, inspection_record_id, item, drawing)
@@ -2683,6 +2811,11 @@ async function deviations_repopulate_deviations_list(data, feature_id, inspectio
 {
     // clear the old entries
     dv_ul_list.selectAll("li").remove();
+
+    // logic gate
+    if (data == null) {
+        return;
+    }
 
     // repopulate the deviations list
     let items = dv_ul_list.selectAll("li")
@@ -2822,39 +2955,39 @@ async function deviations_repopulate_deviations_list(data, feature_id, inspectio
 async function toggle_options(destination_arg, open_width)
 {
     let close_width = "0px";
-    if (destination_arg == "inspection_reports") {
-        if (document.getElementById("inspection_reports_sidebar").style.width == open_width) {
-            document.getElementById("inspection_reports_sidebar").style.width = close_width;
-            document.getElementById("inspection_reports_btn").style.marginRight = close_width;
+    if (destination_arg == "inspection_records") {
+        if (document.getElementById("inspection_records_sidebar").style.width == open_width) {
+            document.getElementById("inspection_records_sidebar").style.width = close_width;
+            document.getElementById("inspection_records_btn").style.marginRight = close_width;
             open_panel = null;
         }
         else {
-            document.getElementById("inspection_reports_sidebar").style.width = open_width;
-            document.getElementById("inspection_reports_btn").style.marginRight = open_width;
+            document.getElementById("inspection_records_sidebar").style.width = open_width;
+            document.getElementById("inspection_records_btn").style.marginRight = open_width;
             open_panel = destination_arg;
         }
     }
-    else if (destination_arg == "measurement_sets") {
-        if (document.getElementById("measurement_sets_sidebar").style.width == open_width) {
-            document.getElementById("measurement_sets_sidebar").style.width = close_width;
-            document.getElementById("measurement_sets_btn").style.marginRight = close_width;
+    else if (destination_arg == "inspections") {
+        if (document.getElementById("inspections_sidebar").style.width == open_width) {
+            document.getElementById("inspections_sidebar").style.width = close_width;
+            document.getElementById("inspections_btn").style.marginRight = close_width;
             open_panel = null;
         }
         else {
-            document.getElementById("measurement_sets_sidebar").style.width = open_width;
-            document.getElementById("measurement_sets_btn").style.marginRight = open_width;
+            document.getElementById("inspections_sidebar").style.width = open_width;
+            document.getElementById("inspections_btn").style.marginRight = open_width;
             open_panel = destination_arg;
         }
     }
-    else if (destination_arg == "measurements") {
-        if (document.getElementById("measurements_sidebar").style.width == open_width) {
-            document.getElementById("measurements_sidebar").style.width = close_width;
-            document.getElementById("measurements_btn").style.marginRight = close_width;
+    else if (destination_arg == "features") {
+        if (document.getElementById("features_sidebar").style.width == open_width) {
+            document.getElementById("features_sidebar").style.width = close_width;
+            document.getElementById("features_btn").style.marginRight = close_width;
             open_panel = null;
         }
         else {
-            document.getElementById("measurements_sidebar").style.width = open_width;
-            document.getElementById("measurements_btn").style.marginRight = open_width;
+            document.getElementById("features_sidebar").style.width = open_width;
+            document.getElementById("features_btn").style.marginRight = open_width;
             open_panel = destination_arg;
         }
     }
