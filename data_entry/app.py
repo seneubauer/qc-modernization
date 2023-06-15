@@ -2908,8 +2908,10 @@ def func_features_get_filtered_features(inspection_record_id:int, item:str, draw
         measurement_list = results\
             .order_by(inspections.id.asc(), inspections.part_id.asc(), parts.revision.asc(), features.id.asc(), features.name.asc()).all()
 
-        # get the list of measurements that have deviations
-        deviations_list = [x[0] for x in session.query(deviations.feature_id).all()]
+        # get the list of features that have deviations
+        deviations_list = [{ "feature_id": x[0], "deviation_type_id": x[1] } for x in session.query(deviations.feature_id, deviations.deviation_type_id).all()]
+        temp_deviations = [x["feature_id"] for x in deviations_list if x["deviation_type_id"] == 0]
+        perm_deviations = [x["feature_id"] for x in deviations_list if x["deviation_type_id"] == 1]
 
         # close the database session
         session.close()
@@ -2939,7 +2941,14 @@ def func_features_get_filtered_features(inspection_record_id:int, item:str, draw
                         state = "fail"
 
                 # inspection for deviation flag
-                has_deviations = feature_id in deviations_list
+                if (feature_id in temp_deviations) and (feature_id not in perm_deviations):
+                    deviation_code = "*"
+                elif (feature_id not in temp_deviations) and (feature_id in perm_deviations):
+                    deviation_code = "**"
+                elif (feature_id in temp_deviations) and (feature_id in perm_deviations):
+                    deviation_code = "***"
+                else:
+                    deviation_code = ""
 
                 output_arr.append({
                     "inspection_record_id": inspection_record_id,
@@ -2947,7 +2956,7 @@ def func_features_get_filtered_features(inspection_record_id:int, item:str, draw
                     "item": item,
                     "drawing": drawing,
                     "timestamp": timestamp.strftime("%Y-%m-%d, %H:%M"),
-                    "has_deviations": has_deviations,
+                    "deviation_code": deviation_code,
                     "feature_id": feature_id,
                     "inspection_id": inspection_id,
                     "part_index": part_index,
@@ -4289,10 +4298,7 @@ def func_deviations_get_feature_deviations(feature_id:int):
         deviations.date_implemented,
         deviations.notes,
         deviation_types.id,
-        deviation_types.name,
-        employees.id,
-        employees.first_name,
-        employees.last_name
+        employees.id
     ]
 
     try:
@@ -4315,7 +4321,7 @@ def func_deviations_get_feature_deviations(feature_id:int):
         if len(results) > 0:
 
             output_arr = []
-            for id, nominal, usl, lsl, precision, date_implemented, notes, deviation_type_id, deviation_type, employee_id, first_name, last_name in results:
+            for id, nominal, usl, lsl, precision, date_implemented, notes, deviation_type_id, employee_id in results:
 
                 # parse decimal to float
                 nominal_flt = round(float(nominal), precision)
@@ -4334,9 +4340,8 @@ def func_deviations_get_feature_deviations(feature_id:int):
                     "date_implemented": date_implemented_str,
                     "notes": notes,
                     "deviation_type_id": deviation_type_id,
-                    "deviation_type": deviation_type,
                     "employee_id": employee_id,
-                    "employee": f"{last_name}, {first_name}"
+                    "feature_id": feature_id
                 })
 
             return {

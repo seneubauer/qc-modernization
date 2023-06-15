@@ -1510,7 +1510,7 @@ async function features_repopulate_table(data)
                         value: r[c.col.key],
                         usl: r.usl,
                         lsl: r.lsl,
-                        has_deviations: r.has_deviations,
+                        deviation_code: r.deviation_code,
                         precision: r.precision,
                         feature_id: r.feature_id,
                         part_index: r.part_index,
@@ -1521,7 +1521,8 @@ async function features_repopulate_table(data)
                         item: r.item,
                         drawing: r.drawing,
                         revision: r.revision,
-                        name: r.name
+                        name: r.name,
+                        deviation_type_id: r.deviation_type_id
                     }
                 };
             });
@@ -1542,8 +1543,8 @@ async function features_repopulate_table(data)
                 case "decimal":
                     return x.row.value.toFixed(x.row.precision);
                 default:
-                    if (x.column.key == "name" && x.row.has_deviations) {
-                        return `**${x.row.value}`;
+                    if (x.column.key == "name") {
+                        return `${x.row.deviation_code}${x.row.value}`;
                     }
                     return x.row.value;
             }
@@ -2686,9 +2687,7 @@ async function deviations_add(feature_id, inspection_record_id, item, drawing)
             alert(json.response);
         }
     });
-
-    // requery for measurements
-    await features_get_filtered_features(inspection_record_id, item, drawing);
+    await deviations_update_feature_table(feature_id);
 }
 
 async function deviations_save(feature_id)
@@ -2713,6 +2712,7 @@ async function deviations_save(feature_id)
             alert(json.response);
         }
     });
+    await deviations_update_feature_table(feature_id);
 }
 
 async function deviations_delete(feature_id, deviation_id, inspection_record_id, item, drawing)
@@ -2743,7 +2743,7 @@ async function deviations_delete(feature_id, deviation_id, inspection_record_id,
     });
 
     // requery for measurements
-    await features_get_filtered_features(inspection_record_id, item, drawing);
+    await deviations_update_feature_table(feature_id);
 }
 
 async function deviations_get_measurement_deviations(feature_id, inspection_record_id, item, drawing)
@@ -2841,8 +2841,7 @@ async function deviations_repopulate_deviations_list(data, feature_id, inspectio
 
             // prevent default behavior
             e.preventDefault();
-        })
-        .on("click", (e, x) => deviations_clicked(e, x));
+        });
     let nominal = items.append("input")
         .style("--grid-column", "1")
         .style("--grid-row", "1")
@@ -2856,6 +2855,11 @@ async function deviations_repopulate_deviations_list(data, feature_id, inspectio
         .on("change", (e, x) => {
             x.nominal = parseFloat(e.srcElement.value);
             e.srcElement.value = x.nominal.toFixed(x.precision);
+            e.srcElement.blur();
+        })
+        .on("click", (e, x) => {
+            e.srcElement.select();
+            deviations_clicked(e, x);
         });
     let usl = items.append("input")
         .style("--grid-column", "2")
@@ -2869,6 +2873,11 @@ async function deviations_repopulate_deviations_list(data, feature_id, inspectio
         .on("change", (e, x) => {
             x.usl = parseFloat(e.srcElement.value);
             e.srcElement.value = x.usl.toFixed(x.precision);
+            e.srcElement.blur();
+        })
+        .on("click", (e, x) => {
+            e.srcElement.select();
+            deviations_clicked(e, x);
         });
     let lsl = items.append("input")
         .style("--grid-column", "3")
@@ -2882,6 +2891,11 @@ async function deviations_repopulate_deviations_list(data, feature_id, inspectio
         .on("change", (e, x) => {
             x.lsl = parseFloat(e.srcElement.value);
             e.srcElement.value = x.lsl.toFixed(x.precision);
+            e.srcElement.blur();
+        })
+        .on("click", (e, x) => {
+            e.srcElement.select();
+            deviations_clicked(e, x);
         });
     items.append("input")
         .style("--grid-column", "4")
@@ -2899,6 +2913,11 @@ async function deviations_repopulate_deviations_list(data, feature_id, inspectio
             nominal.property("value", x.nominal.toFixed(x.precision));
             usl.property("value", x.usl.toFixed(x.precision));
             lsl.property("value", x.lsl.toFixed(x.precision));
+            e.srcElement.blur();
+        })
+        .on("click", (e, x) => {
+            e.srcElement.select();
+            deviations_clicked(e, x);
         });
     items.append("input")
         .style("--grid-column", "5")
@@ -2910,6 +2929,11 @@ async function deviations_repopulate_deviations_list(data, feature_id, inspectio
         .on("drop", (e, _) => e.preventDefault)
         .on("change", (e, x) => {
             x.date_implemented = e.srcElement.value;
+            e.srcElement.blur();
+        })
+        .on("click", (e, x) => {
+            e.srcElement.select();
+            deviations_clicked(e, x);
         });
     let deviations = items.append("select")
         .style("--grid-column", "6")
@@ -2946,6 +2970,53 @@ async function deviations_repopulate_deviations_list(data, feature_id, inspectio
         .on("change", (e, x) => {
             x.employee_id = parseInt(e.srcElement.value);
         });
+}
+
+async function deviations_update_feature_table(feature_id)
+{
+    let temporary = false;
+    let permanent = false;
+
+    // extract the required parameters
+    dv_ul_list.selectAll("li").data().forEach((row) => {
+        if (row.deviation_type_id == 0) {
+            temporary = true;
+        }
+        else if (row.deviation_type_id == 1) {
+            permanent = true;
+        }
+    });
+
+    // classify the deviation code
+    let deviation_code = "";
+    switch (true) {
+        case temporary && permanent:
+            deviation_code = "***";
+            break;
+        case !temporary && permanent:
+            deviation_code = "**";
+            break;
+        case temporary && !permanent:
+            deviation_code = "*";
+            break;
+        case !temporary && !permanent:
+            deviation_code = "";
+            break;
+    }
+
+    // update the feature table
+    vw_features_table.select("tbody").node().childNodes.forEach((row) => {
+
+        let row_data = d3.select(row).data()[0];
+        if (row_data.feature_id == feature_id) {
+
+            // set the row data
+            row_data.deviation_code = deviation_code;
+
+            // set the visual flag
+            d3.select(row.childNodes[0]).select("input").property("value", `${deviation_code}${row_data.name}`);
+        }
+    });
 }
 
 // #endregion
