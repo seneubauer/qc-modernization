@@ -337,8 +337,6 @@ option:checked {
     display: grid;
     overflow: visible;
     grid-auto-rows: auto;
-    grid-row: var(--grid-row);
-    grid-column: var(--grid-column);
     grid-template-columns: var(--grid-template-columns);
 }
 
@@ -446,6 +444,10 @@ option:checked {
     padding: 6px;
     grid-column: var(--grid-column);
     grid-row: var(--grid-row);
+}
+
+.input-dark {
+    height: 19px;
 }
 
 .input-dark:hover, .select-dark:hover {
@@ -732,3 +734,49 @@ option:checked {
 }
 
 /* #endregion tables */
+
+/* #region accordions */
+
+.accordion {
+    background-color: var(--dark-bg);
+    color: var(--dark-control-fg-static);
+    cursor: pointer;
+    padding: 9px;
+    margin: 6px 0px 0px 0px;
+    width: 100%;
+    text-align: left;
+    border: none;
+    outline: none;
+    transition: 0.4s;
+    border-radius: 6px;
+    font-size: var(--fontsize-header);
+}
+
+/* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+.active, .accordion:hover {
+    background-color: var(--dark-control-bg-hover);
+}
+
+/* Style the accordion panel. Note: hidden by default */
+.panel {
+    padding: 6px;
+    margin: 0px 0px 0px 0px;
+    background-color: transparent;
+    height: 0;
+    overflow: hidden;
+    transition: height 0.2s ease-out;
+}
+
+.accordion:after {
+    content: '\02795'; /* Unicode character for "plus" sign (+) */
+    font-size: 16px;
+    color: #777;
+    float: right;
+    margin-left: 5px;
+}
+
+.active:after {
+    content: "\2796"; /* Unicode character for "minus" sign (-) */
+}
+
+/* #endregion accordions */

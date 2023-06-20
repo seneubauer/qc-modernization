@@ -3,8 +3,8 @@
 const navbar_info = d3.select("#navbar_info");
 
 // characteristics
-const vw_features_table = d3.select("#measurements_table");
-const vw_features_table_contextmenu = d3.select("#measurements_table_contextmenu");
+const vw_features_table = d3.select("#features_table");
+const vw_features_table_contextmenu = d3.select("#features_table_contextmenu");
 
 // inspection records
 const ir_button_new = d3.select("#inspection_records_new");
@@ -37,9 +37,16 @@ const in_input_schema_filter = d3.select("#inspections_schema_filter");
 const in_select_schema = d3.select("#inspections_schema");
 const in_input_employee_filter = d3.select("#inspections_employee_filter");
 const in_select_employee = d3.select("#inspections_employee");
-const in_input_display_filter = d3.select("#inspections_display_filter");
+const in_input_started_after = d3.select("#inspections_started_after_display_filter");
+const in_input_finished_before = d3.select("#inspections_finished_before_display_filter");
+const in_input_employee = d3.select("#inspections_employee_display_filter");
+const in_input_part_index = d3.select("#inspections_part_index_display_filter");
+const in_select_disposition_type = d3.select("#inspections_disposition_display_filter");
+const in_select_inspection_type = d3.select("#inspections_inspection_type_display_filter");
+const in_input_revision = d3.select("#inspections_revision_display_filter");
 const in_ul_list = d3.select("#inspections_list");
 const in_ul_list_contextmenu = d3.select("#inspections_list_contextmenu");
+const in_ul_list_jn = d3.select("#inspections_job_numbers_list");
 
 // features
 const ft_button_update_display = d3.select("#features_apply_filter");
@@ -95,10 +102,18 @@ const ln_ul_list = d3.select("#lot_numbers_list");
 // deviations
 const dv_button_save = d3.select("#deviations_save_deviation");
 const dv_button_add = d3.select("#deviations_add_deviation");
-const dv_label_current = d3.select("#deviations_current_characteristic");
+const dv_label_current = d3.select("#deviations_current_feature");
 const dv_input_notes = d3.select("#deviations_notes");
 const dv_ul_list = d3.select("#deviations_list");
 const dv_ul_list_contextmenu = d3.select("#deviations_list_contextmenu");
+
+// duplications
+const dp_button_save = d3.select("#duplications_save_duplications");
+const dp_button_add = d3.select("#duplications_add_duplication");
+const dp_label_current = d3.select("#duplications_current_feature");
+const dp_input_notes = d3.select("#duplications_notes");
+const dp_ul_list = d3.select("#duplications_list");
+const dp_ul_list_contextmenu = d3.select("#duplications_list_contextmenu");
 
 // enumerations
 var glist_employees = null;
@@ -673,7 +688,12 @@ async function inspection_records_report_unselected()
     in_input_employee_filter.on("change", null);
     in_input_schema_filter.property("value", "");
     in_input_employee_filter.property("value", "");
-    in_input_display_filter.property("value", "");
+    in_input_started_after.property("value", null);
+    in_input_finished_before.property("value", null);
+    in_input_employee.property("value", "");
+    in_input_part_index.property("value", "");
+    in_input_revision.property("value", "");
+    in_select_inspection_type.selectAll("option").remove();
     in_select_schema.selectAll("option").remove();
     in_select_employee.selectAll("option").remove();
     in_ul_list.selectAll("li").remove();
@@ -796,14 +816,65 @@ async function inspections_prepare_panel(inspection_record_id, item, drawing)
     // clear out filters
     in_input_schema_filter.property("value", "");
     in_input_employee_filter.property("value", "");
+    in_input_employee.property("value", "");
+    in_input_part_index.property("value", "");
+    in_input_revision.property("value", "");
+
+    // populate placeholder values
+    in_input_started_after.property("value", "1970-01-01T09:00");
+    in_input_finished_before.property("value", "2100-01-01T09:00");
 
     // populate the selectors
     await inspections_update_set_schemas(inspection_record_id);
     await inspections_update_employees();
+    let inspection_types = [];
+    for (i = 0; i < glist_inspection_types.length; i++) {
+        inspection_types.push({ id: glist_inspection_types[i].id, name: glist_inspection_types[i].name });
+    }
+    let disposition_types = [];
+    for (i = 0; i < glist_dispositions.length; i++) {
+        disposition_types.push({ id: glist_dispositions[i].id, name: glist_dispositions[i].name });
+    }
+    inspection_types.unshift({ id: -1, name: "n/a" });
+    disposition_types.unshift({ id: -1, name: "n/a" });
+    in_select_inspection_type.selectAll("option").remove();
+    in_select_inspection_type.selectAll("option")
+        .data(inspection_types)
+        .join("option")
+        .attr("value", (x) => x.id)
+        .text((x) => x.name);
+    in_select_disposition_type.selectAll("option").remove();
+    in_select_disposition_type.selectAll("option")
+        .data(disposition_types)
+        .join("option")
+        .attr("value", (x) => x.id)
+        .text((x) => x.name);
 
     // set up static input events
     in_input_schema_filter.on("change", () => inspections_update_set_schemas(inspection_record_id));
     in_input_employee_filter.on("change", inspections_update_employees);
+    in_input_started_after.on("change", async () => {
+        await inspections_update_filtered_list(inspection_record_id);
+        await features_get_filtered_features(inspection_record_id, item, drawing);
+    });
+    in_input_finished_before.on("change", async () => {
+        await inspections_update_filtered_list(inspection_record_id);
+        await features_get_filtered_features(inspection_record_id, item, drawing);
+    });
+    in_input_employee.on("change", async () => {
+        await inspections_update_filtered_list(inspection_record_id);
+        await features_get_filtered_features(inspection_record_id, item, drawing);
+    });
+
+    // set up static select events
+    in_select_inspection_type.on("change", async () => {
+        await inspections_update_filtered_list(inspection_record_id);
+        await features_get_filtered_features(inspection_record_id, item, drawing);
+    });
+    in_select_disposition_type.on("change", async () => {
+        await inspections_update_filtered_list(inspection_record_id);
+        await features_get_filtered_features(inspection_record_id, item, drawing);
+    });
 
     // set up static button events
     in_button_create_new_set.on("click", () => inspections_create_new_set(inspection_record_id, item, drawing));
@@ -811,7 +882,10 @@ async function inspections_prepare_panel(inspection_record_id, item, drawing)
     in_button_save_edits.on("click", inspections_save_edits);
 
     // populate the measurement set list
-    await inspections_update_filtered_sets(inspection_record_id);
+    await inspections_update_filtered_list(inspection_record_id);
+
+    // populate the job number list
+    await inspections_update_job_numbers(inspection_record_id)
 }
 
 async function inspections_create_new_set(inspection_record_id, item, drawing)
@@ -823,7 +897,12 @@ async function inspections_create_new_set(inspection_record_id, item, drawing)
             inspection_record_id: inspection_record_id,
             schema_id: in_select_schema.property("value"),
             employee_id: in_select_employee.property("value"),
-            search_term: in_input_display_filter.property("value")
+            started_after: in_input_started_after.property("value"),
+            finished_before: in_input_finished_before.property("value"),
+            employee_filter: in_input_employee.property("value"),
+            part_index_filter: in_input_part_index.property("value"),
+            revision_filter: in_input_revision.property("value"),
+            inspection_type_filter: in_select_inspection_type.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -872,11 +951,11 @@ async function inspections_save_edits()
 
 async function inspections_refresh_list(inspection_record_id, item, drawing)
 {
-    await inspections_update_filtered_sets(inspection_record_id);
+    await inspections_update_filtered_list(inspection_record_id);
     await features_get_filtered_features(inspection_record_id, item, drawing);
 }
 
-async function inspections_delete_set(inspection_id, inspection_record_id, item, drawing)
+async function inspections_delete(inspection_id, inspection_record_id, item, drawing)
 {
     // delete the selected set and repopulate the list display
     await d3.json("/inspection_records/inspections/delete_inspection/", {
@@ -884,7 +963,12 @@ async function inspections_delete_set(inspection_id, inspection_record_id, item,
         body: JSON.stringify({
             inspection_record_id: inspection_record_id,
             inspection_id: inspection_id,
-            search_term: in_input_display_filter.property("value")
+            started_after: in_input_started_after.property("value"),
+            finished_before: in_input_finished_before.property("value"),
+            employee_filter: in_input_employee.property("value"),
+            part_index_filter: in_input_part_index.property("value"),
+            revision_filter: in_input_revision.property("value"),
+            inspection_type_filter: in_select_inspection_type.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -908,13 +992,19 @@ async function inspections_delete_set(inspection_id, inspection_record_id, item,
     await features_get_filtered_features(inspection_record_id, item, drawing);
 }
 
-async function inspections_update_filtered_sets(inspection_record_id)
+async function inspections_update_filtered_list(inspection_record_id)
 {
     await d3.json("/inspection_records/inspections/get_filtered_inspections/", {
         method: "POST",
         body: JSON.stringify({
             inspection_record_id: inspection_record_id,
-            search_term: in_input_display_filter.property("value")
+            started_after: in_input_started_after.property("value"),
+            finished_before: in_input_finished_before.property("value"),
+            employee_filter: in_input_employee.property("value"),
+            part_index_filter: in_input_part_index.property("value"),
+            revision_filter: in_input_revision.property("value"),
+            inspection_type_filter: in_select_inspection_type.property("value"),
+            disposition_type_filter: in_select_disposition_type.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -932,13 +1022,55 @@ async function inspections_update_filtered_sets(inspection_record_id)
     });
 }
 
+async function inspections_update_job_numbers(inspection_record_id)
+{
+    await d3.json("/inspection_records/inspections/get_job_numbers/", {
+        method: "POST",
+        body: JSON.stringify({
+            inspection_record_id: inspection_record_id
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            // clear the old entries
+            in_ul_list_jn.selectAll("li").remove();
+
+            // logic gate
+            if (json.response == null) {
+                return;
+            }
+
+            // populate the list of job numbers
+            let items = in_ul_list_jn.selectAll("li")
+                .data(json.response)
+                .join("li")
+                .append("div")
+                .attr("class", "list-item-dark")
+                .style("--grid-template-columns", "minmax(0, 1fr)");
+            items.append("input")
+                .style("--grid-column", "1")
+                .style("--grid-row", "1")
+                .style("border-radius", "6px")
+                .style("text-align", "center")
+                .attr("type", "text")
+                .attr("readonly", true)
+                .attr("class", "list-item-input-dark")
+                .property("value", (x) => x.name);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
 async function inspections_repopulate_list(data)
 {
-    // add the display state value to incoming data
-    for (let i = 0; i < data.length; i++) {
-        data[i]["display_state"] = 0;
-    }
-
     // clear the old entries
     in_ul_list.selectAll("li").remove();
 
@@ -947,13 +1079,18 @@ async function inspections_repopulate_list(data)
         return;
     }
 
-    // populate the inspection reports list
+    // add the display state value to incoming data
+    for (let i = 0; i < data.length; i++) {
+        data[i]["display_state"] = 0;
+    }
+
+    // populate the inspection records list
     let items = in_ul_list.selectAll("li")
         .data(data)
         .join("li")
         .append("div")
         .attr("class", "list-item-dark")
-        .style("--grid-template-columns", "repeat(2, minmax(0, 5fr)) repeat(2, minmax(0, 3fr)) repeat(2, minmax(0, 4fr))")
+        .style("--grid-template-columns", "repeat(2, minmax(0, 5fr)) repeat(2, minmax(0, 3fr)) repeat(3, minmax(0, 4fr))")
         .on("contextmenu", (e, x) => {
 
             // position and show the context menu
@@ -965,7 +1102,7 @@ async function inspections_repopulate_list(data)
 
             // delete the set
             in_ul_list_contextmenu.select("#context_menu_0").on("click", () => {
-                inspections_delete_set(x.inspection_id, x.inspection_record_id, x.item, x.drawing);
+                inspections_delete(x.inspection_id, x.inspection_record_id, x.item, x.drawing);
                 in_ul_list_contextmenu.style("display", "none");
             });
 
@@ -1014,8 +1151,12 @@ async function inspections_repopulate_list(data)
         .style("--grid-column", "5")
         .style("--grid-row", "1")
         .attr("class", "list-item-select-dark");
-    items.append("input")
+    let disposition_types = items.append("select")
         .style("--grid-column", "6")
+        .style("--grid-row", "1")
+        .attr("class", "list-item-select-dark");
+    items.append("input")
+        .style("--grid-column", "7")
         .style("--grid-row", "1")
         .attr("type", "checkbox")
         .attr("class", "list-item-switch-dark")
@@ -1045,6 +1186,17 @@ async function inspections_repopulate_list(data)
     inspection_types.property("value", (x) => x.inspection_type_id)
         .on("change", (e, x) => {
             x.inspection_type_id = parseInt(e.srcElement.value);
+        });
+
+    // populate the disposition options and value
+    disposition_types.selectAll("option")
+        .data(glist_dispositions)
+        .join("option")
+        .attr("value", (x) => x.id)
+        .text((x) => x.name);
+    disposition_types.property("value", (x) => x.disposition_type_id)
+        .on("change", (e, x) => {
+            x.disposition_type_id = parseInt(e.srcElement.value);
         });
 }
 
@@ -1276,6 +1428,11 @@ async function features_view_deviations(feature_id, part_index, revision, name, 
         await toggle_options("deviations", "1000px");
 }
 
+async function features_duplicate(feature_id)
+{
+
+}
+
 async function features_get_filter_parameters(inspection_record_id, item, drawing)
 {
     await d3.json("/inspection_reports/features/get_filter_parameters/", {
@@ -1496,6 +1653,12 @@ async function features_repopulate_table(data)
                 vw_features_table_contextmenu.style("display", "none");
             });
 
+            // feature duplication
+            vw_features_table_contextmenu.select("#context_menu_2").on("click", () => {
+                features_duplicate(x.feature_id);
+                vw_features_table_contextmenu.style("display", "none");
+            });
+
             // prevent the default behavior
             e.preventDefault();
         });
@@ -1703,9 +1866,10 @@ async function manufactured_add_associated_job_order(inspection_record_id)
         headers: {
             "Content-type": "application/json; charset=UTF-8"
         }
-    }).then((json) => {
+    }).then(async (json) => {
         if (json.status == "ok") {
             manufactured_repopulate_association_list(json.response, inspection_record_id);
+            await inspections_update_filtered_list(inspection_record_id);
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -3021,7 +3185,7 @@ async function deviations_update_feature_table(feature_id)
 
 // #endregion
 
-// #region sidebar control
+// #region page control
 
 async function toggle_options(destination_arg, open_width)
 {
@@ -3110,6 +3274,34 @@ async function toggle_options(destination_arg, open_width)
             open_panel = destination_arg;
         }
     }
+    else if (destination_arg == "duplications") {
+        if (document.getElementById("duplications_sidebar").style.width == open_width) {
+            document.getElementById("duplications_sidebar").style.width = close_width;
+            document.getElementById("duplications_btn").style.marginRight = close_width;
+            open_panel = null;
+        }
+        else {
+            document.getElementById("duplications_sidebar").style.width = open_width;
+            document.getElementById("duplications_btn").style.marginRight = open_width;
+            open_panel = destination_arg;
+        }
+    }
+}
+
+var acc = document.getElementsByClassName("accordion");
+var i;
+
+for (i = 0; i < acc.length; i++) {
+    acc[i].addEventListener("click", function() {
+        this.classList.toggle("active");
+        var panel = this.nextElementSibling;
+        if (panel.style.height == null || panel.style.height == "0px") {
+            panel.style.height = "100%";
+        }
+        else {
+            panel.style.height = "0px";
+        }
+    });
 }
 
 //#endregion

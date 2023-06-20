@@ -5,8 +5,7 @@ from flask import Flask, render_template, request
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
-from sqlalchemy.dialects import postgresql
-from sqlalchemy import create_engine, and_, or_, func, delete, Table, MetaData
+from sqlalchemy import create_engine, and_, or_, func
 
 # import general dependencies
 import json
@@ -1949,7 +1948,7 @@ def func_inspection_records_get_filtered_records(part_search_term:str, started_a
         parts.id,
         parts.item,
         parts.drawing,
-        inspection_records.disposition_id,
+        inspections.disposition_id,
         inspection_records.material_type_id,
         inspection_records.employee_id,
         disposition_types.name
@@ -1966,7 +1965,7 @@ def func_inspection_records_get_filtered_records(part_search_term:str, started_a
             .join(parts, (inspections.part_id == parts.id))\
             .outerjoin(material_types, (material_types.id == inspection_records.material_type_id))\
             .outerjoin(employees, (employees.id == inspection_records.employee_id))\
-            .outerjoin(disposition_types, (disposition_types.id == inspection_records.disposition_id))\
+            .outerjoin(disposition_types, (disposition_types.id == inspections.disposition_id))\
             .outerjoin(inspection_records_purchase_orders, (inspection_records_purchase_orders.inspection_record_id == inspection_records.id))\
             .outerjoin(purchase_orders, (purchase_orders.id == inspection_records_purchase_orders.purchase_order_id))\
             .outerjoin(receiver_numbers, (receiver_numbers.purchase_order_id == purchase_orders.id))\
@@ -2039,7 +2038,18 @@ def inspection_records_inspections_add_inspection():
     inspection_record_id = int(form_data["inspection_record_id"])
     schema_id = int(form_data["schema_id"])
     employee_id = int(form_data["employee_id"])
-    search_term = str(form_data["search_term"])
+    started_after = datetime.datetime.strptime(str(form_data["started_after"]), "%Y-%m-%dT%H:%M")
+    finished_before = datetime.datetime.strptime(str(form_data["finished_before"]), "%Y-%m-%dT%H:%M")
+    employee = str(form_data["employee_filter"])
+    part_index_str = str(form_data["part_index_filter"])
+    revision = str(form_data["revision_filter"])
+    inspection_type = int(form_data["inspection_type_filter"])
+    disposition_type = int(form_data["disposition_type_filter"])
+
+    if part_index_str == "":
+        part_index = -1
+    else:
+        part_index = int(part_index_str)
 
     try:
 
@@ -2057,7 +2067,7 @@ def inspection_records_inspections_add_inspection():
         func_inspections_add_inspection(part_id, inspection_record_id, schema_id, employee_id, -1)
 
         # return an updated list of measurement sets
-        return func_inspections_get_filtered_inspections(inspection_record_id, search_term)
+        return func_inspections_get_filtered_inspections(inspection_record_id, started_after, finished_before, employee, part_index, revision, inspection_type, disposition_type)
 
     except SQLAlchemyError as e:
         return {
@@ -2074,7 +2084,18 @@ def inspection_records_inspections_delete_inspection():
     # get the required parameters
     inspection_record_id = int(form_data["inspection_record_id"])
     inspection_id = int(form_data["inspection_id"])
-    search_term = str(form_data["search_term"])
+    started_after = datetime.datetime.strptime(str(form_data["started_after"]), "%Y-%m-%dT%H:%M")
+    finished_before = datetime.datetime.strptime(str(form_data["finished_before"]), "%Y-%m-%dT%H:%M")
+    employee = str(form_data["employee_filter"])
+    part_index_str = str(form_data["part_index_filter"])
+    revision = str(form_data["revision_filter"])
+    inspection_type = int(form_data["inspection_type_filter"])
+    disposition_type = int(form_data["disposition_type_filter"])
+
+    if part_index_str == "":
+        part_index = -1
+    else:
+        part_index = int(part_index_str)
 
     try:
 
@@ -2098,7 +2119,7 @@ def inspection_records_inspections_delete_inspection():
         session.close()
 
         # return an updated list of measurement sets
-        return func_inspections_get_filtered_inspections(inspection_record_id, search_term)
+        return func_inspections_get_filtered_inspections(inspection_record_id, started_after, finished_before, employee, part_index, revision, inspection_type, disposition_type)
 
     except SQLAlchemyError as e:
         return {
@@ -2250,9 +2271,70 @@ def inspection_records_inspections_get_filtered_inspections():
 
     # get the required parameters
     inspection_record_id = int(form_data["inspection_record_id"])
-    search_term = str(form_data["search_term"])
+    started_after = datetime.datetime.strptime(str(form_data["started_after"]), "%Y-%m-%dT%H:%M")
+    finished_before = datetime.datetime.strptime(str(form_data["finished_before"]), "%Y-%m-%dT%H:%M")
+    employee = str(form_data["employee_filter"])
+    part_index_str = str(form_data["part_index_filter"])
+    revision = str(form_data["revision_filter"])
+    inspection_type = int(form_data["inspection_type_filter"])
+    disposition_type = int(form_data["disposition_type_filter"])
 
-    return func_inspections_get_filtered_inspections(inspection_record_id, search_term)
+    if part_index_str == "":
+        part_index = -1
+    else:
+        part_index = int(part_index_str)
+
+    return func_inspections_get_filtered_inspections(inspection_record_id, started_after, finished_before, employee, part_index, revision, inspection_type, disposition_type)
+
+@app.route("/inspection_records/inspections/get_job_numbers/", methods = ["POST"])
+def inspection_records_inspections_get_job_numbers():
+
+    # get the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_record_id = int(form_data["inspection_record_id"])
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(job_numbers.id, job_numbers.name)\
+            .join(parts_job_numbers, (parts_job_numbers.job_number_id == job_numbers.id))\
+            .join(parts, (parts.id == parts_job_numbers.part_id))\
+            .join(inspections, (inspections.part_id == parts.id))\
+            .filter(inspections.inspection_record_id == inspection_record_id)\
+            .order_by(job_numbers.name.asc()).distinct(job_numbers.name).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name
+                })
+
+            return {
+                "status": "ok",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok",
+                "response": None
+            }
+
+    except SQLAlchemyError as e:
+        return {
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+        }
 
 # recycled methods
 
@@ -2412,7 +2494,7 @@ def func_inspections_add_inspection(part_id:int, inspection_record_id:int, schem
             "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-def func_inspections_get_filtered_inspections(inspection_record_id:int, search_term:str):
+def func_inspections_get_filtered_inspections(inspection_record_id:int, started_after:datetime, finished_before:datetime, employee_filter:str, part_index_filter:int, revision_filter:str, inspection_type_filter:int, disposition_type_filter:int):
 
     # define the output columns
     columns = [
@@ -2422,6 +2504,7 @@ def func_inspections_get_filtered_inspections(inspection_record_id:int, search_t
         inspections.employee_id,
         inspections.inspection_record_id,
         inspections.inspection_type_id,
+        inspections.disposition_id,
         parts.item,
         parts.drawing,
         parts.revision
@@ -2433,20 +2516,35 @@ def func_inspections_get_filtered_inspections(inspection_record_id:int, search_t
         session = Session(engine)
 
         # get the list of matching inspection schemas
-        sets_query = session.query(*columns)\
+        inspections_query = session.query(*columns)\
             .join(parts, (parts.id == inspections.part_id))\
+            .join(employees, (employees.id == inspections.employee_id))\
             .filter(inspections.inspection_record_id == inspection_record_id)\
-            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
+            .filter(parts.revision.ilike(f"%{revision_filter}%"))\
+            .filter(and_(inspections.datetime_measured >= started_after, inspections.datetime_measured <= finished_before))\
+            .filter(or_(employees.first_name.ilike(f"%{employee_filter}%"), employees.last_name.ilike(f"%{employee_filter}%")))
+
+        # additional filters
+        if part_index_filter > -1:
+            inspections_query = inspections_query.filter(inspections.part_index == part_index_filter)
+        if inspection_type_filter > -1:
+            inspections_query = inspections_query.filter(inspections.inspection_type_id == inspection_type_filter)
+        if disposition_type_filter > -1:
+            inspections_query = inspections_query.filter(inspections.disposition_id == disposition_type_filter)
+
+        # convert to list of tuples
+        inspections_query = inspections_query\
             .order_by(inspections.part_index.asc(), parts.revision.asc())\
+            .distinct(inspections.part_index)\
             .all()
 
         # close the database session
         session.close()
 
         # return the results
-        if len(sets_query) > 0:
+        if len(inspections_query) > 0:
             output_arr = []
-            for inspection_id, timestamp, part_index, employee_id, current_inspection_record_id, inspection_type_id, item, drawing, revision in sets_query:
+            for inspection_id, timestamp, part_index, employee_id, current_inspection_record_id, inspection_type_id, disposition_type_id, item, drawing, revision in inspections_query:
                 output_arr.append({
                     "inspection_id": inspection_id,
                     "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M"),
@@ -2454,6 +2552,7 @@ def func_inspections_get_filtered_inspections(inspection_record_id:int, search_t
                     "employee_id": employee_id,
                     "inspection_record_id": current_inspection_record_id,
                     "inspection_type_id": inspection_type_id,
+                    "disposition_type_id": disposition_type_id,
                     "item": item,
                     "drawing": drawing,
                     "revision": revision.upper()

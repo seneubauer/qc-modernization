@@ -307,11 +307,7 @@ create table inspection_records
 
     -- many inspection reports can relate to one employee
     employee_id integer not null,
-    constraint fk_employee_ins foreign key (employee_id) references employees(id),
-
-    -- many inspection reports relate to one disposition type
-    disposition_id integer not null,
-    constraint fk_disposition_ins foreign key (disposition_id) references disposition_types(id)
+    constraint fk_employee_ins foreign key (employee_id) references employees(id)
 );
 
 create table parts
@@ -374,12 +370,13 @@ create table inspections
     inspection_type_id integer not null,
     constraint fk_inspection_type_id foreign key (inspection_type_id) references inspection_types(id),
 
+    -- many inspections relate to one disposition type
+    disposition_id integer not null,
+    constraint fk_disposition_ins foreign key (disposition_id) references disposition_types(id),
+
     -- primary key and unique constraints
     constraint pk_inspections primary key (id),
-    constraint uc_inspections unique (id),
-
-    -- part index doesn't repeat within the same inspection report
-    constraint uc_ins_inspections unique (part_index, part_id)
+    constraint uc_inspections unique (id)
 );
 
 create table features

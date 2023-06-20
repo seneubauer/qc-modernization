@@ -249,8 +249,7 @@ for i, r in inspection_records_df.iterrows():
         employee_id_val = None
     session.add(inspection_records(
         material_type_id = r["material_type_id"],
-        employee_id = employee_id_val,
-        disposition_id = r["disposition_id"]))
+        employee_id = employee_id_val))
 session.commit()
 
 for i, r in parts_df.iterrows():
@@ -286,7 +285,8 @@ for i, r in inspections_df.iterrows():
         inspection_record_id = r["inspection_record_id"],
         part_id = r["part_id"],
         employee_id = r["employee_id"],
-        inspection_type_id = r["inspection_type_id"]))
+        inspection_type_id = r["inspection_type_id"],
+        disposition_id = r["disposition_id"]))
 session.commit()
 
 for i, r in features_df.iterrows():
@@ -310,13 +310,16 @@ for i, r in features_df.iterrows():
 session.commit()
 
 for i, r in deviations_df.iterrows():
+    notes = ""
+    if not r["notes"] == "":
+        notes = str(r["notes"])
     session.add(deviations(
         nominal = r["nominal"],
         usl = r["usl"],
         lsl = r["lsl"],
         precision = r["precision"],
         date_implemented = r["date_implemented"],
-        notes = r["notes"],
+        notes = notes,
         deviation_type_id = r["deviation_type_id"],
         employee_id = r["employee_id"],
         feature_id = r["feature_id"]))
