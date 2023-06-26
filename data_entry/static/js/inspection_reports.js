@@ -968,7 +968,8 @@ async function inspections_delete(inspection_id, inspection_record_id, item, dra
             employee_filter: in_input_employee.property("value"),
             part_index_filter: in_input_part_index.property("value"),
             revision_filter: in_input_revision.property("value"),
-            inspection_type_filter: in_select_inspection_type.property("value")
+            inspection_type_filter: in_select_inspection_type.property("value"),
+            disposition_type_filter: in_select_disposition_type.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -990,6 +991,37 @@ async function inspections_delete(inspection_id, inspection_record_id, item, dra
 
     // refresh the displayed measurements
     await features_get_filtered_features(inspection_record_id, item, drawing);
+}
+
+async function inspections_copy(inspection_record_id, inspection_id)
+{
+    await d3.json("/inspection_records/inspections/copy_inspection/", {
+        method: "POST",
+        body: JSON.stringify({
+            inspection_record_id: inspection_record_id,
+            inspection_id: inspection_id,
+            started_after: in_input_started_after.property("value"),
+            finished_before: in_input_finished_before.property("value"),
+            employee_filter: in_input_employee.property("value"),
+            part_index_filter: in_input_part_index.property("value"),
+            revision_filter: in_input_revision.property("value"),
+            inspection_type_filter: in_select_inspection_type.property("value"),
+            disposition_type_filter: in_select_disposition_type.property("value")
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+            inspections_repopulate_list(json.response);
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
 }
 
 async function inspections_update_filtered_list(inspection_record_id)
@@ -1103,6 +1135,12 @@ async function inspections_repopulate_list(data)
             // delete the set
             in_ul_list_contextmenu.select("#context_menu_0").on("click", () => {
                 inspections_delete(x.inspection_id, x.inspection_record_id, x.item, x.drawing);
+                in_ul_list_contextmenu.style("display", "none");
+            });
+
+            // copy the inspection
+            in_ul_list_contextmenu.select("#context_menu_1").on("click", () => {
+                inspections_copy(x.inspection_record_id, x.inspection_id);
                 in_ul_list_contextmenu.style("display", "none");
             });
 
@@ -1428,11 +1466,6 @@ async function features_view_deviations(feature_id, part_index, revision, name, 
         await toggle_options("deviations", "1000px");
 }
 
-async function features_duplicate(feature_id)
-{
-
-}
-
 async function features_get_filter_parameters(inspection_record_id, item, drawing)
 {
     await d3.json("/inspection_reports/features/get_filter_parameters/", {
@@ -1650,12 +1683,6 @@ async function features_repopulate_table(data)
             // view deviations
             vw_features_table_contextmenu.select("#context_menu_1").on("click", () => {
                 features_view_deviations(x.feature_id, x.part_index, x.revision, x.name, x.inspection_record_id, x.item, x.drawing);
-                vw_features_table_contextmenu.style("display", "none");
-            });
-
-            // feature duplication
-            vw_features_table_contextmenu.select("#context_menu_2").on("click", () => {
-                features_duplicate(x.feature_id);
                 vw_features_table_contextmenu.style("display", "none");
             });
 

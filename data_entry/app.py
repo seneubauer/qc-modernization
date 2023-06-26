@@ -2127,6 +2127,139 @@ def inspection_records_inspections_delete_inspection():
             "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
+@app.route("/inspection_records/inspections/copy_inspection/", methods = ["POST"])
+def inspection_records_inspections_copy_inspection():
+
+    # interpret the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_record_id = int(form_data["inspection_record_id"])
+    inspection_id = int(form_data["inspection_id"])
+    started_after = datetime.datetime.strptime(str(form_data["started_after"]), "%Y-%m-%dT%H:%M")
+    finished_before = datetime.datetime.strptime(str(form_data["finished_before"]), "%Y-%m-%dT%H:%M")
+    employee = str(form_data["employee_filter"])
+    part_index_str = str(form_data["part_index_filter"])
+    revision = str(form_data["revision_filter"])
+    inspection_type = int(form_data["inspection_type_filter"])
+    disposition_type = int(form_data["disposition_type_filter"])
+
+    if part_index_str == "":
+        part_index = -1
+    else:
+        part_index = int(part_index_str)
+
+    # define the query columns
+    inspection_columns = [
+        inspections.part_index,
+        inspections.inspection_record_id,
+        inspections.part_id,
+        inspections.employee_id,
+        inspections.inspection_type_id,
+        inspections.disposition_id
+    ]
+    feature_columns = [
+        features.name,
+        features.nominal,
+        features.usl,
+        features.lsl,
+        features.measured,
+        features.precision,
+        features.specification_type_id,
+        features.dimension_type_id,
+        features.frequency_type_id,
+        features.gauge_id
+    ]
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # get the current inspection
+        current_inspection = session.query(*inspection_columns).filter(inspections.id == inspection_id).first()
+        if current_inspection is None:
+            session.close()
+            return {
+                "status": "log",
+                "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+            }
+        current_part_index, current_inspection_record_id, current_part_id, current_employee_id, current_inspection_type_id, current_disposition_id = current_inspection
+
+        # get the current features
+        current_features = session.query(*feature_columns).filter(features.inspection_id == inspection_id).all()
+        if len(current_features) == 0:
+            session.close()
+            return {
+                "status": "log",
+                "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+            }
+        features_arr = []
+        for name, nominal, usl, lsl, measured, precision, specification_type_id, dimension_type_id, frequency_type_id, gauge_id in current_features:
+
+            measured_flt = 0
+            if measured is None:
+                measured_flt = None
+            else:
+                measured_flt = float(measured)
+
+            features_arr.append({
+                "name": name,
+                "nominal": float(nominal),
+                "usl": float(usl),
+                "lsl": float(lsl),
+                "measured": measured_flt,
+                "precision": int(precision),
+                "specification_type_id": int(specification_type_id),
+                "dimension_type_id": int(dimension_type_id),
+                "frequency_type_id": int(frequency_type_id),
+                "gauge_id": int(gauge_id)
+            })
+
+        # create the new inspection
+        new_inspection = inspections(
+            part_index = current_part_index,
+            datetime_measured = datetime.datetime.now(),
+            inspection_record_id = current_inspection_record_id,
+            part_id = current_part_id,
+            employee_id = current_employee_id,
+            inspection_type_id = current_inspection_type_id,
+            disposition_id = current_disposition_id
+        )
+        session.add(new_inspection)
+        session.commit()
+        new_inspection_id = new_inspection.id
+
+        # create the new features
+        for row in features_arr:
+            new_feature = features(
+                name = row["name"],
+                nominal = row["nominal"],
+                usl = row["usl"],
+                lsl = row["lsl"],
+                measured = row["measured"],
+                precision = row["precision"],
+                inspection_id = new_inspection_id,
+                specification_type_id = row["specification_type_id"],
+                dimension_type_id = row["dimension_type_id"],
+                frequency_type_id = row["frequency_type_id"],
+                gauge_id = row["gauge_id"]
+            )
+            session.add(new_feature)
+        session.commit()
+
+        # close the database session
+        session.close()
+
+        # return an updated list of measurement sets
+        return func_inspections_get_filtered_inspections(inspection_record_id, started_after, finished_before, employee, part_index, revision, inspection_type, disposition_type)
+
+    except SQLAlchemyError as e:
+        return {
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+        }
+
 @app.route("/inspection_records/inspections/save_edits/", methods = ["POST"])
 def inspection_records_inspections_save_edits():
 
@@ -2534,8 +2667,7 @@ def func_inspections_get_filtered_inspections(inspection_record_id:int, started_
 
         # convert to list of tuples
         inspections_query = inspections_query\
-            .order_by(inspections.part_index.asc(), parts.revision.asc())\
-            .distinct(inspections.part_index)\
+            .order_by(inspections.part_index.asc(), parts.revision.asc(), inspections.datetime_measured.asc())\
             .all()
 
         # close the database session

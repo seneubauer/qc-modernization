@@ -69,7 +69,6 @@
     <div class="context-menu" id="features_table_contextmenu">
         <button class="context-menu-button" id="context_menu_0">Tunnel to Physical Part</button>
         <button class="context-menu-button" id="context_menu_1">View Deviations</button>
-        <button class="context-menu-button" id="context_menu_2">Duplicate Inspection</button>
     </div>
 
     <!-- inspection records -->
@@ -243,20 +242,23 @@
             </div>
 
             <!-- inspection records list -->
-            <ul class="item-list" style="
-                --grid-row: 5;">
-                <li>
-                    <div class="list-item-header" style="--grid-template-columns: repeat(5, minmax(0, 1fr));">
-                        <label class="list-item-header-label-dark" style="--grid-column: 1;--grid-row: 1;">Item</label>
-                        <label class="list-item-header-label-dark" style="--grid-column: 2;--grid-row: 1;">Drawing</label>
-                        <label class="list-item-header-label-dark" style="--grid-column: 3;--grid-row: 1;">Material Type</label>
-                        <label class="list-item-header-label-dark" style="--grid-column: 4;--grid-row: 1;">Employee</label>
-                        <label class="list-item-header-label-dark" style="--grid-column: 5;--grid-row: 1;">Disposition</label>
-                    </div>
-                </li>
-            </ul>
-            <ul class="item-list" id="inspection_records_filtered_list" style="
-                --grid-row: 6;"></ul>
+            <button style="grid-row: 5;" class="accordion">Inspection Records List</button>
+            <div style="grid-row: 6; --grid-template-columns: repeat(1, minmax(0, 1fr)); height: 0px;" class="panel sub-container">
+                <ul class="item-list" style="
+                    --grid-row: 1;">
+                    <li>
+                        <div class="list-item-header" style="--grid-template-columns: repeat(5, minmax(0, 1fr));">
+                            <label class="list-item-header-label-dark" style="--grid-column: 1;--grid-row: 1;">Item</label>
+                            <label class="list-item-header-label-dark" style="--grid-column: 2;--grid-row: 1;">Drawing</label>
+                            <label class="list-item-header-label-dark" style="--grid-column: 3;--grid-row: 1;">Material Type</label>
+                            <label class="list-item-header-label-dark" style="--grid-column: 4;--grid-row: 1;">Employee</label>
+                            <label class="list-item-header-label-dark" style="--grid-column: 5;--grid-row: 1;">Disposition</label>
+                        </div>
+                    </li>
+                </ul>
+                <ul class="item-list" id="inspection_records_filtered_list" style="
+                    --grid-row: 2;"></ul>
+            </div>
         </div>
     </div>
     <div class="sidebar-toggle" id="inspection_records_btn" style="top: calc(0 * (12px + 42px) + 12px + 54px);">
@@ -319,23 +321,13 @@
             <!-- job numbers -->
             <button style="grid-row: 3;" class="accordion">Job Numbers</button>
             <div style="grid-row: 4; --grid-template-columns: repeat(1, minmax(0, 1fr)); height: 0px;" class="panel sub-container">
-
-                <!-- row -->
-                <ul class="item-list" style="
-                    --grid-row: 1;">
-                    <li>
-                        <div class="list-item-header" style="--grid-template-columns: repeat(1, minmax(0, 5fr));">
-                            <label class="list-item-header-label-dark" style="--grid-column: 1;--grid-row: 1;">Job Number</label>
-                        </div>
-                    </li>
-                </ul>
                 <ul class="item-list" id="inspections_job_numbers_list" style="
-                    --grid-row: 2;"></ul>
+                    --grid-row: 1;"></ul>
             </div>
 
             <!-- inspection display filter -->
             <button style="grid-row: 5;" class="accordion">Display Filter</button>
-            <div style="grid-row: 6; --grid-template-columns: repeat(2, minmax(0, 1fr)); height: 0px;" class="panel container">
+            <div style="grid-row: 6; --grid-template-columns: repeat(2, minmax(0, 1fr)); height: 0px;" class="panel sub-container">
 
                 <!-- row -->
                 <button class="button-dark" id="inspections_refresh_list" type="button" style="
@@ -406,23 +398,26 @@
                     ondrag="return false;" ondrop="return false;">
             </div>
 
-            <!-- row -->
-            <ul class="item-list" style="
-                --grid-row: 7;">
-                <li>
-                    <div class="list-item-header" style="--grid-template-columns: repeat(2, minmax(0, 5fr)) repeat(2, minmax(0, 3fr)) repeat(3, minmax(0, 4fr));">
-                        <label class="list-item-header-label-dark" style="--grid-column: 1;--grid-row: 1;">Timestamp</label>
-                        <label class="list-item-header-label-dark" style="--grid-column: 2;--grid-row: 1;">Employee</label>
-                        <label class="list-item-header-label-dark" style="--grid-column: 3;--grid-row: 1;">Part Index</label>
-                        <label class="list-item-header-label-dark" style="--grid-column: 4;--grid-row: 1;">Revision</label>
-                        <label class="list-item-header-label-dark" style="--grid-column: 5;--grid-row: 1;">Inspection Type</label>
-                        <label class="list-item-header-label-dark" style="--grid-column: 6;--grid-row: 1;">Disposition</label>
-                        <label class="list-item-header-label-dark" style="--grid-column: 7;--grid-row: 1;">Display State</label>
-                    </div>
-                </li>
-            </ul>
-            <ul class="item-list" id="inspections_list" style="
-                --grid-row: 8;"></ul>
+            <!-- inspections list -->
+            <button style="grid-row: 7;" class="accordion">Inspections List</button>
+            <div style="grid-row: 8; --grid-template-columns: repeat(1, minmax(0, 1fr)); height: 0px;" class="panel sub-container">
+                <ul class="item-list" style="
+                    --grid-row: 1;">
+                    <li>
+                        <div class="list-item-header" style="--grid-template-columns: repeat(2, minmax(0, 5fr)) repeat(2, minmax(0, 3fr)) repeat(3, minmax(0, 4fr));">
+                            <label class="list-item-header-label-dark" style="--grid-column: 1;--grid-row: 1;">Timestamp</label>
+                            <label class="list-item-header-label-dark" style="--grid-column: 2;--grid-row: 1;">Employee</label>
+                            <label class="list-item-header-label-dark" style="--grid-column: 3;--grid-row: 1;">Part Index</label>
+                            <label class="list-item-header-label-dark" style="--grid-column: 4;--grid-row: 1;">Revision</label>
+                            <label class="list-item-header-label-dark" style="--grid-column: 5;--grid-row: 1;">Inspection Type</label>
+                            <label class="list-item-header-label-dark" style="--grid-column: 6;--grid-row: 1;">Disposition</label>
+                            <label class="list-item-header-label-dark" style="--grid-column: 7;--grid-row: 1;">Display State</label>
+                        </div>
+                    </li>
+                </ul>
+                <ul class="item-list" id="inspections_list" style="
+                    --grid-row: 2;"></ul>
+                </div>
             </div>
     </div>
     <div class="sidebar-toggle" id="inspections_btn" style="top: calc(1 * (12px + 42px) + 12px + 54px);">
@@ -434,6 +429,7 @@
     <!-- inspections context menu -->
     <div class="context-menu" id="inspections_list_contextmenu">
         <button class="context-menu-button" id="context_menu_0">Delete Set</button>
+        <button class="context-menu-button" id="context_menu_1">Duplicate</button>
     </div>
 
     <!-- features -->
@@ -618,23 +614,24 @@
                     ondrag="return false;" ondrop="return false;">
             </div>
 
-            <!-- row -->
-            <ul class="item-list" style="
-                --grid-column: 1;
-                --grid-row: 6;">
-                <li>
-                    <div class="list-item-header" style="--grid-template-columns: repeat(1, minmax(0, 1fr)) repeat(4, minmax(0, 2fr));">
-                        <label class="list-item-header-label-dark" style="--grid-column: 1;--grid-row: 1;">Revision</label>
-                        <label class="list-item-header-label-dark" style="--grid-column: 2;--grid-row: 1;">Job Number</label>
-                        <label class="list-item-header-label-dark" style="--grid-column: 3;--grid-row: 1;">Full Inspect Interval</label>
-                        <label class="list-item-header-label-dark" style="--grid-column: 4;--grid-row: 1;">Released Quantity</label>
-                        <label class="list-item-header-label-dark" style="--grid-column: 5;--grid-row: 1;">Completed Quantity</label>
-                    </div>
-                </li>
-            </ul>
-            <ul class="item-list" id="manufactured_job_order_list" style="
-                --grid-column: 1;
-                --grid-row: 7;"></ul>
+            <!-- job number list -->
+            <button style="grid-row: 6;" class="accordion">Job Numbers</button>
+            <div style="grid-row: 7; --grid-template-columns: repeat(1, minmax(0, 1fr)); height: 0px;" class="panel sub-container">
+                <ul class="item-list" style="
+                    --grid-row: 1;">
+                    <li>
+                        <div class="list-item-header" style="--grid-template-columns: repeat(1, minmax(0, 1fr)) repeat(4, minmax(0, 2fr));">
+                            <label class="list-item-header-label-dark" style="--grid-column: 1;--grid-row: 1;">Revision</label>
+                            <label class="list-item-header-label-dark" style="--grid-column: 2;--grid-row: 1;">Job Number</label>
+                            <label class="list-item-header-label-dark" style="--grid-column: 3;--grid-row: 1;">Full Inspect Interval</label>
+                            <label class="list-item-header-label-dark" style="--grid-column: 4;--grid-row: 1;">Released Quantity</label>
+                            <label class="list-item-header-label-dark" style="--grid-column: 5;--grid-row: 1;">Completed Quantity</label>
+                        </div>
+                    </li>
+                </ul>
+                <ul class="item-list" id="manufactured_job_order_list" style="
+                    --grid-row: 2;"></ul>
+            </div>
         </div>
     </div>
     <div class="sidebar-toggle" id="manufactured_btn" style="top: calc(3 * (12px + 42px) + 12px + 54px);">

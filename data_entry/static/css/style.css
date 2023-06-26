@@ -229,7 +229,7 @@ option:checked {
 /* #region sidebar operation */
 
 .sidebar {
-    height: 100%;
+    height: calc(100% - var(--navbar-height));
     width: 0px;
     position: fixed;
     z-index: 2;
@@ -237,7 +237,8 @@ option:checked {
     right: 0px;
     background-color: var(--dark-bg);
     overflow-x: hidden;
-    padding-top: 12px;
+    overflow-y: auto;
+    padding-bottom: 6px;
     transition: 0.5s;
 }
 
@@ -371,7 +372,7 @@ option:checked {
     font-size: var(--fontsize-control);
     font-family: var(--fontfamily-default);
     text-align: left;
-    margin: 6px;
+    margin: 3px 6px 6px 6px;
     padding: 6px;
     grid-column: var(--grid-column);
     grid-row: var(--grid-row);
@@ -440,7 +441,7 @@ option:checked {
     font-size: var(--fontsize-control);
     font-family: var(--fontfamily-default);
     text-align: right;
-    margin: 6px;
+    margin: 3px 6px 6px 6px;
     padding: 6px;
     grid-column: var(--grid-column);
     grid-row: var(--grid-row);
@@ -741,8 +742,8 @@ option:checked {
     background-color: var(--dark-bg);
     color: var(--dark-control-fg-static);
     cursor: pointer;
-    padding: 9px;
-    margin: 6px 0px 0px 0px;
+    padding: 6px;
+    margin: 3px 0px;
     width: 100%;
     text-align: left;
     border: none;
@@ -759,8 +760,8 @@ option:checked {
 
 /* Style the accordion panel. Note: hidden by default */
 .panel {
-    padding: 6px;
-    margin: 0px 0px 0px 0px;
+    padding: 0px;
+    margin: 0px;
     background-color: transparent;
     height: 0;
     overflow: hidden;
