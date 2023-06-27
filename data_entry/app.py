@@ -127,11 +127,11 @@ def text_response(current_method:str, type:message_type, **kwargs):
 
 @app.route("/inspection_schemas/")
 def open_measurement_set_schemas():
-    return render_template("measurement_schemas.html")
+    return render_template("inspection_schemas.html")
 
-@app.route("/inspection_reports/")
+@app.route("/inspection_records/")
 def open_inspection_reports():
-    return render_template("inspection_reports.html")
+    return render_template("inspection_records.html")
 
 #endregion
 
@@ -1286,7 +1286,7 @@ def inspection_schemas_schema_get_filtered_parts():
     form_data = json.loads(request.data)
 
     # get the required parameters
-    search_term = form_data["search_term"]
+    search_term = str(form_data["search_term"])
 
     try:
 
@@ -1318,8 +1318,8 @@ def inspection_schemas_schema_get_filtered_parts():
             }
         else:
             return {
-                "status": "log",
-                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts])
+                "status": "ok",
+                "response": None
             }
 
     except SQLAlchemyError as e:
@@ -1463,8 +1463,8 @@ def func_inspection_schemas_get_filtered_schemas(search_term:str, is_locked:int)
             }
         else:
             return {
-                "status": "log",
-                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [inspection_schemas, parts])
+                "status": "ok",
+                "response": None
             }
 
     except SQLAlchemyError as e:
@@ -1475,9 +1475,9 @@ def func_inspection_schemas_get_filtered_schemas(search_term:str, is_locked:int)
 
 #endregion
 
-#region measurement schemas - schema view
+#region inspection schemas - schema view
 
-@app.route("/inspection_schemas/view/get_schema_measurements/", methods = ["POST"])
+@app.route("/inspection_schemas/view/get_schema_features/", methods = ["POST"])
 def inspection_schemas_view_get_schema_measurements():
 
     # interpret the posted data
@@ -1608,7 +1608,7 @@ def inspection_records_inspection_records_create_new_record():
         # make sure this part isn't already associated with an inspection report
         exists = session.query(parts.id, inspection_records.id, inspections.id)\
             .join(parts, (parts.id == inspections.part_id))\
-            .join(inspection_records, (inspection_records.id == inspections.inspection_id))\
+            .join(inspection_records, (inspection_records.id == inspections.inspection_record_id))\
             .filter(parts.id == part_id).first()
         if exists is not None:
             return {
