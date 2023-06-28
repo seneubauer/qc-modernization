@@ -924,7 +924,8 @@ async function inspections_create_new_set(inspection_record_id, item, drawing)
             employee_filter: in_input_employee.property("value"),
             part_index_filter: in_input_part_index.property("value"),
             revision_filter: in_input_revision.property("value"),
-            inspection_type_filter: in_select_inspection_type.property("value")
+            inspection_type_filter: in_select_inspection_type.property("value"),
+            disposition_type_filter: in_select_disposition_type.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
