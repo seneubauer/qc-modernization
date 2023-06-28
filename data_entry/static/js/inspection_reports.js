@@ -419,7 +419,14 @@ async function inspection_records_create_new_report()
             part_search_term: ir_input_part_list.property("value"),
             job_number_search_term: ir_input_job_order_list.property("value"),
             started_after: ir_input_started_after_list.property("value"),
-            finished_before: ir_input_finished_before_list.property("value")
+            finished_before: ir_input_finished_before_list.property("value"),
+            material_type_search_term: ir_input_material_type_list.property("value"),
+            employee_search_term: ir_input_employee_list.property("value"),
+            disposition_search_term: ir_input_disposition_list.property("value"),
+            receiver_number_search_term: ir_input_receiver_number_list.property("value"),
+            purchase_order_search_term: ir_input_purchase_order_list.property("value"),
+            lot_number_search_term: ir_input_lot_number_list.property("value"),
+            supplier_search_term: ir_input_supplier_list.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -461,7 +468,14 @@ async function inspection_records_delete(inspection_record_id)
             job_number_search_term: ir_input_job_order_list.property("value"),
             started_after: ir_input_started_after_list.property("value"),
             finished_before: ir_input_finished_before_list.property("value"),
-            inspection_record_id: inspection_record_id
+            inspection_record_id: inspection_record_id,
+            material_type_search_term: ir_input_material_type_list.property("value"),
+            employee_search_term: ir_input_employee_list.property("value"),
+            disposition_search_term: ir_input_disposition_list.property("value"),
+            receiver_number_search_term: ir_input_receiver_number_list.property("value"),
+            purchase_order_search_term: ir_input_purchase_order_list.property("value"),
+            lot_number_search_term: ir_input_lot_number_list.property("value"),
+            supplier_search_term: ir_input_supplier_list.property("value")
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -853,6 +867,14 @@ async function inspections_prepare_panel(inspection_record_id, item, drawing)
     // set up static input events
     in_input_schema_filter.on("change", () => inspections_update_set_schemas(inspection_record_id));
     in_input_employee_filter.on("change", inspections_update_employees);
+    in_input_part_index.on("change", async () => {
+        await inspections_update_filtered_list(inspection_record_id);
+        await features_get_filtered_features(inspection_record_id, item, drawing);
+    });
+    in_input_revision.on("change", async () => {
+        await inspections_update_filtered_list(inspection_record_id);
+        await features_get_filtered_features(inspection_record_id, item, drawing);
+    });
     in_input_started_after.on("change", async () => {
         await inspections_update_filtered_list(inspection_record_id);
         await features_get_filtered_features(inspection_record_id, item, drawing);
@@ -2434,6 +2456,7 @@ async function received_repopulate_purchase_order_association_list(data)
         .style("--grid-column", "1")
         .style("--grid-row", "1")
         .style("border-radius", "6px")
+        .style("text-align", "center")
         .attr("disabled", true)
         .attr("class", "list-item-input-dark")
         .property("value", (x) => x.name);

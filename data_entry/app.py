@@ -1582,6 +1582,13 @@ def inspection_records_inspection_records_create_new_record():
     job_number_search_term = str(form_data["job_number_search_term"])
     started_after_str = str(form_data["started_after"])
     finished_before_str = str(form_data["finished_before"])
+    material_type_search_term = str(form_data["material_type_search_term"])
+    employee_search_term = str(form_data["employee_search_term"])
+    disposition_search_term = str(form_data["disposition_search_term"])
+    receiver_number_search_term = str(form_data["receiver_number_search_term"])
+    purchase_order_search_term = str(form_data["purchase_order_search_term"])
+    lot_number_search_term = str(form_data["lot_number_search_term"])
+    supplier_search_term = str(form_data["supplier_search_term"])
 
     # convert date strings to datetime objects
     started_after = datetime.date(1970, 1, 1)
@@ -1623,7 +1630,19 @@ def inspection_records_inspection_records_create_new_record():
         func_inspections_add_inspection(part_id, -1, schema_id, employee_id, 0)
 
         # return the filtered records
-        return func_inspection_records_get_filtered_records(part_search_term, job_number_search_term, started_after, finished_before)
+        return func_inspection_records_get_filtered_records(
+            part_search_term,
+            started_after,
+            finished_before,
+            material_type_search_term,
+            employee_search_term,
+            disposition_search_term,
+            receiver_number_search_term,
+            purchase_order_search_term,
+            job_number_search_term,
+            lot_number_search_term,
+            supplier_search_term
+        )
 
     except SQLAlchemyError as e:
         return {
@@ -1643,6 +1662,13 @@ def inspection_records_inspection_records_delete_record():
     job_number_search_term = str(form_data["job_number_search_term"])
     started_after_str = form_data["started_after"]
     finished_before_str = form_data["finished_before"]
+    material_type_search_term = str(form_data["material_type_search_term"])
+    employee_search_term = str(form_data["employee_search_term"])
+    disposition_search_term = str(form_data["disposition_search_term"])
+    receiver_number_search_term = str(form_data["receiver_number_search_term"])
+    purchase_order_search_term = str(form_data["purchase_order_search_term"])
+    lot_number_search_term = str(form_data["lot_number_search_term"])
+    supplier_search_term = str(form_data["supplier_search_term"])
 
     # convert date strings to datetime objects
     started_after = datetime.date(1970, 1, 1)
@@ -1712,7 +1738,19 @@ def inspection_records_inspection_records_delete_record():
         session.close()
 
         # return the filtered records
-        return func_inspection_records_get_filtered_records(part_search_term, job_number_search_term, started_after, finished_before)
+        return func_inspection_records_get_filtered_records(
+            part_search_term,
+            started_after,
+            finished_before,
+            material_type_search_term,
+            employee_search_term,
+            disposition_search_term,
+            receiver_number_search_term,
+            purchase_order_search_term,
+            job_number_search_term,
+            lot_number_search_term,
+            supplier_search_term
+        )
 
     except SQLAlchemyError as e:
         return {
@@ -2529,7 +2567,6 @@ def func_inspections_add_inspection(part_id:int, inspection_record_id:int, schem
             inspection_record_query = inspection_records(
                 material_type_id = 0,
                 employee_id = employee_id,
-                disposition_id = 2
             )
             session.add(inspection_record_query)
             session.commit()
@@ -2571,7 +2608,8 @@ def func_inspections_add_inspection(part_id:int, inspection_record_id:int, schem
             inspection_record_id = inspection_record_id,
             part_id = part_id,
             employee_id = employee_id,
-            inspection_type_id = 0
+            inspection_type_id = 0,
+            disposition_id = 2
         )
         session.add(inspection_query)
         session.commit()
