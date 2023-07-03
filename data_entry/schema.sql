@@ -161,7 +161,7 @@ create table lot_numbers
 create table suppliers
 (
     id serial not null,
-    name varchar(32) not null unique,
+    name varchar(128) not null unique,
 
     -- primary key and unique constraints
     constraint pk_suppliers primary key (id),
