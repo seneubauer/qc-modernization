@@ -1,7 +1,7 @@
 -- database reset
 drop table inspection_records_lot_numbers;
 drop table inspection_records_purchase_orders;
-drop table parts_job_numbers;
+drop table inspections_job_numbers;
 drop table employee_projects;
 drop table inspection_schema_details;
 drop table inspection_schemas;
@@ -500,13 +500,13 @@ create table employee_projects
     constraint uc_employee_project unique (employee_id, project_id)
 );
 
-create table parts_job_numbers
+create table inspections_job_numbers
 (
     id serial not null unique,
-    part_id integer not null references parts(id) on update cascade,
+    inspection_id integer not null references inspections(id) on update cascade,
     job_number_id integer not null references job_numbers(id) on update cascade,
-    constraint pk_parts_job_numbers primary key (id),
-    constraint uc_parts_job_numbers unique (part_id, job_number_id)
+    constraint pk_inspections_job_numbers primary key (id),
+    constraint uc_inspections_job_numbers unique (inspection_id, job_number_id)
 );
 
 create table inspection_records_purchase_orders

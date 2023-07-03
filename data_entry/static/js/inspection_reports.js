@@ -47,6 +47,9 @@ const in_input_revision = d3.select("#inspections_revision_display_filter");
 const in_ul_list = d3.select("#inspections_list");
 const in_ul_list_contextmenu = d3.select("#inspections_list_contextmenu");
 const in_ul_list_jn = d3.select("#inspections_job_numbers_list");
+const in_ul_list_po = d3.select("#inspections_purchase_orders_list");
+const in_input_active_jn = d3.select("#inspections_active_job_numbers");
+const in_input_active_po = d3.select("#inspections_active_purchase_orders");
 
 // features
 const ft_button_update_display = d3.select("#features_apply_filter");
@@ -69,8 +72,8 @@ const mn_button_add_job_order = d3.select("#manufactured_job_order_add");
 const mn_button_save_job_order = d3.select("#manufactured_job_order_save");
 const mn_input_job_number_search = d3.select("#manufactured_job_order_search_term");
 const mn_select_job_order = d3.select("#manufactured_job_order");
-const mn_input_part_search = d3.select("#manufactured_part_search_term");
-const mn_select_part = d3.select("#manufactured_part");
+const mn_input_inspection_search = d3.select("#manufactured_inspection_search_term");
+const mn_select_inspection = d3.select("#manufactured_inspection");
 const mn_input_job_number_display_filter = d3.select("#manufactured_job_order_display_filter");
 const mn_ul_list = d3.select("#manufactured_job_order_list");
 const mn_ul_list_contextmenu = d3.select("#manufactured_job_order_list_contextmenu");
@@ -833,6 +836,8 @@ async function inspections_prepare_panel(inspection_record_id, item, drawing)
     in_input_employee.property("value", "");
     in_input_part_index.property("value", "");
     in_input_revision.property("value", "");
+    in_input_active_jn.property("checked", false);
+    in_input_active_po.property("checked", false);
 
     // populate placeholder values
     in_input_started_after.property("value", "1970-01-01T09:00");
@@ -887,6 +892,14 @@ async function inspections_prepare_panel(inspection_record_id, item, drawing)
         await inspections_update_filtered_list(inspection_record_id);
         await features_get_filtered_features(inspection_record_id, item, drawing);
     });
+    in_input_active_jn.on("change", async () => {
+        await inspections_update_filtered_list(inspection_record_id);
+        await features_get_filtered_features(inspection_record_id, item, drawing);
+    });
+    in_input_active_po.on("change", async () => {
+        await inspections_update_filtered_list(inspection_record_id);
+        await features_get_filtered_features(inspection_record_id, item, drawing);
+    });
 
     // set up static select events
     in_select_inspection_type.on("change", async () => {
@@ -903,11 +916,14 @@ async function inspections_prepare_panel(inspection_record_id, item, drawing)
     in_button_refresh_list.on("click", () => inspections_refresh_list(inspection_record_id, item, drawing));
     in_button_save_edits.on("click", inspections_save_edits);
 
-    // populate the measurement set list
-    await inspections_update_filtered_list(inspection_record_id);
-
     // populate the job number list
     await inspections_update_job_numbers(inspection_record_id)
+
+    // populate the purchase order list
+    await inspections_update_purchase_orders(inspection_record_id);
+
+    // populate the measurement set list
+    await inspections_update_filtered_list(inspection_record_id);
 }
 
 async function inspections_create_new_set(inspection_record_id, item, drawing)
@@ -1049,6 +1065,24 @@ async function inspections_copy(inspection_record_id, inspection_id)
 
 async function inspections_update_filtered_list(inspection_record_id)
 {
+    let jn_active = in_input_active_jn.property("checked");
+    let shown_job_numbers_array = [];
+    for (let i = 0; i < in_ul_list_jn.node().childNodes.length; i++) {
+        let current_node = in_ul_list_jn.node().childNodes[i].children[0];
+        if (current_node.__data__.is_active) {
+            shown_job_numbers_array.push(current_node.__data__.id);
+        }
+    }
+
+    let po_active = in_input_active_po.property("checked");
+    let shown_purchase_orders_array = [];
+    for (let i = 0; i < in_ul_list_po.node().childNodes.length; i++) {
+        let current_node = in_ul_list_po.node().childNodes[i].children[0];
+        if (current_node.__data__.is_active) {
+            shown_purchase_orders_array.push(current_node.__data__.id);
+        }
+    }
+
     await d3.json("/inspection_records/inspections/get_filtered_inspections/", {
         method: "POST",
         body: JSON.stringify({
@@ -1059,7 +1093,11 @@ async function inspections_update_filtered_list(inspection_record_id)
             part_index_filter: in_input_part_index.property("value"),
             revision_filter: in_input_revision.property("value"),
             inspection_type_filter: in_select_inspection_type.property("value"),
-            disposition_type_filter: in_select_disposition_type.property("value")
+            disposition_type_filter: in_select_disposition_type.property("value"),
+            job_numbers_active: jn_active,
+            purchase_orders_active: po_active,
+            shown_job_numbers: shown_job_numbers_array,
+            shown_purchase_orders: shown_purchase_orders_array
         }),
         headers: {
             "Content-type": "application/json; charset=UTF-8"
@@ -1104,16 +1142,81 @@ async function inspections_update_job_numbers(inspection_record_id)
                 .join("li")
                 .append("div")
                 .attr("class", "list-item-dark")
-                .style("--grid-template-columns", "minmax(0, 1fr)");
+                .style("--grid-template-columns", "repeat(2, minmax(0, 1fr))");
             items.append("input")
                 .style("--grid-column", "1")
                 .style("--grid-row", "1")
                 .style("border-radius", "6px")
                 .style("text-align", "center")
-                .attr("type", "text")
-                .attr("readonly", true)
+                .attr("disabled", true)
                 .attr("class", "list-item-input-dark")
                 .property("value", (x) => x.name);
+            items.append("input")
+                .style("--grid-column", "2")
+                .style("--grid-row", "1")
+                .attr("type", "checkbox")
+                .attr("class", "list-item-switch-dark")
+                .property("checked", (x) => x.is_active)
+                .on("change", (e, x) => {
+                    x.is_active = e.srcElement.checked;
+                    inspections_update_filtered_list(inspection_record_id);
+                });
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+async function inspections_update_purchase_orders(inspection_record_id)
+{
+    await d3.json("/inspection_records/inspections/get_purchase_orders/", {
+        method: "POST",
+        body: JSON.stringify({
+            inspection_record_id: inspection_record_id
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            // clear the old entries
+            in_ul_list_po.selectAll("li").remove();
+
+            // logic gate
+            if (json.response == null) {
+                return;
+            }
+
+            // populate the list of job numbers
+            let items = in_ul_list_po.selectAll("li")
+                .data(json.response)
+                .join("li")
+                .append("div")
+                .attr("class", "list-item-dark")
+                .style("--grid-template-columns", "repeat(2, minmax(0, 1fr))");
+            items.append("input")
+                .style("--grid-column", "1")
+                .style("--grid-row", "1")
+                .style("border-radius", "6px")
+                .style("text-align", "center")
+                .attr("disabled", true)
+                .attr("class", "list-item-input-dark")
+                .property("value", (x) => x.name);
+            items.append("input")
+                .style("--grid-column", "2")
+                .style("--grid-row", "1")
+                .attr("type", "checkbox")
+                .attr("class", "list-item-switch-dark")
+                .property("checked", (x) => x.is_active)
+                .on("change", (e, x) => {
+                    x.is_active = e.srcElement.checked;
+                    inspections_update_filtered_list(inspection_record_id);
+                });
         }
         else if (json.status == "log") {
             console.log(json.response);
@@ -1883,20 +1986,20 @@ async function manufactured_prepare_panel(inspection_record_id)
 {
     // clear the inputs
     mn_input_job_number_search.property("value", "");
-    mn_input_part_search.property("value", "");
+    mn_input_inspection_search.property("value", "");
     mn_input_job_number_display_filter.property("value", "");
 
     // populate the new association selects
-    await manufactured_get_filtered_job_orders();
-    await manufactured_get_filtered_parts(inspection_record_id);
+    await manufactured_get_filtered_job_numbers();
+    await manufactured_get_filtered_inspections(inspection_record_id);
 
     // set up static button events
     mn_button_add_job_order.on("click", () => { manufactured_add_associated_job_order(inspection_record_id); });
     mn_button_save_job_order.on("click", manufactured_save_associated_job_order);
 
     // set up static input events
-    mn_input_job_number_search.on("change", manufactured_get_filtered_job_orders);
-    mn_input_part_search.on("change", () => { manufactured_get_filtered_parts(inspection_record_id); });
+    mn_input_job_number_search.on("change", manufactured_get_filtered_job_numbers);
+    mn_input_inspection_search.on("change", () => { manufactured_get_filtered_inspections(inspection_record_id); });
     mn_input_job_number_display_filter.on("change", () => { manufactured_get_associated_job_orders(inspection_record_id); });
 
     // populate the association list
@@ -1910,7 +2013,7 @@ async function manufactured_add_associated_job_order(inspection_record_id)
         body: JSON.stringify({
             search_term: mn_input_job_number_display_filter.property("value"),
             inspection_record_id: inspection_record_id,
-            part_id: mn_select_part.property("value"),
+            inspection_id: mn_select_inspection.property("value"),
             job_number_id: mn_select_job_order.property("value")
         }),
         headers: {
@@ -1959,7 +2062,7 @@ async function manufactured_save_associated_job_order()
     });
 }
 
-async function manufactured_delete_associated_job_order(inspection_record_id, job_number_id, part_id)
+async function manufactured_delete_associated_job_order(inspection_record_id, job_number_id, inspection_id)
 {
     // request confirmation
     if (!confirm("This action will delete from the database and cannot be reverted. Continue?")) {
@@ -1972,7 +2075,7 @@ async function manufactured_delete_associated_job_order(inspection_record_id, jo
         body: JSON.stringify({
             search_term: mn_input_job_number_display_filter.property("value"),
             inspection_record_id: inspection_record_id,
-            part_id: part_id,
+            inspection_id: inspection_id,
             job_number_id: job_number_id
         }),
         headers: {
@@ -2048,7 +2151,7 @@ async function manufactured_repopulate_association_list(data, inspection_record_
             
             // delete the job order
             mn_ul_list_contextmenu.select("#context_menu_0").on("click", async () => {
-                manufactured_delete_associated_job_order(inspection_record_id, x.id, x.part_id);
+                manufactured_delete_associated_job_order(inspection_record_id, x.id, x.inspection_id);
                 mn_ul_list_contextmenu.style("display", "none");
             });
 
@@ -2115,7 +2218,7 @@ async function manufactured_repopulate_association_list(data, inspection_record_
         });
 }
 
-async function manufactured_get_filtered_job_orders()
+async function manufactured_get_filtered_job_numbers()
 {
     await d3.json("/inspection_records/manufactured/get_filtered_job_numbers/", {
         method: "POST",
@@ -2147,12 +2250,11 @@ async function manufactured_get_filtered_job_orders()
     });
 }
 
-async function manufactured_get_filtered_parts(inspection_record_id)
+async function manufactured_get_filtered_inspections(inspection_record_id)
 {
-    await d3.json("/inspection_records/manufactured/get_filtered_parts/", {
+    await d3.json("/inspection_records/manufactured/get_filtered_inspections/", {
         method: "POST",
         body: JSON.stringify({
-            search_term: mn_input_part_search.property("value"),
             inspection_record_id: inspection_record_id
         }),
         headers: {
@@ -2162,10 +2264,15 @@ async function manufactured_get_filtered_parts(inspection_record_id)
         if (json.status == "ok") {
 
             // clear the old entries
-            mn_select_part.selectAll("option").remove();
+            mn_select_inspection.selectAll("option").remove();
+
+            // logic gate
+            if (json.response == null) {
+                return;
+            }
 
             // add new entries
-            mn_select_part.selectAll("option")
+            mn_select_inspection.selectAll("option")
                 .data(json.response)
                 .join("option")
                 .attr("value", (x) => x.id)

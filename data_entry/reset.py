@@ -34,7 +34,7 @@ base.prepare(engine, reflect = True)
 # instantiate the database tables
 inspection_records_lot_numbers = base.classes.inspection_records_lot_numbers
 inspection_records_purchase_orders = base.classes.inspection_records_purchase_orders
-parts_job_numbers = base.classes.parts_job_numbers
+inspections_job_numbers = base.classes.inspections_job_numbers
 employee_projects = base.classes.employee_projects
 inspection_schema_details = base.classes.inspection_schema_details
 inspection_schemas = base.classes.inspection_schemas
@@ -347,7 +347,7 @@ session.commit()
 
 # retrieve linking data
 employee_projects_df = pd.read_csv(join("data", "employee_projects.csv"))
-parts_job_numbers_df = pd.read_csv(join("data", "parts_job_numbers.csv"))
+inspections_job_numbers_df = pd.read_csv(join("data", "inspections_job_numbers.csv"))
 inspection_records_purchase_orders_df = pd.read_csv(join("data", "inspection_records_purchase_orders.csv"))
 inspection_records_lots_df = pd.read_csv(join("data", "inspection_records_lot_numbers.csv"))
 
@@ -358,9 +358,9 @@ for i, r in employee_projects_df.iterrows():
         project_id = r["project_id"]))
 session.commit()
 
-for i, r in parts_job_numbers_df.iterrows():
-    session.add(parts_job_numbers(
-        part_id = r["part_id"],
+for i, r in inspections_job_numbers_df.iterrows():
+    session.add(inspections_job_numbers(
+        inspection_id = r["inspection_id"],
         job_number_id = r["job_number_id"]))
 session.commit()
 

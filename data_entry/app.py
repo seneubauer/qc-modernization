@@ -56,7 +56,7 @@ deviations = base.classes.deviations
 inspection_schemas = base.classes.inspection_schemas
 inspection_schema_details = base.classes.inspection_schema_details
 employee_projects = base.classes.employee_projects
-parts_job_numbers = base.classes.parts_job_numbers
+inspections_job_numbers = base.classes.inspections_job_numbers
 inspection_records_purchase_orders = base.classes.inspection_records_purchase_orders
 inspection_records_lot_numbers = base.classes.inspection_records_lot_numbers
 
@@ -2007,8 +2007,8 @@ def func_inspection_records_get_filtered_records(part_search_term:str, started_a
             .outerjoin(inspection_records_purchase_orders, (inspection_records_purchase_orders.inspection_record_id == inspection_records.id))\
             .outerjoin(purchase_orders, (purchase_orders.id == inspection_records_purchase_orders.purchase_order_id))\
             .outerjoin(receiver_numbers, (receiver_numbers.purchase_order_id == purchase_orders.id))\
-            .outerjoin(parts_job_numbers, (parts_job_numbers.part_id == parts.id))\
-            .outerjoin(job_numbers, (job_numbers.id == parts_job_numbers.job_number_id))\
+            .outerjoin(inspections_job_numbers, (inspections_job_numbers.inspection_id == inspections.id))\
+            .outerjoin(job_numbers, (job_numbers.id == inspections_job_numbers.job_number_id))\
             .outerjoin(inspection_records_lot_numbers, (inspection_records_lot_numbers.inspection_record_id == inspection_records.id))\
             .outerjoin(lot_numbers, (lot_numbers.id == inspection_records_lot_numbers.lot_number_id))\
             .outerjoin(suppliers, (suppliers.id == purchase_orders.supplier_id))\
@@ -2083,6 +2083,10 @@ def inspection_records_inspections_add_inspection():
     revision = str(form_data["revision_filter"])
     inspection_type = int(form_data["inspection_type_filter"])
     disposition_type = int(form_data["disposition_type_filter"])
+    shown_job_numbers = list(form_data["shown_job_numbers"])
+    shown_purchase_orders = list(form_data["shown_purchase_orders"])
+    jn_active = bool(form_data["job_numbers_active"])
+    po_active = bool(form_data["purchase_orders_active"])
 
     if part_index_str == "":
         part_index = -1
@@ -2105,7 +2109,7 @@ def inspection_records_inspections_add_inspection():
         func_inspections_add_inspection(part_id, inspection_record_id, schema_id, employee_id, -1)
 
         # return an updated list of measurement sets
-        return func_inspections_get_filtered_inspections(inspection_record_id, started_after, finished_before, employee, part_index, revision, inspection_type, disposition_type)
+        return func_inspections_get_filtered_inspections(inspection_record_id, started_after, finished_before, employee, part_index, revision, inspection_type, disposition_type, shown_job_numbers, shown_purchase_orders, jn_active, po_active)
 
     except SQLAlchemyError as e:
         return {
@@ -2129,6 +2133,10 @@ def inspection_records_inspections_delete_inspection():
     revision = str(form_data["revision_filter"])
     inspection_type = int(form_data["inspection_type_filter"])
     disposition_type = int(form_data["disposition_type_filter"])
+    shown_job_numbers = list(form_data["shown_job_numbers"])
+    shown_purchase_orders = list(form_data["shown_purchase_orders"])
+    jn_active = bool(form_data["job_numbers_active"])
+    po_active = bool(form_data["purchase_orders_active"])
 
     if part_index_str == "":
         part_index = -1
@@ -2157,7 +2165,7 @@ def inspection_records_inspections_delete_inspection():
         session.close()
 
         # return an updated list of measurement sets
-        return func_inspections_get_filtered_inspections(inspection_record_id, started_after, finished_before, employee, part_index, revision, inspection_type, disposition_type)
+        return func_inspections_get_filtered_inspections(inspection_record_id, started_after, finished_before, employee, part_index, revision, inspection_type, disposition_type, shown_job_numbers, shown_purchase_orders, jn_active, po_active)
 
     except SQLAlchemyError as e:
         return {
@@ -2181,6 +2189,10 @@ def inspection_records_inspections_copy_inspection():
     revision = str(form_data["revision_filter"])
     inspection_type = int(form_data["inspection_type_filter"])
     disposition_type = int(form_data["disposition_type_filter"])
+    shown_job_numbers = list(form_data["shown_job_numbers"])
+    shown_purchase_orders = list(form_data["shown_purchase_orders"])
+    jn_active = bool(form_data["job_numbers_active"])
+    po_active = bool(form_data["purchase_orders_active"])
 
     if part_index_str == "":
         part_index = -1
@@ -2290,7 +2302,7 @@ def inspection_records_inspections_copy_inspection():
         session.close()
 
         # return an updated list of measurement sets
-        return func_inspections_get_filtered_inspections(inspection_record_id, started_after, finished_before, employee, part_index, revision, inspection_type, disposition_type)
+        return func_inspections_get_filtered_inspections(inspection_record_id, started_after, finished_before, employee, part_index, revision, inspection_type, disposition_type, shown_job_numbers, shown_purchase_orders, jn_active, po_active)
 
     except SQLAlchemyError as e:
         return {
@@ -2449,13 +2461,17 @@ def inspection_records_inspections_get_filtered_inspections():
     revision = str(form_data["revision_filter"])
     inspection_type = int(form_data["inspection_type_filter"])
     disposition_type = int(form_data["disposition_type_filter"])
+    shown_job_numbers = list(form_data["shown_job_numbers"])
+    shown_purchase_orders = list(form_data["shown_purchase_orders"])
+    jn_active = bool(form_data["job_numbers_active"])
+    po_active = bool(form_data["purchase_orders_active"])
 
     if part_index_str == "":
         part_index = -1
     else:
         part_index = int(part_index_str)
 
-    return func_inspections_get_filtered_inspections(inspection_record_id, started_after, finished_before, employee, part_index, revision, inspection_type, disposition_type)
+    return func_inspections_get_filtered_inspections(inspection_record_id, started_after, finished_before, employee, part_index, revision, inspection_type, disposition_type, shown_job_numbers, shown_purchase_orders, jn_active, po_active)
 
 @app.route("/inspection_records/inspections/get_job_numbers/", methods = ["POST"])
 def inspection_records_inspections_get_job_numbers():
@@ -2472,10 +2488,9 @@ def inspection_records_inspections_get_job_numbers():
         session = Session(engine)
 
         # query the database
-        results = session.query(job_numbers.id, job_numbers.name)\
-            .join(parts_job_numbers, (parts_job_numbers.job_number_id == job_numbers.id))\
-            .join(parts, (parts.id == parts_job_numbers.part_id))\
-            .join(inspections, (inspections.part_id == parts.id))\
+        results = session.query(inspections.inspection_record_id, job_numbers.name)\
+            .join(inspections_job_numbers, (inspections_job_numbers.job_number_id == job_numbers.id))\
+            .join(inspections, (inspections.id == inspections_job_numbers.inspection_id))\
             .filter(inspections.inspection_record_id == inspection_record_id)\
             .order_by(job_numbers.name.asc()).distinct(job_numbers.name).all()
 
@@ -2488,7 +2503,58 @@ def inspection_records_inspections_get_job_numbers():
             for id, name in results:
                 output_arr.append({
                     "id": id,
-                    "name": name
+                    "name": name,
+                    "is_active": False
+                })
+
+            return {
+                "status": "ok",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok",
+                "response": None
+            }
+
+    except SQLAlchemyError as e:
+        return {
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+        }
+
+@app.route("/inspection_records/inspections/get_purchase_orders/", methods = ["POST"])
+def inspection_records_inpsections_get_purchase_orders():
+
+    # get the posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    inspection_record_id = int(form_data["inspection_record_id"])
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        results = session.query(inspection_records.id, purchase_orders.name)\
+            .join(inspection_records_purchase_orders, (inspection_records_purchase_orders.purchase_order_id == purchase_orders.id))\
+            .join(inspection_records, (inspection_records.id == inspection_records_purchase_orders.inspection_record_id))\
+            .filter(inspection_records.id == inspection_record_id)\
+            .order_by(purchase_orders.name.asc()).distinct(purchase_orders.name).all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, name in results:
+                output_arr.append({
+                    "id": id,
+                    "name": name,
+                    "is_active": False
                 })
 
             return {
@@ -2665,7 +2731,7 @@ def func_inspections_add_inspection(part_id:int, inspection_record_id:int, schem
             "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-def func_inspections_get_filtered_inspections(inspection_record_id:int, started_after:datetime, finished_before:datetime, employee_filter:str, part_index_filter:int, revision_filter:str, inspection_type_filter:int, disposition_type_filter:int):
+def func_inspections_get_filtered_inspections(inspection_record_id:int, started_after:datetime, finished_before:datetime, employee_filter:str, part_index_filter:int, revision_filter:str, inspection_type_filter:int, disposition_type_filter:int, shown_job_numbers:list, shown_purchase_orders:list, jn_active:bool, po_active:bool):
 
     # define the output columns
     columns = [
@@ -2696,6 +2762,10 @@ def func_inspections_get_filtered_inspections(inspection_record_id:int, started_
             .filter(or_(employees.first_name.ilike(f"%{employee_filter}%"), employees.last_name.ilike(f"%{employee_filter}%")))
 
         # additional filters
+        if jn_active:
+            inspections_query = inspections_query.filter(inspections.id.in_(shown_job_numbers))
+        if po_active:
+            inspections_query = inspections_query.filter(inspections.id.in_(shown_purchase_orders))
         if part_index_filter > -1:
             inspections_query = inspections_query.filter(inspections.part_index == part_index_filter)
         if inspection_type_filter > -1:
@@ -3279,7 +3349,7 @@ def inspection_records_manufactured_add_associated_job_number():
     # get the required parameters
     search_term = str(form_data["search_term"])
     inspection_record_id = int(form_data["inspection_record_id"])
-    part_id = int(form_data["part_id"])
+    inspection_id = int(form_data["inspection_id"])
     job_number_id = int(form_data["job_number_id"])
 
     try:
@@ -3288,20 +3358,20 @@ def inspection_records_manufactured_add_associated_job_number():
         session = Session(engine)
 
         # check if the association already exists
-        exists = session.query(parts_job_numbers.id)\
-            .filter(parts_job_numbers.part_id == part_id)\
-            .filter(parts_job_numbers.job_number_id == job_number_id)\
+        exists = session.query(inspections_job_numbers.id)\
+            .filter(inspections_job_numbers.inspection_id == inspection_id)\
+            .filter(inspections_job_numbers.job_number_id == job_number_id)\
             .first()
         if exists is not None:
             session.close()
             return {
                 "status": "alert",
-                "response": text_response(stack()[0][3], message_type.record_already_exists, tables = [parts_job_numbers])
+                "response": text_response(stack()[0][3], message_type.record_already_exists, tables = [inspections_job_numbers])
             }
 
         # add the association
-        session.add(parts_job_numbers(**{
-            "part_id": part_id,
+        session.add(inspections_job_numbers(**{
+            "inspection_id": inspection_id,
             "job_number_id": job_number_id,
         }))
 
@@ -3389,7 +3459,7 @@ def inspection_records_manufactured_delete_associated_job_number():
     # get the required parameters
     search_term = str(form_data["search_term"])
     inspection_record_id = int(form_data["inspection_record_id"])
-    part_id = int(form_data["part_id"])
+    inspection_id = int(form_data["inspection_id"])
     job_number_id = int(form_data["job_number_id"])
 
     try:
@@ -3398,9 +3468,9 @@ def inspection_records_manufactured_delete_associated_job_number():
         session = Session(engine)
 
         # delete the associated record
-        rows_deleted = session.query(parts_job_numbers)\
-            .filter(parts_job_numbers.part_id == part_id)\
-            .filter(parts_job_numbers.job_number_id == job_number_id)\
+        rows_deleted = session.query(inspections_job_numbers)\
+            .filter(inspections_job_numbers.inspection_id == inspection_id)\
+            .filter(inspections_job_numbers.job_number_id == job_number_id)\
             .delete()
 
         # commit the changes
@@ -3479,14 +3549,13 @@ def inspection_records_manufactured_get_filtered_job_numbers():
             "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-@app.route("/inspection_records/manufactured/get_filtered_parts/", methods = ["POST"])
-def inspection_records_manufactured_get_filtered_parts():
+@app.route("/inspection_records/manufactured/get_filtered_inspections/", methods = ["POST"])
+def inspection_records_manufactured_get_filtered_inspections():
 
     # get the posted data
     form_data = json.loads(request.data)
 
     # get the required parameters
-    search_term = str(form_data["search_term"])
     inspection_record_id = int(form_data["inspection_record_id"])
 
     try:
@@ -3495,13 +3564,19 @@ def inspection_records_manufactured_get_filtered_parts():
         session = Session(engine)
 
         # query the database
-        results = session.query(parts.id, parts.item, parts.drawing, parts.revision)\
-            .join(inspections, (inspections.part_id == parts.id))\
+        results = session.query(inspections.id, inspections.part_index, parts.revision, inspections.datetime_measured)\
             .join(inspection_records, (inspection_records.id == inspections.inspection_record_id))\
-            .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
+            .join(parts, (parts.id == inspections.part_id))\
             .filter(inspection_records.id == inspection_record_id)\
-            .order_by(parts.drawing.asc(), parts.revision.asc(), parts.item.asc())\
-            .distinct(parts.drawing, parts.revision, parts.item).all()
+            .order_by(inspections.datetime_measured.asc(), inspections.part_index.asc(), parts.revision.asc(), inspections.id.asc())\
+            .all()
+        # results = session.query(parts.id, parts.item, parts.drawing, parts.revision)\
+        #     .join(inspections, (inspections.part_id == parts.id))\
+        #     .join(inspection_records, (inspection_records.id == inspections.inspection_record_id))\
+        #     .filter(or_(parts.item.ilike(f"%{search_term}%"), parts.drawing.ilike(f"%{search_term}%"), parts.revision.ilike(f"%{search_term}%")))\
+        #     .filter(inspection_records.id == inspection_record_id)\
+        #     .order_by(parts.drawing.asc(), parts.revision.asc(), parts.item.asc())\
+        #     .distinct(parts.drawing, parts.revision, parts.item).all()
 
         # close the database session
         session.close()
@@ -3509,12 +3584,12 @@ def inspection_records_manufactured_get_filtered_parts():
         # return the results
         if len(results) > 0:
             output_arr = []
-            for id, item, drawing, revision in results:
+            for id, part_index, revision, datetime_measured in results:
                 output_arr.append({
                     "id": id,
-                    "name": f"{item}, {drawing}, {revision.upper()}"
+                    "name": f"{part_index}, {revision.upper()}, {datetime_measured.strftime('%Y-%m-%d, %H:%M')}"
                 })
-            
+
             return {
                 "status": "ok",
                 "response": output_arr
@@ -3543,7 +3618,8 @@ def func_manufactured_get_associated_job_numbers(inspection_record_id:int, searc
         job_numbers.released_qty,
         job_numbers.completed_qty,
         parts.revision,
-        parts.id
+        parts.id,
+        inspections.id
     ]
 
     try:
@@ -3553,10 +3629,10 @@ def func_manufactured_get_associated_job_numbers(inspection_record_id:int, searc
 
         # query the database
         results = session.query(*columns)\
-            .join(parts_job_numbers, (parts_job_numbers.job_number_id == job_numbers.id))\
-            .join(parts, (parts.id == parts_job_numbers.part_id))\
-            .join(inspections, (inspections.part_id == parts.id))\
+            .join(inspections_job_numbers, (inspections_job_numbers.job_number_id == job_numbers.id))\
+            .join(inspections, (inspections.id == inspections_job_numbers.inspection_id))\
             .join(inspection_records, (inspection_records.id == inspections.inspection_record_id))\
+            .join(parts, (parts.id == inspections.part_id))\
             .filter(inspection_records.id == inspection_record_id)\
             .filter(or_(parts.revision.ilike(f"%{search_term}%"), job_numbers.name.ilike(f"%{search_term}%")))\
             .order_by(job_numbers.name.asc())\
@@ -3568,7 +3644,7 @@ def func_manufactured_get_associated_job_numbers(inspection_record_id:int, searc
         # return the results
         if len(results) > 0:
             output_arr = []
-            for id, name, full_inspect_interval, released_qty, completed_qty, revision, part_id in results:
+            for id, name, full_inspect_interval, released_qty, completed_qty, revision, part_id, inspection_id in results:
                 output_arr.append({
                     "id": id,
                     "name": name,
@@ -3576,7 +3652,8 @@ def func_manufactured_get_associated_job_numbers(inspection_record_id:int, searc
                     "released_qty": released_qty,
                     "completed_qty": completed_qty,
                     "revision": revision.upper(),
-                    "part_id": part_id
+                    "part_id": part_id,
+                    "inspection_id": inspection_id
                 })
 
             return {
