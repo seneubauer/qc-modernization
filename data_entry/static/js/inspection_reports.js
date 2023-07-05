@@ -3177,7 +3177,6 @@ async function deviations_repopulate_deviations_list(data, feature_id, inspectio
         .on("change", (e, x) => {
             x.nominal = parseFloat(e.srcElement.value);
             e.srcElement.value = x.nominal.toFixed(x.precision);
-            e.srcElement.blur();
         })
         .on("click", (e, x) => {
             e.srcElement.select();
@@ -3195,7 +3194,6 @@ async function deviations_repopulate_deviations_list(data, feature_id, inspectio
         .on("change", (e, x) => {
             x.usl = parseFloat(e.srcElement.value);
             e.srcElement.value = x.usl.toFixed(x.precision);
-            e.srcElement.blur();
         })
         .on("click", (e, x) => {
             e.srcElement.select();
@@ -3213,7 +3211,6 @@ async function deviations_repopulate_deviations_list(data, feature_id, inspectio
         .on("change", (e, x) => {
             x.lsl = parseFloat(e.srcElement.value);
             e.srcElement.value = x.lsl.toFixed(x.precision);
-            e.srcElement.blur();
         })
         .on("click", (e, x) => {
             e.srcElement.select();
@@ -3232,10 +3229,7 @@ async function deviations_repopulate_deviations_list(data, feature_id, inspectio
         .on("drop", (e, _) => e.preventDefault)
         .on("change", (e, x) => {
             x.precision = parseInt(e.srcElement.value);
-            nominal.property("value", x.nominal.toFixed(x.precision));
-            usl.property("value", x.usl.toFixed(x.precision));
-            lsl.property("value", x.lsl.toFixed(x.precision));
-            e.srcElement.blur();
+            deviations_enforce_precision(x.id, x.precision);
         })
         .on("click", (e, x) => {
             e.srcElement.select();
@@ -3251,7 +3245,6 @@ async function deviations_repopulate_deviations_list(data, feature_id, inspectio
         .on("drop", (e, _) => e.preventDefault)
         .on("change", (e, x) => {
             x.date_implemented = e.srcElement.value;
-            e.srcElement.blur();
         })
         .on("click", (e, x) => {
             e.srcElement.select();
@@ -3292,6 +3285,21 @@ async function deviations_repopulate_deviations_list(data, feature_id, inspectio
         .on("change", (e, x) => {
             x.employee_id = parseInt(e.srcElement.value);
         });
+}
+
+async function deviations_enforce_precision(deviation_id, precision)
+{
+    dv_ul_list.node().childNodes.forEach((element) => {
+        let current_row = element.children[0];
+        if (element.__data__.id == deviation_id) {
+            let val0 = parseFloat(current_row.childNodes[0].value);
+            let val1 = parseFloat(current_row.childNodes[1].value);
+            let val2 = parseFloat(current_row.childNodes[2].value);
+            current_row.childNodes[0].value = val0.toFixed(precision);
+            current_row.childNodes[1].value = val1.toFixed(precision);
+            current_row.childNodes[2].value = val2.toFixed(precision);
+        }
+    });
 }
 
 async function deviations_update_feature_table(feature_id)

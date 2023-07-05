@@ -2488,7 +2488,7 @@ def inspection_records_inspections_get_job_numbers():
         session = Session(engine)
 
         # query the database
-        results = session.query(inspections.inspection_record_id, job_numbers.name)\
+        results = session.query(job_numbers.id, job_numbers.name)\
             .join(inspections_job_numbers, (inspections_job_numbers.job_number_id == job_numbers.id))\
             .join(inspections, (inspections.id == inspections_job_numbers.inspection_id))\
             .filter(inspections.inspection_record_id == inspection_record_id)\
@@ -2538,7 +2538,7 @@ def inspection_records_inpsections_get_purchase_orders():
         session = Session(engine)
 
         # query the database
-        results = session.query(inspection_records.id, purchase_orders.name)\
+        results = session.query(purchase_orders.id, purchase_orders.name)\
             .join(inspection_records_purchase_orders, (inspection_records_purchase_orders.purchase_order_id == purchase_orders.id))\
             .join(inspection_records, (inspection_records.id == inspection_records_purchase_orders.inspection_record_id))\
             .filter(inspection_records.id == inspection_record_id)\
@@ -2756,6 +2756,9 @@ def func_inspections_get_filtered_inspections(inspection_record_id:int, started_
         inspections_query = session.query(*columns)\
             .join(parts, (parts.id == inspections.part_id))\
             .join(employees, (employees.id == inspections.employee_id))\
+            .outerjoin(inspections_job_numbers, (inspections_job_numbers.inspection_id == inspections.id))\
+            .outerjoin(inspection_records, (inspection_records.id == inspections.inspection_record_id))\
+            .outerjoin(inspection_records_purchase_orders, (inspection_records_purchase_orders.inspection_record_id == inspection_records.id))\
             .filter(inspections.inspection_record_id == inspection_record_id)\
             .filter(parts.revision.ilike(f"%{revision_filter}%"))\
             .filter(and_(inspections.datetime_measured >= started_after, inspections.datetime_measured <= finished_before))\
@@ -2763,9 +2766,9 @@ def func_inspections_get_filtered_inspections(inspection_record_id:int, started_
 
         # additional filters
         if jn_active:
-            inspections_query = inspections_query.filter(inspections.id.in_(shown_job_numbers))
+            inspections_query = inspections_query.filter(inspections_job_numbers.job_number_id.in_(shown_job_numbers))
         if po_active:
-            inspections_query = inspections_query.filter(inspections.id.in_(shown_purchase_orders))
+            inspections_query = inspections_query.filter(inspection_records_purchase_orders.purchase_order_id.in_(shown_purchase_orders))
         if part_index_filter > -1:
             inspections_query = inspections_query.filter(inspections.part_index == part_index_filter)
         if inspection_type_filter > -1:
