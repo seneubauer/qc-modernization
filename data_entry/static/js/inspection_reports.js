@@ -1812,6 +1812,12 @@ async function features_repopulate_table(data)
                 vw_features_table_contextmenu.style("display", "none");
             });
 
+            // save features
+            vw_features_table_contextmenu.select("#context_menu_2").on("click", () => {
+                features_save_features();
+                vw_features_table_contextmenu.style("display", "none");
+            });
+
             // prevent the default behavior
             e.preventDefault();
         });
