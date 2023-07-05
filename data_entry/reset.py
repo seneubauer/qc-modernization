@@ -7,6 +7,7 @@ from sqlalchemy import create_engine, text
 import pandas as pd
 from os.path import join
 from math import isnan
+import datetime
 
 # register numpy
 import numpy as np
@@ -311,6 +312,7 @@ session.commit()
 
 for i, r in deviations_df.iterrows():
     notes = ""
+    date_implemented = str(r["date_implemented"])
     if not r["notes"] == "":
         notes = str(r["notes"])
     session.add(deviations(
@@ -318,7 +320,7 @@ for i, r in deviations_df.iterrows():
         usl = r["usl"],
         lsl = r["lsl"],
         precision = r["precision"],
-        date_implemented = r["date_implemented"],
+        date_implemented = datetime.datetime.strptime(date_implemented, "%m/%d/%Y").date(),
         notes = notes,
         deviation_type_id = r["deviation_type_id"],
         employee_id = r["employee_id"],

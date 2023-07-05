@@ -3248,7 +3248,7 @@ def func_features_get_filtered_features(inspection_record_id:int, item:str, draw
 
         # convert to a list
         measurement_list = results\
-            .order_by(inspections.id.asc(), inspections.part_id.asc(), parts.revision.asc(), features.id.asc(), features.name.asc()).all()
+            .order_by(inspections.id.asc(), inspections.part_id.asc(), parts.revision.asc(), features.id.asc()).all()
 
         # get the list of features that have deviations
         deviations_list = [{ "feature_id": x[0], "deviation_type_id": x[1] } for x in session.query(deviations.feature_id, deviations.deviation_type_id).all()]
@@ -3264,6 +3264,11 @@ def func_features_get_filtered_features(inspection_record_id:int, item:str, draw
             # assemble measurements output
             output_arr = []
             for inspection_id, part_index, timestamp, employee_id, part_id, revision, feature_id, name, nominal, usl, lsl, measured, precision, gauge_id, gauge_type_id, gauge_type, specification_type, dimension_type, frequency_type, inspection_type in measurement_list:
+
+                # determine data input type (numerical or boolean)
+                input_type = "numerical"
+                if gauge_type_id == 6 or gauge_type_id == 10 or gauge_type_id == 11 or gauge_type_id == 13:
+                    input_type = "boolean"
 
                 # parse to floats
                 nominal_flt = float(nominal)
@@ -3317,7 +3322,8 @@ def func_features_get_filtered_features(inspection_record_id:int, item:str, draw
                     "dimension_type": dimension_type,
                     "inspection_type": inspection_type,
                     "frequency_type": frequency_type,
-                    "state": state
+                    "state": state,
+                    "input_type": input_type
                 })
 
             # return the data object

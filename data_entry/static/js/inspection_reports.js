@@ -148,7 +148,7 @@ const col_name =        { display: "Name",                  key: "name",        
 const col_nominal =     { display: "Nominal",               key: "nominal",             type: "label",  datatype: "decimal" };
 const col_usl =         { display: "USL",                   key: "usl",                 type: "label",  datatype: "decimal" };
 const col_lsl =         { display: "LSL",                   key: "lsl",                 type: "label",  datatype: "decimal" };
-const col_measured =    { display: "Measured",              key: "measured",            type: "input",  datatype: "decimal" };
+const col_measured =    { display: "Measured",              key: "measured",            type: "hybrid", datatype: "hybrid" };
 const col_gauge =       { display: "Gauge",                 key: "gauge_id",            type: "select", datatype: "integer" };
 const col_gaugtype =    { display: "Gauge Type",            key: "gauge_type",          type: "label",  datatype: "integer" };
 const col_spectype =    { display: "Specification Type",    key: "specification_type",  type: "label",  datatype: "integer" };
@@ -1716,6 +1716,14 @@ async function features_repopulate_table(data)
         return;
     }
 
+    // remove preceding 0s from feature names
+    for (let i = 0; i < data.length; i++) {
+        if (data[i].name.includes(" ")) {
+            let temp_name = data[i].name.split(" ");
+            data[i].name = `${temp_name[0]} ${parseInt(temp_name[1])}`
+        }
+    }
+
     // add the columns
     vw_features_table.append("thead")
         .selectAll("tr")
@@ -1844,7 +1852,8 @@ async function features_repopulate_table(data)
                         drawing: r.drawing,
                         revision: r.revision,
                         name: r.name,
-                        deviation_type_id: r.deviation_type_id
+                        deviation_type_id: r.deviation_type_id,
+                        input_type: r.input_type
                     }
                 };
             });
@@ -1872,9 +1881,9 @@ async function features_repopulate_table(data)
             }
         });
 
-    // assign inputs
+    // assign inputs (numerical)
     cells.filter((x) => {
-            if (x.column.type == "input") {
+            if (x.column.type == "hybrid" && x.row.input_type == "numerical") {
                 return true;
             }
         })
@@ -1909,7 +1918,7 @@ async function features_repopulate_table(data)
             if (x.column.datatype == "decimal" && !isNaN(x.row.value)) {
                 e.srcElement.value = x.row.value.toFixed(x.row.precision);
             }
-            features_apply_row_color(e.srcElement.parentElement.parentElement, row_data.measured, row_data.usl, row_data.lsl, row_data.precision);
+            features_apply_row_color(e.srcElement.parentElement.parentElement, row_data.measured, row_data.usl, row_data.lsl, row_data.precision, "numerical");
             e.srcElement.blur();
         }).on("keydown", (e, _) => {
             if (e.keyCode == 13) {
@@ -1917,6 +1926,38 @@ async function features_repopulate_table(data)
             }
         }).on("click", (e, _) => {
             e.srcElement.select();
+        });
+
+    // assign inputs (boolean)
+    cells.filter((x) => {
+            if (x.column.type == "hybrid" && x.row.input_type == "boolean") {
+                return true;
+            }
+        })
+        .insert("select")
+        .attr("class", "data-table-cell-dark")
+        .selectAll("option")
+        .data([{ id: 0, name: "Fail" }, { id: 1, name: "Pass" }, { id: -1, name: "Incomplete"} ])
+        .join("option")
+        .attr("value", (x) => x.id)
+        .text((x) => x.name);
+    cells.filter((x) => {
+            if (x.column.type == "hybrid" && x.row.input_type == "boolean") {
+                return true;
+            }
+        })
+        .selectAll("select")
+        .property("value", (x) => {
+            if (x.row.value == null) {
+                return -1;
+            }
+            return x.row.value;
+        })
+        .on("change", (e, x) => {
+            x.row.value = parseInt(e.srcElement.value);
+            let row_data = d3.select(e.srcElement.parentElement.parentElement).data()[0];
+            row_data.measured = x.row.value;
+            features_apply_row_color(e.srcElement.parentElement.parentElement, row_data.measured, row_data.usl, row_data.lsl, row_data.precision, "boolean");
         });
 
     // gauges
@@ -1955,12 +1996,31 @@ async function features_apply_color_code()
 {
     vw_features_table.select("tbody").node().childNodes.forEach((row) => {
         let row_data = d3.select(row).data()[0];
-        features_apply_row_color(row, row_data.measured, row_data.usl, row_data.lsl, row_data.precision);
+        features_apply_row_color(row, row_data.measured, row_data.usl, row_data.lsl, row_data.precision, row_data.input_type);
     });
 }
 
-async function features_apply_row_color(r, input_measured, input_usl, input_lsl, precision)
+async function features_apply_row_color(r, input_measured, input_usl, input_lsl, precision, input_type)
 {
+    // check for boolean input types
+    if (input_type == "boolean") {
+        switch (input_measured) {
+            case 1:
+                r.style.backgroundColor = pass_static;
+                d3.select(r).data()[0].state = "pass";
+                break;
+            case 0:
+                r.style.backgroundColor = fail_static;
+                d3.select(r).data()[0].state = "fail";
+                break;
+            case -1:
+                r.style.backgroundColor = incomplete_static;
+                d3.select(r).data()[0].state = "incomplete";
+                break;
+        }
+        return;
+    }
+
     // logic gate
     if (isNaN(input_measured) || input_measured == null) {
         r.style.backgroundColor = incomplete_static;
