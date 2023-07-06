@@ -1905,7 +1905,7 @@ async function features_repopulate_table(data)
                     return "";
                 default:
                     switch (x.column.datatype) {
-                        case "decimal":
+                        case "hybrid":
                             return x.row.value.toFixed(x.row.precision);
                         default:
                             return x.row.value;
@@ -1915,7 +1915,7 @@ async function features_repopulate_table(data)
             x.row.value = parseFloat(e.srcElement.value);
             let row_data = d3.select(e.srcElement.parentElement.parentElement).data()[0];
             row_data.measured = x.row.value;
-            if (x.column.datatype == "decimal" && !isNaN(x.row.value)) {
+            if (x.column.datatype == "hybrid" && !isNaN(x.row.value)) {
                 e.srcElement.value = x.row.value.toFixed(x.row.precision);
             }
             features_apply_row_color(e.srcElement.parentElement.parentElement, row_data.measured, row_data.usl, row_data.lsl, row_data.precision, "numerical");
