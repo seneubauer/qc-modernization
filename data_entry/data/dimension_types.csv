@@ -20,3 +20,5 @@ id,name,is_gdt
 18,Angularity,TRUE
 19,Symmetry,TRUE
 20,Size,TRUE
+21,Visual,FALSE
+22,Verify,FALSE

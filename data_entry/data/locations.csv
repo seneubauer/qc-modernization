@@ -1,8 +1,6 @@
 name,description,location_type_id
-WS10,workstation 10,0
-WS25,workstation 25,0
-Pad 25,concrete pad 25,1
-WFH,working from home,3
-WR,working remote,3
-Pad 32,concrete pad 32,1
-QC Lab,quality control lab,5
+WS99,workstation 99,0
+FICTIONAL,acronyms aren't good records,0
+PAD01,fictional cnc pad,1
+PAD02,fictional cnc pad,1
+PAD03,fictional cnc pad,1

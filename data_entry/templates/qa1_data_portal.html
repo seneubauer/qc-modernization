@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <!-- set the metadata -->
+    <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- set the title -->
+    <title>QA1 Quality Portal</title>
+
+    <!-- bring in the favicon -->
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+    <!-- link to reset css -->
+    <link rel="stylesheet" href="/static/css/reset.css">
+
+    <!-- link to style css -->
+    <link rel="stylesheet" href="/static/css/style.css">
+
+    <!-- import js libraries -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+
+<body style="background-color: hsl(0, 0%, 20%);">
+
+    <!-- container -->
+    <div class="container" style="margin: 30px 300px; --grid-template-columns: repeat(3, minmax(0, 1fr));">
+
+        <!-- row -->
+        <label class="label-header-dark" style="
+            --grid-column: 1 / 4;
+            --grid-row: 1;">Available Parts</label>
+
+        <!-- operator selects the part -->
+        <!-- row -->
+        <label class="label-dark" for="part_id_filter" style="
+            --grid-column: 1;
+            --grid-row: 2;">Filter</label>
+        <input class="input-dark" type="text" id="part_id_filter" style="
+            --grid-column: 1;
+            --grid-row: 3;
+            text-align: left;"
+            ondrag="return false;" ondrop="return false;">
+        <label class="label-dark" for="part_id" style="
+            --grid-column: 2;
+            --grid-row: 2;">Part ID</label>
+        <select class="select-dark" id="part_id" style="
+            --grid-column: 2;
+            --grid-row: 3;"></select>
+        <label class="label-dark" for="part_revision" style="
+            --grid-column: 3;
+            --grid-row: 2;">Revision</label>
+        <select class="select-dark" id="part_revision" style="
+            --grid-column: 3;
+            --grid-row: 3;"></select>
+
+        <!-- these dropdowns are populated when the part is selected according to matching records -->
+        <!-- operator selects job number or purchase order, depending on if they want internal or freight -->
+
+        <!-- row -->
+        <label class="label-header-dark" style="
+            --grid-column: 1 / 4;
+            --grid-row: 4;">Inspection Associations</label>
+
+        <!-- row -->
+        <label class="label-dark" for="job_number_filter" style="
+            --grid-column: 1;
+            --grid-row: 5;">Filter</label>
+        <input class="input-dark" type="text" id="job_number_filter" style="
+            --grid-column: 1;
+            --grid-row: 6;
+            text-align: left;"
+            ondrag="return false;" ondrop="return false;">
+        <label class="label-dark" for="job_number" style="
+            --grid-column: 2;
+            --grid-row: 5;">Job Number</label>
+        <select class="select-dark" id="job_number" style="
+            --grid-column: 2;
+            --grid-row: 6;"></select>
+
+        <!-- row -->
+        <label class="label-dark" for="purchase_order_filter" style="
+            --grid-column: 1;
+            --grid-row: 7;">Filter</label>
+        <input class="input-dark" type="text" id="purchase_order_filter" style="
+            --grid-column: 1;
+            --grid-row: 8;
+            text-align: left;"
+            ondrag="return false;" ondrop="return false;">
+        <label class="label-dark" for="purchase_order" style="
+            --grid-column: 2;
+            --grid-row: 7;">Purchase Order</label>
+        <select class="select-dark" id="purchase_order" style="
+            --grid-column: 2;
+            --grid-row: 8;"></select>
+
+        <!-- operator can either create a new set of inspections OR reopen an existing one -->
+        <!-- row -->
+        <button class="button-dark" id="data_entry_btn" type="button" style="
+            --grid-column: 1 / 4;
+            --grid-row: 9;">Open Excel Document</button>
+    </div>
+
+    <!-- import local js scripts -->
+    <script src="/static/js/qa1_data_portal.js"></script>
+
+</body>
