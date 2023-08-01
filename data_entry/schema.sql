@@ -10,13 +10,13 @@ drop table gauges;
 drop table parts;
 drop table inspection_records;
 drop table machines;
-drop table employees;
-drop table locations;
-drop table departments;
 drop table projects;
 drop table receiver_numbers;
 drop table purchase_orders;
 drop table job_numbers;
+drop table employees;
+drop table locations;
+drop table departments;
 drop table suppliers;
 drop table lot_numbers;
 drop table inspection_types;
@@ -166,13 +166,74 @@ create table suppliers
     constraint uc_suppliers unique (id)
 );
 
+create table departments
+(
+    id serial not null,
+    name varchar(32) not null unique,
+    description varchar(128) not null,
+
+    -- primary key and unique constraints
+    constraint pk_departments primary key (id),
+    constraint uc_departments unique (id)
+);
+
+create table locations
+(
+    id serial not null,
+    name varchar(32) not null unique,
+    description varchar(128) not null,
+
+    -- primary key and unique constraint
+    constraint pk_locations primary key (id),
+    constraint uc_locations unique (id),
+
+    -- many locations relate to one location type
+    location_type_id integer not null,
+    constraint fk_location_type foreign key (location_type_id) references location_types(id)
+);
+
+create table employees
+(
+    id integer not null,
+    first_name varchar(32) not null,
+    last_name varchar(32) not null,
+
+    -- primary key and unique constraints
+    constraint pk_employees primary key (id),
+    constraint uc_employees unique (id),
+
+    -- many employees relate to one department
+    department_id integer not null,
+    constraint fk_employee_department foreign key (department_id) references departments(id),
+
+    -- many employees relate to one location
+    location_id integer not null,
+    constraint fk_employee_location foreign key (location_id) references locations(id),
+
+    -- first and last name combination is unique
+    constraint uc_employee_name unique (first_name, last_name)
+);
+
 create table job_numbers
 (
     id serial not null,
     name varchar(32) not null unique,
+    production_rate integer not null,
     full_inspect_interval integer not null,
     released_qty integer not null,
     completed_qty integer not null,
+
+    -- many job numbers relate to one employee
+    employee_id integer not null,
+    constraint fk_employee_id foreign key (employee_id) references employees(id),
+
+    -- many job numbers relate to one material type
+    material_type_id integer not null,
+    constraint fk_material_type_ins foreign key (material_type_id) references material_types(id),
+
+    -- many job numbers relate to one location
+    location_id integer not null,
+    constraint fk_location_id foreign key (location_id) references locations(id),
 
     -- primary key and unique constraints
     constraint pk_job_numbers primary key (id),
@@ -225,54 +286,6 @@ create table projects
     constraint fk_project_type foreign key (project_type_id) references project_types(id)
 );
 
-create table departments
-(
-    id serial not null,
-    name varchar(32) not null unique,
-    description varchar(128) not null,
-
-    -- primary key and unique constraints
-    constraint pk_departments primary key (id),
-    constraint uc_departments unique (id)
-);
-
-create table locations
-(
-    id serial not null,
-    name varchar(32) not null unique,
-    description varchar(128) not null,
-
-    -- primary key and unique constraint
-    constraint pk_locations primary key (id),
-    constraint uc_locations unique (id),
-
-    -- many locations relate to one location type
-    location_type_id integer not null,
-    constraint fk_location_type foreign key (location_type_id) references location_types(id)
-);
-
-create table employees
-(
-    id integer not null,
-    first_name varchar(32) not null,
-    last_name varchar(32) not null,
-
-    -- primary key and unique constraints
-    constraint pk_employees primary key (id),
-    constraint uc_employees unique (id),
-
-    -- many employees relate to one department
-    department_id integer not null,
-    constraint fk_employee_department foreign key (department_id) references departments(id),
-
-    -- many employees relate to one location
-    location_id integer not null,
-    constraint fk_employee_location foreign key (location_id) references locations(id),
-
-    -- first and last name combination is unique
-    constraint uc_employee_name unique (first_name, last_name)
-);
-
 create table machines
 (
     id serial not null,
@@ -299,13 +312,13 @@ create table inspection_records
     constraint pk_inspection_records primary key (id),
     constraint uc_inspection_records unique (id),
 
-    -- many inspection reports relate to one material type
-    material_type_id integer not null,
-    constraint fk_material_type_ins foreign key (material_type_id) references material_types(id),
-
     -- many inspection reports can relate to one employee
     employee_id integer not null,
-    constraint fk_employee_ins foreign key (employee_id) references employees(id)
+    constraint fk_employee_ins foreign key (employee_id) references employees(id),
+
+    -- many inspections relate to one disposition type
+    disposition_id integer not null,
+    constraint fk_disposition_ins foreign key (disposition_id) references disposition_types(id)
 );
 
 create table parts
@@ -367,10 +380,6 @@ create table inspections
     -- many inspections relate to one inspection type
     inspection_type_id integer not null,
     constraint fk_inspection_type_id foreign key (inspection_type_id) references inspection_types(id),
-
-    -- many inspections relate to one disposition type
-    disposition_id integer not null,
-    constraint fk_disposition_ins foreign key (disposition_id) references disposition_types(id),
 
     -- primary key and unique constraints
     constraint pk_inspections primary key (id),

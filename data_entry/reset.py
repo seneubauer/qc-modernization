@@ -37,28 +37,28 @@ inspections_lot_numbers = base.classes.inspections_lot_numbers
 inspections_purchase_orders = base.classes.inspections_purchase_orders
 inspections_job_numbers = base.classes.inspections_job_numbers
 employee_projects = base.classes.employee_projects
-print_features = base.classes.print_features
 features = base.classes.features
+print_features = base.classes.print_features
 inspections = base.classes.inspections
 gauges = base.classes.gauges
 parts = base.classes.parts
 inspection_records = base.classes.inspection_records
 machines = base.classes.machines
-employees = base.classes.employees
-locations = base.classes.locations
-departments = base.classes.departments
 projects = base.classes.projects
 receiver_numbers = base.classes.receiver_numbers
 purchase_orders = base.classes.purchase_orders
 job_numbers = base.classes.job_numbers
+employees = base.classes.employees
+locations = base.classes.locations
+departments = base.classes.departments
 suppliers = base.classes.suppliers
 lot_numbers = base.classes.lot_numbers
-dimension_types = base.classes.dimension_types
+inspection_types = base.classes.inspection_types
 frequency_types = base.classes.frequency_types
 material_types = base.classes.material_types
 project_types = base.classes.project_types
 specification_types = base.classes.specification_types
-inspection_types = base.classes.inspection_types
+dimension_types = base.classes.dimension_types
 gauge_types = base.classes.gauge_types
 machine_types = base.classes.machine_types
 location_types = base.classes.location_types
@@ -69,45 +69,45 @@ operation_types = base.classes.operation_types
 session = Session(engine)
 
 # retrieve type data
-inspection_types_df = pd.read_csv(join("data", "inspection_types.csv"))
-frequency_types_df = pd.read_csv(join("data", "frequency_types.csv"))
-material_types_df = pd.read_csv(join("data", "material_types.csv"))
-project_types_df = pd.read_csv(join("data", "project_types.csv"))
-specification_types_df = pd.read_csv(join("data", "specification_types.csv"))
-dimension_types_df = pd.read_csv(join("data", "dimension_types.csv"))
-gauge_types_df = pd.read_csv(join("data", "gauge_types.csv"))
-machine_types_df = pd.read_csv(join("data", "machine_types.csv"))
-location_types_df = pd.read_csv(join("data", "location_types.csv"))
-disposition_types_df = pd.read_csv(join("data", "disposition_types.csv"))
 operation_types_df = pd.read_csv(join("data", "operation_types.csv"))
+disposition_types_df = pd.read_csv(join("data", "disposition_types.csv"))
+location_types_df = pd.read_csv(join("data", "location_types.csv"))
+machine_types_df = pd.read_csv(join("data", "machine_types.csv"))
+gauge_types_df = pd.read_csv(join("data", "gauge_types.csv"))
+dimension_types_df = pd.read_csv(join("data", "dimension_types.csv"))
+specification_types_df = pd.read_csv(join("data", "specification_types.csv"))
+project_types_df = pd.read_csv(join("data", "project_types.csv"))
+material_types_df = pd.read_csv(join("data", "material_types.csv"))
+frequency_types_df = pd.read_csv(join("data", "frequency_types.csv"))
+inspection_types_df = pd.read_csv(join("data", "inspection_types.csv"))
 
-# populate type data
-for i, r in inspection_types_df.iterrows():
-    session.add(inspection_types(
+# populate enumerations
+for i, r in operation_types_df.iterrows():
+    session.add(operation_types(
         id = r["id"],
         name = r["name"]))
 session.commit()
 
-for i, r in frequency_types_df.iterrows():
-    session.add(frequency_types(
+for i, r in disposition_types_df.iterrows():
+    session.add(disposition_types(
         id = r["id"],
         name = r["name"]))
 session.commit()
 
-for i, r in material_types_df.iterrows():
-    session.add(material_types(
+for i, r in location_types_df.iterrows():
+    session.add(location_types(
         id = r["id"],
         name = r["name"]))
 session.commit()
 
-for i, r in project_types_df.iterrows():
-    session.add(project_types(
+for i, r in machine_types_df.iterrows():
+    session.add(machine_types(
         id = r["id"],
         name = r["name"]))
 session.commit()
 
-for i, r in specification_types_df.iterrows():
-    session.add(specification_types(
+for i, r in gauge_types_df.iterrows():
+    session.add(gauge_types(
         id = r["id"],
         name = r["name"]))
 session.commit()
@@ -119,32 +119,32 @@ for i, r in dimension_types_df.iterrows():
         is_gdt = r["is_gdt"]))
 session.commit()
 
-for i, r in gauge_types_df.iterrows():
-    session.add(gauge_types(
+for i, r in specification_types_df.iterrows():
+    session.add(specification_types(
         id = r["id"],
         name = r["name"]))
 session.commit()
 
-for i, r in machine_types_df.iterrows():
-    session.add(machine_types(
+for i, r in project_types_df.iterrows():
+    session.add(project_types(
         id = r["id"],
         name = r["name"]))
 session.commit()
 
-for i, r in location_types_df.iterrows():
-    session.add(location_types(
+for i, r in material_types_df.iterrows():
+    session.add(material_types(
         id = r["id"],
         name = r["name"]))
 session.commit()
 
-for i, r in disposition_types_df.iterrows():
-    session.add(disposition_types(
+for i, r in frequency_types_df.iterrows():
+    session.add(frequency_types(
         id = r["id"],
         name = r["name"]))
 session.commit()
 
-for i, r in operation_types_df.iterrows():
-    session.add(operation_types(
+for i, r in inspection_types_df.iterrows():
+    session.add(inspection_types(
         id = r["id"],
         name = r["name"]))
 session.commit()
@@ -152,20 +152,20 @@ session.commit()
 # retrieve record data
 lot_numbers_df = pd.read_csv(join("data", "lot_numbers.csv"))
 suppliers_df = pd.read_csv(join("data", "suppliers.csv"))
-job_numbers_df = pd.read_csv(join("data", "job_numbers.csv"))
-purchase_orders_df = pd.read_csv(join("data", "purchase_orders.csv"))
-reciever_numbers_df = pd.read_csv(join("data", "receiver_numbers.csv"))
-projects_df = pd.read_csv(join("data", "projects.csv"))
 departments_df = pd.read_csv(join("data", "departments.csv"))
 locations_df = pd.read_csv(join("data", "locations.csv"))
 employees_df = pd.read_csv(join("data", "employees.csv"))
+job_numbers_df = pd.read_csv(join("data", "job_numbers.csv"))
+purchase_orders_df = pd.read_csv(join("data", "purchase_orders.csv"))
+receiver_numbers_df = pd.read_csv(join("data", "receiver_numbers.csv"))
+projects_df = pd.read_csv(join("data", "projects.csv"))
 machines_df = pd.read_csv(join("data", "machines.csv"))
 inspection_records_df = pd.read_csv(join("data", "inspection_records.csv"))
 parts_df = pd.read_csv(join("data", "parts.csv"))
 gauges_df = pd.read_csv(join("data", "gauges.csv"))
 inspections_df = pd.read_csv(join("data", "inspections.csv"))
+print_features_df = pd.read_csv(join("data", "print_features.csv"))
 features_df = pd.read_csv(join("data", "features.csv"))
-print_feature_df = pd.read_csv(join("data", "print_features.csv"))
 
 # populate record data
 for i, r in lot_numbers_df.iterrows():
@@ -176,39 +176,6 @@ session.commit()
 for i, r in suppliers_df.iterrows():
     session.add(suppliers(
         name = r["name"]))
-session.commit()
-
-for i, r in job_numbers_df.iterrows():
-    session.add(job_numbers(
-        name = r["name"],
-        full_inspect_interval = r["full_inspect_interval"],
-        released_qty = r["released_qty"],
-        completed_qty = r["completed_qty"]))
-session.commit()
-
-for i, r in purchase_orders_df.iterrows():
-    session.add(purchase_orders(
-        name = r["name"],
-        supplier_id = r["supplier_id"]))
-session.commit()
-
-for i, r in reciever_numbers_df.iterrows():
-    session.add(receiver_numbers(
-        name = r["name"],
-        received_qty = r["received_qty"],
-        purchase_order_id = r["purchase_order_id"]))
-session.commit()
-
-for i, r in projects_df.iterrows():
-    day_finished_val = r["day_finished"]
-    if type(day_finished_val) is not str:
-        day_finished_val = None
-    session.add(projects(
-        name = r["name"],
-        description = r["description"],
-        day_started = r["day_started"],
-        day_finished = day_finished_val,
-        project_type_id = r["project_type_id"]))
 session.commit()
 
 for i, r in departments_df.iterrows():
@@ -233,6 +200,43 @@ for i, r in employees_df.iterrows():
         location_id = r["location_id"]))
 session.commit()
 
+for i, r in job_numbers_df.iterrows():
+    session.add(job_numbers(
+        name = r["name"],
+        production_rate = r["production_rate"],
+        full_inspect_interval = r["full_inspect_interval"],
+        released_qty = r["released_qty"],
+        completed_qty = r["completed_qty"],
+        employee_id = r["employee_id"],
+        material_type_id = r["material_type_id"],
+        location_id = r["location_id"]))
+session.commit()
+
+for i, r in purchase_orders_df.iterrows():
+    session.add(purchase_orders(
+        name = r["name"],
+        supplier_id = r["supplier_id"]))
+session.commit()
+
+for i, r in receiver_numbers_df.iterrows():
+    session.add(receiver_numbers(
+        name = r["name"],
+        received_qty = r["received_qty"],
+        purchase_order_id = r["purchase_order_id"]))
+session.commit()
+
+for i, r in projects_df.iterrows():
+    day_finished_val = r["day_finished"]
+    if type(day_finished_val) is not str:
+        day_finished_val = None
+    session.add(projects(
+        name = r["name"],
+        description = r["description"],
+        day_started = r["day_started"],
+        day_finished = day_finished_val,
+        project_type_id = r["project_type_id"]))
+session.commit()
+
 for i, r in machines_df.iterrows():
     session.add(machines(
         name = r["name"],
@@ -241,19 +245,16 @@ for i, r in machines_df.iterrows():
 session.commit()
 
 for i, r in inspection_records_df.iterrows():
-    employee_id_val = r["employee_id"]
-    if isnan(employee_id_val):
-        employee_id_val = None
     session.add(inspection_records(
-        material_type_id = r["material_type_id"],
-        employee_id = employee_id_val))
+        employee_id = r["employee_id"],
+        disposition_id = r["disposition_id"]))
 session.commit()
 
 for i, r in parts_df.iterrows():
     session.add(parts(
         drawing = r["drawing"],
         revision = r["revision"],
-        item = r["item"],
+        item = r["item"]
         ))
 session.commit()
 
@@ -282,11 +283,10 @@ for i, r in inspections_df.iterrows():
         inspection_record_id = r["inspection_record_id"],
         part_id = r["part_id"],
         employee_id = r["employee_id"],
-        inspection_type_id = r["inspection_type_id"],
-        disposition_id = r["disposition_id"]))
+        inspection_type_id = r["inspection_type_id"]))
 session.commit()
 
-for i, r in print_feature_df.iterrows():
+for i, r in print_features_df.iterrows():
     session.add(print_features(
         name = r["name"],
         nominal = r["nominal"],
@@ -296,8 +296,8 @@ for i, r in print_feature_df.iterrows():
         specification_type_id = r["specification_type_id"],
         dimension_type_id = r["dimension_type_id"],
         frequency_type_id = r["frequency_type_id"],
-        operation_type_id = r["operation_type_id"],
-        gauge_type_id = r["gauge_type_id"]))
+        gauge_type_id = r["gauge_type_id"],
+        operation_type_id = r["operation_type_id"]))
 session.commit()
 
 for i, r in features_df.iterrows():
@@ -308,8 +308,8 @@ for i, r in features_df.iterrows():
 
     session.add(features(
         measured = measured_val,
-        print_feature_id = r["print_feature_id"],
         inspection_id = r["inspection_id"],
+        print_feature_id = r["print_feature_id"],
         gauge_id = r["gauge_id"]))
 session.commit()
 

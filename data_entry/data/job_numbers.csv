@@ -1,6 +1,6 @@
-name,full_inspect_interval,released_qty,completed_qty
-NK990,53,53,0
-NK1880,46,46,46
-NK4514,100,100,100
-NK5712,100,100,0
-NK8421,0,100,99
+name,production_rate,full_inspect_interval,released_qty,completed_qty,employee_id,material_type_id,location_id
+NK990,1,53,53,0,1114,0,3
+NK1880,1,46,46,46,2222,3,3
+NK4514,4,100,100,100,2222,2,5
+NK5712,8,100,100,0,1114,1,4
+NK8421,2,0,100,99,1114,1,4
