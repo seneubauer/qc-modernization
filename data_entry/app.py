@@ -5,12 +5,12 @@ from flask import Flask, render_template, request
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, and_, or_, func
+from sqlalchemy import create_engine, and_, or_
 
 # import dependencies for openpyxl
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font
-from openpyxl.utils import get_column_letter
+from openpyxl.formatting.rule import FormulaRule
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.workbook.protection import WorkbookProtection
 
@@ -20,6 +20,7 @@ import datetime
 from enum import Enum
 from inspect import stack
 from os.path import join, exists
+from os import startfile
 
 # import confidential information
 from sys import path
@@ -1086,6 +1087,53 @@ def qa1_data_portal_get_associations():
             "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
+@app.route("/qa1_data_portal/get_receiver_numbers/", methods = ["POST"])
+def qa1_data_portal_get_receiver_numbers():
+
+    # interpret posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    purchase_order = int(form_data["purchase_order"])
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # query the database
+        query = session.query(receiver_numbers.id, receiver_numbers.name)\
+            .join(purchase_orders, (purchase_orders.id == receiver_numbers.purchase_order_id))\
+            .filter(purchase_orders.id == purchase_order)\
+            .order_by(receiver_numbers.name.asc())\
+            .all()
+
+        # close the database session
+        session.close()
+
+        if len(query) > 0:
+            output_arr = []
+            for id, name in query:
+                output_arr.append({
+                    "id": id,
+                    "name": name
+                })
+            return {
+                "status": "ok",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "ok",
+                "response": None
+            }
+
+    except SQLAlchemyError as e:
+        return {
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+        }
+
 @app.route("/qa1_data_portal/get_inspection_record/", methods = ["POST"])
 def qa1_data_portal_get_inspection_record():
 
@@ -1114,7 +1162,17 @@ def qa1_data_portal_get_inspection_record():
         format_workbook(wb, data["response"])
 
         # save the changes under a unique name
-        wb.save(wb_address)
+        try:
+            wb.save(wb_address)
+            wb.close()
+        except PermissionError as e:
+            return {
+                "status": "alert",
+                "response": text_response(stack()[0][3], message_type.generic, err_msg = "Workbook is already in use.")
+            }
+
+        # open the edited file
+        startfile(wb_address)
 
         return {
             "status": "ok",
@@ -1504,6 +1562,16 @@ def format_workbook(wb:Workbook, data):
         shrink_to_fit = False,
         indent = 0
     )
+    fill_pass = PatternFill(
+        fill_type = "solid",
+        start_color = "FF20df20",
+        end_color = "FF20df20"
+    )
+    fill_fail = PatternFill(
+        fill_type = "solid",
+        start_color = "FFdf2020",
+        end_color = "FFdf2020"
+    )
     #endregion
 
     # assemble format object
@@ -1523,6 +1591,10 @@ def format_workbook(wb:Workbook, data):
         "alignment": {
             "data": alignment_data,
             "header": alignment_header
+        },
+        "pass_fail": {
+            "pass": fill_pass,
+            "fail": fill_fail
         },
         "number_format": {
             "text": "General",
@@ -1643,10 +1715,6 @@ def format_workbook(wb:Workbook, data):
     wb.security = WorkbookProtection(workbookPassword="quality", lockStructure=True)
     ws.protection.sheet = True
     ws.protection.enable()
-
-    # save changes
-    wb.save(filename = join(data_entry_loc, data["filename"]))
-    wb.close()
 
     return {
         "status": "ok",
@@ -2363,6 +2431,135 @@ def format_inspections_block_internal(ws, data, format_obj, data_validation_obj)
             # set data validation
             dv_gauges.add(ws.cell(17 + i, 8 + j * 2).coordinate)
 
+            # set conditional formatting
+            column = ws.cell(17 + i, 7 + j * 2).column_letter
+            usl_address = f"${column}${11}"
+            lsl_address = f"${column}${12}"
+            measure_address = f"{column}{17 + i}"
+            blnk_formula = f"=ISBLANK({measure_address})"
+            pass_formula = f"=AND({measure_address}<={usl_address},{measure_address}>={lsl_address})"
+            fail_formula = f"=OR({measure_address}>{usl_address},{measure_address}<{lsl_address})"
+            blnk_rule = FormulaRule(
+                formula = [blnk_formula],
+                fill = format_obj["fill"]["data"],
+                stopIfTrue = True
+            )
+            pass_rule = FormulaRule(
+                formula = [pass_formula],
+                fill = format_obj["pass_fail"]["pass"],
+                stopIfTrue = True
+            )
+            fail_rule = FormulaRule(
+                formula = [fail_formula],
+                fill = format_obj["pass_fail"]["fail"],
+                stopIfTrue = True
+            )
+            ws.conditional_formatting.add(
+                measure_address,
+                blnk_rule
+            )
+            ws.conditional_formatting.add(
+                measure_address,
+                pass_rule
+            )
+            ws.conditional_formatting.add(
+                measure_address,
+                fail_rule
+            )
+
+    row = 17 + len(data["inspections"])
+    for j in range(len(data["inspections"][0]["features"])):
+
+        # set data
+        ws.cell(row, 7 + j * 2).value = ""
+        ws.cell(row, 8 + j * 2).value = ""
+
+        # set format
+        ws.cell(row, 7 + j * 2).fill = format_obj["fill"]["data"]
+        ws.cell(row, 8 + j * 2).fill = format_obj["fill"]["data"]
+        ws.cell(row, 7 + j * 2).font = format_obj["font"]["data"]
+        ws.cell(row, 8 + j * 2).font = format_obj["font"]["data"]
+        ws.cell(row, 7 + j * 2).border = format_obj["border"]["data"]
+        ws.cell(row, 8 + j * 2).border = format_obj["border"]["data"]
+        ws.cell(row, 7 + j * 2).alignment = format_obj["alignment"]["data"]
+        ws.cell(row, 8 + j * 2).alignment = format_obj["alignment"]["data"]
+        ws.cell(row, 7 + j * 2).number_format = format_obj["number_format"]["number"](data["print"][j]["precision"])
+        ws.cell(row, 8 + j * 2).number_format = format_obj["number_format"]["text"]
+
+        # set editable state
+        ws.cell(row, 7 + j * 2).protection = is_editable
+        ws.cell(row, 8 + j * 2).protection = is_editable
+
+        # set data validation
+        dv_gauges.add(ws.cell(row, 8 + j * 2).coordinate)
+
+        # set conditional formatting
+        column = ws.cell(row, 7 + j * 2).column_letter
+        usl_address = f"${column}${11}"
+        lsl_address = f"${column}${12}"
+        measure_address = f"{column}{row}"
+        blnk_formula = f"=ISBLANK({measure_address})"
+        pass_formula = f"=AND({measure_address}<={usl_address},{measure_address}>={lsl_address})"
+        fail_formula = f"=OR({measure_address}>{usl_address},{measure_address}<{lsl_address})"
+        blnk_rule = FormulaRule(
+            formula = [blnk_formula],
+            fill = format_obj["fill"]["data"],
+            stopIfTrue = True
+        )
+        pass_rule = FormulaRule(
+            formula = [pass_formula],
+            fill = format_obj["pass_fail"]["pass"],
+            stopIfTrue = True
+        )
+        fail_rule = FormulaRule(
+            formula = [fail_formula],
+            fill = format_obj["pass_fail"]["fail"],
+            stopIfTrue = True
+        )
+        ws.conditional_formatting.add(
+            measure_address,
+            blnk_rule
+        )
+        ws.conditional_formatting.add(
+            measure_address,
+            pass_rule
+        )
+        ws.conditional_formatting.add(
+            measure_address,
+            fail_rule
+        )
+    ws.merge_cells(start_row = row, end_row = row, start_column = 2, end_column = 3)
+    ws.merge_cells(start_row = row, end_row = row, start_column = 4, end_column = 5)
+    ws.cell(row, 2).fill = format_obj["fill"]["data"]
+    ws.cell(row, 3).fill = format_obj["fill"]["data"]
+    ws.cell(row, 4).fill = format_obj["fill"]["data"]
+    ws.cell(row, 5).fill = format_obj["fill"]["data"]
+    ws.cell(row, 6).fill = format_obj["fill"]["data"]
+    ws.cell(row, 2).font = format_obj["font"]["data"]
+    ws.cell(row, 3).font = format_obj["font"]["data"]
+    ws.cell(row, 4).font = format_obj["font"]["data"]
+    ws.cell(row, 5).font = format_obj["font"]["data"]
+    ws.cell(row, 6).font = format_obj["font"]["data"]
+    ws.cell(row, 2).border = format_obj["border"]["data"]
+    ws.cell(row, 3).border = format_obj["border"]["data"]
+    ws.cell(row, 4).border = format_obj["border"]["data"]
+    ws.cell(row, 5).border = format_obj["border"]["data"]
+    ws.cell(row, 6).border = format_obj["border"]["data"]
+    ws.cell(row, 2).alignment = format_obj["alignment"]["data"]
+    ws.cell(row, 3).alignment = format_obj["alignment"]["data"]
+    ws.cell(row, 4).alignment = format_obj["alignment"]["data"]
+    ws.cell(row, 5).alignment = format_obj["alignment"]["data"]
+    ws.cell(row, 6).alignment = format_obj["alignment"]["data"]
+    ws.cell(row, 2).number_format = format_obj["number_format"]["text"]
+    ws.cell(row, 3).number_format = format_obj["number_format"]["text"]
+    ws.cell(row, 4).number_format = format_obj["number_format"]["datetime"]
+    ws.cell(row, 5).number_format = format_obj["number_format"]["datetime"]
+    ws.cell(row, 6).number_format = format_obj["number_format"]["number"](0)
+    ws.cell(row, 2).protection = is_editable
+    ws.cell(row, 3).protection = is_editable
+    ws.cell(row, 6).protection = is_editable
+    dv_employees.add(f"{ws.cell(row, 2).coordinate}:{ws.cell(row, 3).coordinate}")
+
     # merge
     ws.merge_cells(range_string = "B16:C16")
     ws.merge_cells(range_string = "D16:E16")
@@ -2512,6 +2709,135 @@ def format_inspections_block_freight(ws, data, format_obj, data_validation_obj):
 
             # set data validation
             dv_gauges.add(ws.cell(17 + i, 8 + j * 2).coordinate)
+
+            # set conditional formatting
+            column = ws.cell(17 + i, 7 + j * 2).column_letter
+            usl_address = f"${column}${11}"
+            lsl_address = f"${column}${12}"
+            measure_address = f"{column}{17 + i}"
+            blnk_formula = f"=ISBLANK({measure_address})"
+            pass_formula = f"=AND({measure_address}<={usl_address},{measure_address}>={lsl_address})"
+            fail_formula = f"=OR({measure_address}>{usl_address},{measure_address}<{lsl_address})"
+            blnk_rule = FormulaRule(
+                formula = [blnk_formula],
+                fill = format_obj["fill"]["data"],
+                stopIfTrue = True
+            )
+            pass_rule = FormulaRule(
+                formula = [pass_formula],
+                fill = format_obj["pass_fail"]["pass"],
+                stopIfTrue = True
+            )
+            fail_rule = FormulaRule(
+                formula = [fail_formula],
+                fill = format_obj["pass_fail"]["fail"],
+                stopIfTrue = True
+            )
+            ws.conditional_formatting.add(
+                measure_address,
+                blnk_rule
+            )
+            ws.conditional_formatting.add(
+                measure_address,
+                pass_rule
+            )
+            ws.conditional_formatting.add(
+                measure_address,
+                fail_rule
+            )
+
+    row = 17 + len(data["inspections"])
+    for j in range(len(data["inspections"][0]["features"])):
+
+        # set data
+        ws.cell(row, 7 + j * 2).value = ""
+        ws.cell(row, 8 + j * 2).value = ""
+
+        # set format
+        ws.cell(row, 7 + j * 2).fill = format_obj["fill"]["data"]
+        ws.cell(row, 8 + j * 2).fill = format_obj["fill"]["data"]
+        ws.cell(row, 7 + j * 2).font = format_obj["font"]["data"]
+        ws.cell(row, 8 + j * 2).font = format_obj["font"]["data"]
+        ws.cell(row, 7 + j * 2).border = format_obj["border"]["data"]
+        ws.cell(row, 8 + j * 2).border = format_obj["border"]["data"]
+        ws.cell(row, 7 + j * 2).alignment = format_obj["alignment"]["data"]
+        ws.cell(row, 8 + j * 2).alignment = format_obj["alignment"]["data"]
+        ws.cell(row, 7 + j * 2).number_format = format_obj["number_format"]["number"](data["print"][j]["precision"])
+        ws.cell(row, 8 + j * 2).number_format = format_obj["number_format"]["text"]
+
+        # set editable state
+        ws.cell(row, 7 + j * 2).protection = is_editable
+        ws.cell(row, 8 + j * 2).protection = is_editable
+
+        # set data validation
+        dv_gauges.add(ws.cell(row, 8 + j * 2).coordinate)
+
+        # set conditional formatting
+        column = ws.cell(row, 7 + j * 2).column_letter
+        usl_address = f"${column}${11}"
+        lsl_address = f"${column}${12}"
+        measure_address = f"{column}{row}"
+        blnk_formula = f"=ISBLANK({measure_address})"
+        pass_formula = f"=AND({measure_address}<={usl_address},{measure_address}>={lsl_address})"
+        fail_formula = f"=OR({measure_address}>{usl_address},{measure_address}<{lsl_address})"
+        blnk_rule = FormulaRule(
+            formula = [blnk_formula],
+            fill = format_obj["fill"]["data"],
+            stopIfTrue = True
+        )
+        pass_rule = FormulaRule(
+            formula = [pass_formula],
+            fill = format_obj["pass_fail"]["pass"],
+            stopIfTrue = True
+        )
+        fail_rule = FormulaRule(
+            formula = [fail_formula],
+            fill = format_obj["pass_fail"]["fail"],
+            stopIfTrue = True
+        )
+        ws.conditional_formatting.add(
+            measure_address,
+            blnk_rule
+        )
+        ws.conditional_formatting.add(
+            measure_address,
+            pass_rule
+        )
+        ws.conditional_formatting.add(
+            measure_address,
+            fail_rule
+        )
+    ws.merge_cells(start_row = row, end_row = row, start_column = 2, end_column = 3)
+    ws.merge_cells(start_row = row, end_row = row, start_column = 4, end_column = 5)
+    ws.cell(row, 2).fill = format_obj["fill"]["data"]
+    ws.cell(row, 3).fill = format_obj["fill"]["data"]
+    ws.cell(row, 4).fill = format_obj["fill"]["data"]
+    ws.cell(row, 5).fill = format_obj["fill"]["data"]
+    ws.cell(row, 6).fill = format_obj["fill"]["data"]
+    ws.cell(row, 2).font = format_obj["font"]["data"]
+    ws.cell(row, 3).font = format_obj["font"]["data"]
+    ws.cell(row, 4).font = format_obj["font"]["data"]
+    ws.cell(row, 5).font = format_obj["font"]["data"]
+    ws.cell(row, 6).font = format_obj["font"]["data"]
+    ws.cell(row, 2).border = format_obj["border"]["data"]
+    ws.cell(row, 3).border = format_obj["border"]["data"]
+    ws.cell(row, 4).border = format_obj["border"]["data"]
+    ws.cell(row, 5).border = format_obj["border"]["data"]
+    ws.cell(row, 6).border = format_obj["border"]["data"]
+    ws.cell(row, 2).alignment = format_obj["alignment"]["data"]
+    ws.cell(row, 3).alignment = format_obj["alignment"]["data"]
+    ws.cell(row, 4).alignment = format_obj["alignment"]["data"]
+    ws.cell(row, 5).alignment = format_obj["alignment"]["data"]
+    ws.cell(row, 6).alignment = format_obj["alignment"]["data"]
+    ws.cell(row, 2).number_format = format_obj["number_format"]["text"]
+    ws.cell(row, 3).number_format = format_obj["number_format"]["text"]
+    ws.cell(row, 4).number_format = format_obj["number_format"]["datetime"]
+    ws.cell(row, 5).number_format = format_obj["number_format"]["datetime"]
+    ws.cell(row, 6).number_format = format_obj["number_format"]["number"](0)
+    ws.cell(row, 2).protection = is_editable
+    ws.cell(row, 3).protection = is_editable
+    ws.cell(row, 6).protection = is_editable
+    dv_employees.add(f"{ws.cell(row, 2).coordinate}:{ws.cell(row, 3).coordinate}")
 
     # merge
     ws.merge_cells(range_string = "B16:C16")

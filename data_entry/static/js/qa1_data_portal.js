@@ -8,6 +8,7 @@ const input_job_number_filter = d3.select("#job_number_filter");
 const select_job_number = d3.select("#job_number");
 const input_purchase_order = d3.select("#purchase_order_filter");
 const select_purchase_order = d3.select("#purchase_order");
+const select_receiver_number = d3.select("#receiver_number");
 
 // initialize the page
 init();
@@ -24,6 +25,9 @@ async function init()
     // populate the associations
     await update_associations();
 
+    // populate the receiver numbers
+    await update_receiver_numbers();
+
     // assign input events
     input_part_id_filter.on("change", update_part_ids);
 
@@ -31,8 +35,12 @@ async function init()
     select_part_id.on("change", async () => {
         await update_part_revisions();
         await update_associations();
+        await update_receiver_numbers();
     });
-    select_part_revision.on("change", update_associations);
+    select_part_revision.on("change", async () => {
+        await update_associations();
+        await update_receiver_numbers();
+    });
 
     // assign button events
     button_data_entry.on("click", get_inspection_record_document);
@@ -187,6 +195,50 @@ async function update_associations()
             else {
                 select_purchase_order.attr("disabled", true);
                 select_purchase_order.selectAll("option")
+                    .data([{ id: -1, name: "n/a" }])
+                    .join("option")
+                    .attr("value", (x) => x.id)
+                    .text((x) => x.name);
+            }
+        }
+        else if (json.status == "log") {
+            console.log(json.response);
+        }
+        else if (json.status == "alert") {
+            alert(json.response);
+        }
+    });
+}
+
+// find associated receiver numbers
+async function update_receiver_numbers()
+{
+    await d3.json("/qa1_data_portal/get_receiver_numbers/", {
+        method: "POST",
+        body: JSON.stringify({
+            purchase_order: select_purchase_order.property("value")
+        }),
+        headers: {
+            "Content-type": "application/json; charset=UTF-8"
+        }
+    }).then((json) => {
+        if (json.status == "ok") {
+
+            // reset the dropdown contents
+            select_receiver_number.selectAll("option").remove();
+
+            // populate the dropdown
+            if (json.response != null) {
+                select_receiver_number.attr("disabled", null);
+                select_receiver_number.selectAll("option")
+                    .data(json.response)
+                    .join("option")
+                    .attr("value", (x) => x.id)
+                    .text((x) => x.name);
+            }
+            else {
+                select_receiver_number.attr("disabled", true);
+                select_receiver_number.selectAll("option")
                     .data([{ id: -1, name: "n/a" }])
                     .join("option")
                     .attr("value", (x) => x.id)
