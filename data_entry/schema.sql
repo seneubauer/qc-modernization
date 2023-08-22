@@ -415,6 +415,10 @@ create table print_features
     operation_type_id integer not null,
     constraint fk_operation_type_id foreign key (operation_type_id) references operation_types(id),
 
+    -- many print features relate to one part
+    part_id integer not null,
+    constraint fk_part_id foreign key (part_id) references parts(id),
+
     -- primary key and unique constraints
     constraint pk_schema_details primary key (id),
     constraint uc_schema_details unique (id)

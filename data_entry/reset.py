@@ -7,7 +7,6 @@ from sqlalchemy import create_engine, text
 import pandas as pd
 from os.path import join
 from math import isnan
-import datetime
 
 # register numpy
 import numpy as np
@@ -297,7 +296,8 @@ for i, r in print_features_df.iterrows():
         dimension_type_id = r["dimension_type_id"],
         frequency_type_id = r["frequency_type_id"],
         gauge_type_id = r["gauge_type_id"],
-        operation_type_id = r["operation_type_id"]))
+        operation_type_id = r["operation_type_id"],
+        part_id = r["part_id"]))
 session.commit()
 
 for i, r in features_df.iterrows():

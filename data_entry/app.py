@@ -7,12 +7,12 @@ from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, and_, or_
 
-# import dependencies for openpyxl
+# import dependencies for excel
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font
 from openpyxl.formatting.rule import FormulaRule
 from openpyxl.worksheet.datavalidation import DataValidation
-from openpyxl.workbook.protection import WorkbookProtection
+import xlwings as xw
 
 # import general dependencies
 import json
@@ -20,7 +20,7 @@ import datetime
 from enum import Enum
 from inspect import stack
 from os.path import join, exists
-from os import startfile
+from os import startfile, remove
 
 # import confidential information
 from sys import path
@@ -913,6 +913,54 @@ def qa1_data_portal_generate_document():
         "response": text_response(stack()[0][3], message_type.generic, err_msg = "workbook created")
     }
 
+@app.route("/qa1_data_portal/update_employees/", methods = ["POST"])
+def qa1_data_portal_update_employees():
+
+    # interpret posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    employee_id_filter = str(form_data["employee_id_filter"])
+
+    try:
+
+        # open the database connection
+        session = Session(engine)
+
+        # query the database
+        results = session.query(employees.id, employees.first_name, employees.last_name)\
+            .filter(or_(employees.first_name.ilike(f"%{employee_id_filter}%"), employees.last_name.ilike(f"%{employee_id_filter}%")))\
+            .order_by(employees.first_name.asc(), employees.last_name.asc())\
+            .all()
+
+        # close the database connection
+        session.close()
+
+        # return the results
+        if len(results) > 0:
+            output_arr = []
+            for id, first_name, last_name in results:
+                output_arr.append({
+                    "id": id,
+                    "name": f"{first_name} {last_name}"
+                })
+
+            return {
+                "status": "ok",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "log",
+                "response": None
+            }
+
+    except SQLAlchemyError as e:
+        return {
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+        }
+
 @app.route("/qa1_data_portal/update_part_ids/", methods = ["POST"])
 def qa1_data_portal_update_part_ids():
 
@@ -1019,35 +1067,56 @@ def qa1_data_portal_get_associations():
     # get the required parameters
     part_id = int(form_data["part_id"])
     part_revision = str(form_data["part_revision"])
+    use_existing_associations = bool(form_data["use_existing_associations"])
 
     try:
 
         # open the database connection
         session = Session(engine)
 
-        # get the item and drawing
-        item, drawing = session.query(parts.item, parts.drawing)\
-            .filter(parts.id == part_id).first()
+        if use_existing_associations:
 
-        # get the job numbers
-        job_numbers_query = session.query(job_numbers.id, job_numbers.name)\
-            .join(inspections_job_numbers, (inspections_job_numbers.job_number_id == job_numbers.id))\
-            .join(inspections, (inspections.id == inspections_job_numbers.inspection_id))\
-            .join(parts, (parts.id == inspections.part_id))\
-            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"%{drawing}%"), parts.revision.ilike(f"%{part_revision}%")))\
-            .order_by(job_numbers.name.asc())\
-            .distinct(job_numbers.name)\
-            .all()
+            # get the item and drawing
+            item, drawing = session.query(parts.item, parts.drawing)\
+                .filter(parts.id == part_id).first()
 
-        # get the purchase orders
-        purchase_orders_query = session.query(purchase_orders.id, purchase_orders.name)\
-            .join(inspections_purchase_orders, (inspections_purchase_orders.purchase_order_id == purchase_orders.id))\
-            .join(inspections, (inspections.id == inspections_purchase_orders.inspection_id))\
-            .join(parts, (parts.id == inspections.part_id))\
-            .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"%{drawing}%"), parts.revision.ilike(f"%{part_revision}%")))\
-            .order_by(purchase_orders.name.asc())\
-            .distinct(purchase_orders.name)\
-            .all()
+            # get the job numbers
+            job_numbers_query = session.query(job_numbers.id, job_numbers.name)\
+                .join(inspections_job_numbers, (inspections_job_numbers.job_number_id == job_numbers.id))\
+                .join(inspections, (inspections.id == inspections_job_numbers.inspection_id))\
+                .join(parts, (parts.id == inspections.part_id))\
+                .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"%{drawing}%"), parts.revision.ilike(f"%{part_revision}%")))\
+                .order_by(job_numbers.name.asc())\
+                .distinct(job_numbers.name)\
+                .all()
+
+            # get the purchase orders
+            purchase_orders_query = session.query(purchase_orders.id, purchase_orders.name)\
+                .join(inspections_purchase_orders, (inspections_purchase_orders.purchase_order_id == purchase_orders.id))\
+                .join(inspections, (inspections.id == inspections_purchase_orders.inspection_id))\
+                .join(parts, (parts.id == inspections.part_id))\
+                .filter(and_(parts.item.ilike(f"%{item}%"), parts.drawing.ilike(f"%{drawing}%"), parts.revision.ilike(f"%{part_revision}%")))\
+                .order_by(purchase_orders.name.asc())\
+                .distinct(purchase_orders.name)\
+                .all()
+
+        else:
+
+            # get the job numbers
+            job_numbers_query = session.query(job_numbers.id, job_numbers.name)\
+                .join(inspections_job_numbers, (inspections_job_numbers.job_number_id == job_numbers.id))\
+                .join(inspections, (inspections.id == inspections_job_numbers.inspection_id))\
+                .order_by(job_numbers.name.asc())\
+                .distinct(job_numbers.name)\
+                .all()
+
+            # get the purchase orders
+            purchase_orders_query = session.query(purchase_orders.id, purchase_orders.name)\
+                .join(inspections_purchase_orders, (inspections_purchase_orders.purchase_order_id == purchase_orders.id))\
+                .join(inspections, (inspections.id == inspections_purchase_orders.inspection_id))\
+                .order_by(purchase_orders.name.asc())\
+                .distinct(purchase_orders.name)\
+                .all()
 
         # close the database connection
         session.close()
@@ -1141,361 +1210,441 @@ def qa1_data_portal_get_inspection_record():
     form_data = json.loads(request.data)
 
     # get the required parameters
-    part_id = int(form_data["part_id"])
+    item_drawing_id = int(form_data["part_id"])
+    employee_id = int(form_data["employee_id"])
     part_revision = str(form_data["part_revision"])
-    job_number = int(form_data["job_number"])
-    purchase_order = int(form_data["purchase_order"])
+    job_number_id = int(form_data["job_number"])
+    purchase_order_id = int(form_data["purchase_order"])
+    receiver_number_id = int(form_data["receiver_number"])
 
-    # get the required data
-    data = retrieve_data(part_id, part_revision, job_number, purchase_order)
+    # get the part id
+    try:
+        # open the database session
+        session = Session(engine)
 
-    if data["status"] == "ok":
-
-        # create and format the workbook
-        wb_filename = data["response"]["filename"]
-        wb_address = join(data_entry_loc, wb_filename)
-
-        # load the blank template
-        wb = load_workbook(join(data_entry_loc, "_template.xlsm"), keep_vba = True)
-
-        # format
-        format_workbook(wb, data["response"])
-
-        # save the changes under a unique name
-        try:
-            wb.save(wb_address)
-            wb.close()
-        except PermissionError as e:
+        # get the item and drawing
+        item_drawing_query = session.query(parts.item, parts.drawing).filter(parts.id == item_drawing_id).first()
+        if item_drawing_query is None:
+            session.close()
             return {
                 "status": "alert",
-                "response": text_response(stack()[0][3], message_type.generic, err_msg = "Workbook is already in use.")
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts])
+            }
+        item, drawing = item_drawing_query
+
+        # get the part id
+        part_id_query = session.query(parts.id).filter(and_(parts.item == item, parts.drawing == drawing, parts.revision.ilike(part_revision))).first()
+        if part_id_query is None:
+            session.close()
+            return {
+                "status": "alert",
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts])
+            }
+        part_id = part_id_query[0]
+
+        # close the database engine
+        session.close()
+
+    except SQLAlchemyError as e:
+        session.close()
+        return {
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+        }
+
+    # query for the database records
+    exists_obj = check_for_records(part_id, job_number_id, purchase_order_id, receiver_number_id)
+    if exists_obj["status"] != "ok":
+        return exists_obj
+
+    # get the check quantity if required
+    if job_number_id > -1 and purchase_order_id == -1:
+        check_parameters = None
+        check_quantity = 0
+    elif job_number_id == -1 and purchase_order_id > -1:
+
+        # get the received quantity
+        try:
+
+            # open the database connection
+            session = Session(engine)
+
+            # query the database
+            received_query = session.query(receiver_numbers.received_qty).filter(receiver_numbers.id == receiver_number_id).first()
+            if received_query is None:
+                session.close()
+                return {
+                    "status": "alert",
+                    "response": text_response(stack()[0][3], message_type.records_not_found, tables = [receiver_numbers])
+                }
+            received_quantity = received_query[0]
+
+            # close the database session
+            session.close()
+
+        except SQLAlchemyError as e:
+            session.close()
+            return {
+                "status": "alert",
+                "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+            }
+        check_parameters = create_check_parameters(received_quantity)
+        check_quantity = check_parameters["sizes"]["total"]
+    else:
+        check_parameters = None
+        check_quantity = 0
+
+    # records already exist
+    if exists_obj["response"] == False:
+
+        # create the new records
+        if create_new_records(part_id, employee_id, job_number_id, purchase_order_id, check_quantity)["status"] != "ok":
+            return {
+                "status": "alert",
+                "response": text_response(stack()[0][3], message_type.generic, err_msg = "new records not created")
             }
 
-        # open the edited file
-        startfile(wb_address)
+    # get metadata
+    metadata_obj = get_metadata(part_id, job_number_id, purchase_order_id, receiver_number_id)
+    if metadata_obj["status"] != "ok":
+        return metadata_obj
+    metadata_obj = metadata_obj["response"]
 
+    # get print
+    print_obj = get_print(part_id)
+    if print_obj["status"] != "ok":
+        return print_obj
+    print_obj = print_obj["response"]
+
+    # get inspections
+    inspections_obj = get_inspections(part_id, job_number_id, purchase_order_id)
+    if inspections_obj["status"] != "ok":
+        return inspections_obj
+    inspections_obj = inspections_obj["response"]
+
+    # get the static objects
+    is_editable = Protection(False, False)
+    format_obj = create_formats()
+    validation_obj = get_data_validation()
+
+    # load the blank template
+    wb = load_workbook(join(data_entry_loc, "_template.xlsm"), keep_vba = True)
+    ws = wb.active
+    ws.title = metadata_obj["inspection_type"]
+
+    # add data validation to worksheet
+    ws.add_data_validation(validation_obj["employees"])
+    ws.add_data_validation(validation_obj["dispositions"])
+    ws.add_data_validation(validation_obj["material_types"])
+    ws.add_data_validation(validation_obj["locations"])
+    ws.add_data_validation(validation_obj["suppliers"])
+    ws.add_data_validation(validation_obj["gauges"])
+    ws.add_data_validation(validation_obj["integers"])
+    ws.add_data_validation(validation_obj["decimals"])
+
+    # format workbook
+    format_metadata(ws, is_editable, job_number_id, purchase_order_id, format_obj, validation_obj, metadata_obj)
+    format_print(ws, format_obj, print_obj)
+    format_inspections(ws, is_editable, job_number_id, purchase_order_id, format_obj, validation_obj, check_parameters, inspections_obj)
+
+    # create the workbook
+    wb_filename = f"{item}_{drawing}_{part_revision}_{part_id}.xlsm"
+    wb_address = join(data_entry_loc, wb_filename)
+
+    # enable sheet protection
+    ws.protection.sheet = True
+    ws.protection.enable()
+
+    # save the changes under a unique name
+    try:
+        wb.save(wb_address)
+        wb.close()
+    except PermissionError as e:
+        wb.close()
         return {
-            "status": "ok",
-            "response": None
+            "status": "alert",
+            "response": text_response(stack()[0][3], message_type.generic, err_msg = "Workbook is already in use.")
         }
-    else:
-        return data
 
-# recycled methods
+    # open the file
+    startfile(wb_address)
 
-def retrieve_data(part_id:int, part_revision:str, job_number:int, purchase_order:int):
+    # send completed flag
+    return {
+        "status": "ok",
+        "response": True
+    }
 
+@app.route("/qa1_data_portal/set_inspection_record/", methods = ["POST"])
+def qa1_data_portal_set_inspection_record():
+
+    # interpret posted data
+    form_data = json.loads(request.data)
+
+    # get the required parameters
+    item_drawing_id = int(form_data["part_id"])
+    part_revision = str(form_data["part_revision"])
+    job_number_id = int(form_data["job_number"])
+    purchase_order_id = int(form_data["purchase_order"])
+    receiver_number_id = int(form_data["receiver_number"])
+
+    # get the item and drawing
     try:
 
         # open the database connection
         session = Session(engine)
 
         # get the item and drawing
-        item, drawing = session.query(parts.item, parts.drawing)\
-            .filter(parts.id == part_id).first()
-
-        # print detail fields
-        print_detail_fields = [
-            print_features.id,
-            print_features.name,
-            print_features.nominal,
-            print_features.usl,
-            print_features.lsl,
-            print_features.precision,
-            specification_types.name,
-            dimension_types.name,
-            frequency_types.name,
-            operation_types.name,
-            gauge_types.name
-        ]
-
-        # construct the print details query
-        print_details_query = session.query(*print_detail_fields)\
-            .join(specification_types, (specification_types.id == print_features.specification_type_id))\
-            .join(dimension_types, (dimension_types.id == print_features.dimension_type_id))\
-            .join(frequency_types, (frequency_types.id == print_features.frequency_type_id))\
-            .join(operation_types, (operation_types.id == print_features.operation_type_id))\
-            .join(features, (features.print_feature_id == print_features.id))\
-            .join(gauges, (gauges.id == features.gauge_id))\
-            .join(gauge_types, (gauge_types.id == gauges.gauge_type_id))\
-            .join(inspections, (inspections.id == features.inspection_id))\
-            .join(parts, (parts.id == inspections.part_id))\
-            .filter(parts.id == part_id)\
-            .distinct(print_features.id, print_features.name)\
-            .order_by(print_features.id.asc())\
-            .all()
-
-        # construct the print details data object
-        print_details_list = None
-        if len(print_details_query) > 0:
-            print_details_list = []
-            for id, name, nominal, usl, lsl, precision, spec_type, dim_type, freq_type, op_type, gauge_type in print_details_query:
-                print_details_list.append({
-                    "id": id,
-                    "name": name,
-                    "nominal": nominal,
-                    "usl": usl,
-                    "lsl": lsl,
-                    "precision": precision,
-                    "specification_type": spec_type,
-                    "dimension_type": dim_type,
-                    "frequency_type": freq_type,
-                    "operation_type": op_type,
-                    "gauge_type": gauge_type
-                })
-        else:
+        part_query = session.query(parts.id, parts.item, parts.drawing).filter(parts.id == item_drawing_id).first()
+        if part_query is None:
             session.close()
             return {
-                "status": "log",
-                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [features, print_features, specification_types, dimension_types, frequency_types, operation_types, parts, inspections, gauges])
+                "status": "alert",
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts])
             }
-
-        # inspections fields
-        inspections_fields = [
-            inspections.id,
-            inspections.part_index,
-            inspections.datetime_measured,
-            employees.id,
-            employees.first_name,
-            employees.last_name
-        ]
-
-        # construct the inspections query
-        inspections_query = session.query(*inspections_fields)\
-            .join(employees, (employees.id == inspections.employee_id))\
-            .join(parts, (parts.id == inspections.part_id))\
-            .filter(parts.id == part_id)\
-            .filter(parts.revision.ilike(part_revision))
-
-        # association filter
-        metadata_obj = None
-        if job_number > -1:
-
-            # refine inspections query
-            inspections_query = inspections_query.join(inspections_job_numbers, (inspections_job_numbers.inspection_id == inspections.id))\
-                .join(job_numbers, (job_numbers.id == inspections_job_numbers.job_number_id))\
-                .filter(job_numbers.id == job_number).all()
-
-            # define metadata fields
-            metadata_fields = [
-                inspection_records.employee_id,
-                disposition_types.name,
-                job_numbers.employee_id,
-                job_numbers.full_inspect_interval,
-                job_numbers.released_qty,
-                job_numbers.completed_qty,
-                job_numbers.production_rate,
-                material_types.name,
-                locations.name,
-                job_numbers.name
-            ]
-
-            # construct & execute metadata query
-            metadata_query = session.query(*metadata_fields)\
-                .join(inspections, (inspections.inspection_record_id == inspection_records.id))\
-                .join(inspections_job_numbers, (inspections_job_numbers.inspection_id == inspections.id))\
-                .join(job_numbers, (job_numbers.id == inspections_job_numbers.job_number_id))\
-                .join(parts, (parts.id == inspections.part_id))\
-                .join(disposition_types, (disposition_types.id == inspection_records.disposition_id))\
-                .join(material_types, (material_types.id == job_numbers.material_type_id))\
-                .join(locations, (locations.id == job_numbers.location_id))\
-                .filter(inspections.part_id == part_id)\
-                .filter(parts.revision.ilike(part_revision))\
-                .filter(job_numbers.id == job_number)\
-                .first()
-
-            inspector_fname, inspector_lname = session.query(employees.first_name, employees.last_name)\
-                .filter(employees.id == metadata_query[0])\
-                .first()
-            operator_fname, operator_lname = session.query(employees.first_name, employees.last_name)\
-                .filter(employees.id == metadata_query[2])\
-                .first()
-
-            metadata_obj = {
-                "type": "internal",
-                "date": datetime.datetime.now().date(),
-                "inspector": f"{inspector_fname} {inspector_lname}",
-                "disposition": metadata_query[1],
-                "job_number": metadata_query[9],
-                "operator": f"{operator_fname} {operator_lname}",
-                "qc_full_inspect_interval": metadata_query[3],
-                "released_quantity": metadata_query[4],
-                "completed_quantity": metadata_query[5],
-                "production_rate": metadata_query[6],
-                "material_type": metadata_query[7],
-                "workcenter": metadata_query[8]
-            }
-
-        elif purchase_order > -1:
-            inspections_query = inspections_query.join(inspections_purchase_orders, (inspections_purchase_orders.inspection_id == inspections.id))\
-                .join(purchase_orders, (purchase_orders.id == inspections_purchase_orders.purchase_order_id))\
-                .filter(purchase_orders.id == purchase_order).all()
-
-            # define metadata fields
-            metadata_fields = [
-                inspection_records.employee_id,
-                disposition_types.name,
-                purchase_orders.name,
-                receiver_numbers.name,
-                suppliers.name,
-                receiver_numbers.received_qty
-            ]
-
-            # construct & execute metadata query
-            metadata_query = session.query(*metadata_fields)\
-                .join(inspections, (inspections.inspection_record_id == inspection_records.id))\
-                .join(inspections_purchase_orders, (inspections_purchase_orders.inspection_id == inspections.id))\
-                .join(purchase_orders, (purchase_orders.id == inspections_purchase_orders.purchase_order_id))\
-                .join(parts, (parts.id == inspections.part_id))\
-                .join(disposition_types, (disposition_types.id == inspection_records.disposition_id))\
-                .join(suppliers, (suppliers.id == purchase_orders.supplier_id))\
-                .join(receiver_numbers, (receiver_numbers.purchase_order_id == purchase_orders.id))\
-                .filter(inspections.part_id == part_id)\
-                .filter(parts.revision.ilike(part_revision))\
-                .filter(purchase_orders.id == purchase_order)\
-                .first()
-
-            inspector_fname, inspector_lname = session.query(employees.first_name, employees.last_name)\
-                .filter(employees.id == metadata_query[0])\
-                .first()
-
-            metadata_obj = {
-                "type": "freight",
-                "date": datetime.datetime.now().date(),
-                "inspector": f"{inspector_fname} {inspector_lname}",
-                "disposition": metadata_query[1],
-                "purchase_order": metadata_query[2],
-                "receiver_number": metadata_query[3],
-                "supplier": metadata_query[4],
-                "received_quantity": metadata_query[5]
-            }
-
-        # construct the inspections data object
-        inspections_list = None
-        if len(inspections_query) > 0:
-            inspections_list = []
-            for inspection_id, part_index, datetime_measured, employee_id, first_name, last_name in inspections_query:
-
-                # get the inspection features
-                features_query = session.query(features.measured, features.print_feature_id, gauges.name)\
-                    .join(gauges, (gauges.id == features.gauge_id))\
-                    .filter(features.inspection_id == inspection_id)\
-                    .all()
-
-                # get all the features
-                features_list = None
-                if len(features_query) > 0:
-                    features_list = []
-                    for measured, print_feature_id, gauge in features_query:
-                        features_list.append({
-                            "measured": measured,
-                            "print_feature_id": print_feature_id,
-                            "gauge": gauge
-                        })
-
-                inspections_list.append({
-                    "inspection_id": inspection_id,
-                    "part_index": part_index,
-                    "datetime_measured": datetime_measured,
-                    "employee_id": employee_id,
-                    "employee_name": f"{first_name} {last_name}",
-                    "features": features_list
-                })
-        else:
-            session.close()
-            return {
-                "status": "log",
-                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [inspections, employees, parts])
-            }
-
-        # list of employees
-        employees_query = session.query(employees.first_name, employees.last_name)\
-            .order_by(employees.last_name.asc(), employees.first_name.asc())\
-            .all()
-        employees_list = []
-        for first_name, last_name in employees_query:
-            employees_list.append(f"{first_name} {last_name}")
-        employees_str = '"' + ','.join(employees_list) + '"'
-
-        # list of dispositions
-        dispositions_query = session.query(disposition_types.id, disposition_types.name)\
-            .order_by(disposition_types.name.asc())\
-            .all()
-        dispositions_list = []
-        for id, name in dispositions_query:
-            dispositions_list.append(name)
-        dispositions_str = '"' + ','.join(dispositions_list) + '"'
-
-        # list of material types
-        material_types_query = session.query(material_types.id, material_types.name)\
-            .order_by(material_types.name.asc())\
-            .all()
-        material_types_list = []
-        for id, name in material_types_query:
-            material_types_list.append(name)
-        material_types_str = '"' + ','.join(material_types_list) + '"'
-
-        # list of work centers
-        locations_query = session.query(locations.id, locations.name)\
-            .order_by(locations.name.asc())\
-            .all()
-        locations_list = []
-        for id, name in locations_query:
-            locations_list.append(name)
-        locations_str = '"' + ','.join(locations_list) + '"'
-
-        # list of suppliers
-        suppliers_query = session.query(suppliers.id, suppliers.name)\
-            .order_by(suppliers.name.asc())\
-            .all()
-        suppliers_list = []
-        for id, name in suppliers_query:
-            suppliers_list.append(name)
-        suppliers_str = '"' + ','.join(suppliers_list) + '"'
-
-        # list of gauges
-        gauges_query = session.query(gauges.id, gauges.name)\
-            .order_by(gauges.name.asc())\
-            .all()
-        gauges_list = []
-        for id, name in gauges_query:
-            gauges_list.append(name)
-        gauges_str = '"' + ','.join(gauges_list) + '"'
+        part_id, item, drawing = part_query
 
         # close the database connection
         session.close()
 
-        # return the results
-        return {
-            "status": "ok",
-            "response": {
-                "data_validation": {
-                    "employees": employees_str,
-                    "dispositions": dispositions_str,
-                    "material_types": material_types_str,
-                    "locations": locations_str,
-                    "suppliers": suppliers_str,
-                    "gauges": gauges_str
-                },
-                "item": item,
-                "drawing": drawing,
-                "revision": part_revision.upper(),
-                "print": print_details_list,
-                "inspections": inspections_list,
-                "metadata": metadata_obj,
-                "filename": f"{item}, {drawing}, {part_revision.upper()}.xlsm"
-            }
-        }
-
     except SQLAlchemyError as e:
+        session.close()
         return {
             "status": "log",
             "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
         }
 
-def format_workbook(wb:Workbook, data):
+    # check if the workbook is open
+    wb_filename = f"{item}_{drawing}_{part_revision}_{part_id}.xlsm"
+    wb_address = join(data_entry_loc, wb_filename)
+    if exists(wb_address):
+        excel_doc = open(wb_address)
+    else:
+        return {
+            "status": "alert",
+            "response": text_response(stack()[0][3], message_type.generic, err_msg = "file not found")
+        }
 
-    #region define formatting objects
+    # workbook is currently open
+    if not excel_doc.closed:
+        wb = load_workbook(wb_address, read_only = True)
+        if job_number_id > -1 and purchase_order_id == -1:
+            set_contents_internal(wb.active, part_id, job_number_id)
+        elif job_number_id == -1 and purchase_order_id > -1:
+            print("")
+        else:
+            return {
+                "status": "alert",
+                "response": text_response(stack()[0][3], message_type.generic, err_msg = "invalid inputs; either job number or purchase order must be specified")
+            }
+        wb.close()
+        excel_doc.close()
+
+        # # close & delete the workbook
+        # if wb_filename in [x.name for x in xw.books]:
+        #     xw.Book(wb_address).close()
+        #     remove(wb_address)
+        #     if xw.books.count == 0:
+        #         xw.apps.active.quit()
+
+        # send the complete flag
+        return {
+            "status": "ok",
+            "response": True
+        }
+    else:
+        return {
+            "status": "alert",
+            "response": text_response(stack()[0][3], message_type.generic, err_msg = "excel document not found")
+        }
+
+#region methods
+
+def check_for_records(part_id:int, job_number_id:int, purchase_order_id:int, receiver_number_id:int):
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # construct query
+        if job_number_id > -1 and purchase_order_id == -1 and receiver_number_id == -1:
+            exists = session.query(inspections)\
+                .join(inspections_job_numbers, (inspections_job_numbers.inspection_id == inspections.id))\
+                .join(job_numbers, (job_numbers.id == inspections_job_numbers.job_number_id))\
+                .join(parts, (parts.id == inspections.part_id))\
+                .filter(job_numbers.id == job_number_id)\
+                .filter(parts.id == part_id)\
+                .first()
+            print_exists = session.query(print_features).filter(print_features.part_id == part_id).first()
+        elif job_number_id == -1 and purchase_order_id > -1 and receiver_number_id > -1:
+            exists = session.query(inspections)\
+                .join(inspections_purchase_orders, (inspections_purchase_orders.inspection_id == inspections.id))\
+                .join(purchase_orders, (purchase_orders.id == inspections_purchase_orders.purchase_order_id))\
+                .join(receiver_numbers, (receiver_numbers.purchase_order_id == purchase_orders.id))\
+                .join(parts, (parts.id == inspections.part_id))\
+                .filter(purchase_orders.id == purchase_order_id)\
+                .filter(receiver_numbers.id == receiver_number_id)\
+                .filter(parts.id == part_id)\
+                .first()
+            print_exists = session.query(print_features).filter(print_features.part_id == part_id).first()
+        else:
+            return {
+                "status": "alert",
+                "response": text_response(stack()[0][3], message_type.generic, err_msg = "invalid identifying components")
+            }
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if exists is None:
+            return {
+                "status": "ok",
+                "response": False
+            }
+        else:
+            if print_exists is None:
+                return {
+                    "status": "alert",
+                    "response": text_response(stack()[0][3], message_type.generic, err_msg = "print does not exist for this part")
+                }
+            else:
+                return {
+                    "status": "ok",
+                    "response": True
+                }
+
+    except SQLAlchemyError as e:
+        session.close()
+        return {
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+        }
+
+# --------------------------------------------------
+
+def create_new_records(part_id:int, employee_id:int, job_number_id:int, purchase_order_id:int, check_quantity:int) -> dict:
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # add inspection record to database
+        new_inspection_record = inspection_records(
+            employee_id = employee_id,
+            disposition_id = 2
+        )
+        session.add(new_inspection_record)
+        session.commit()
+
+        # add records
+        if job_number_id > -1 and purchase_order_id == -1:
+
+            # add single inspection
+            new_inspection = inspections(
+                part_index = 1,
+                datetime_measured = datetime.datetime.now(),
+                inspection_record_id = new_inspection_record.id,
+                part_id = part_id,
+                employee_id = employee_id,
+                inspection_type_id = 0
+            )
+            session.add(new_inspection)
+            session.commit()
+
+            # add association
+            new_association = inspections_job_numbers(
+                inspection_id = new_inspection.id,
+                job_number_id = job_number_id
+            )
+            session.add(new_association)
+            session.commit()
+
+            # create the features based on the print
+            print_features_query = session.query(print_features.id, gauge_types.id)\
+                .join(gauge_types, (gauge_types.id == print_features.gauge_type_id))\
+                .filter(print_features.part_id == part_id)\
+                .all()
+            for id, gauge_type_id in print_features_query:
+
+                # get a placeholder gauge id
+                gauge_id = session.query(gauges.id).filter(gauges.gauge_type_id == gauge_type_id).order_by(gauges.name.asc()).first()[0]
+
+                # add new feature to database
+                new_feature = features(
+                    measured = None,
+                    print_feature_id = id,
+                    inspection_id = new_inspection.id,
+                    gauge_id = gauge_id
+                )
+                session.add(new_feature)
+                session.commit()
+
+        elif job_number_id == -1 and purchase_order_id > -1:
+
+            # add check quantity of inspections
+            for i in range(check_quantity):
+
+                # add inspection
+                new_inspection = inspections(
+                    part_index = i,
+                    datetime_measured = datetime.datetime.now(),
+                    inspection_record_id = new_inspection_record.id,
+                    part_id = part_id,
+                    employee_id = employee_id,
+                    inspection_type_id = 1
+                )
+                session.add(new_inspection)
+                session.commit()
+
+                # add association
+                new_association = inspections_purchase_orders(
+                    inspection_id = new_inspection.id,
+                    purchase_order_id = purchase_order_id
+                )
+                session.add(new_association)
+                session.commit()
+
+                # create the features based on the print
+                print_features_query = session.query(print_features.id, gauge_types.id)\
+                    .join(gauge_types, (gauge_types.id == print_features.gauge_type_id))\
+                    .filter(print_features.part_id == part_id)\
+                    .all()
+
+                for id, gauge_type_id in print_features_query:
+
+                    # get a placeholder gauge id
+                    gauge_id = session.query(gauges.id).filter(gauges.gauge_type_id == gauge_type_id).order_by(gauges.name.asc()).first()[0]
+
+                    # add new feature to database
+                    new_feature = features(
+                        measured = None,
+                        print_feature_id = id,
+                        inspection_id = new_inspection.id,
+                        gauge_id = gauge_id
+                    )
+                    session.add(new_feature)
+                    session.commit()
+
+        # close the database session
+        session.close()
+
+        # return the all clear
+        return {
+            "status": "ok",
+            "response": True
+        }
+
+    except SQLAlchemyError as e:
+        session.close()
+        return {
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+        }
+
+def create_formats() -> dict:
     font_header = Font(
         name = "Calibri",
         size = 11,
@@ -1572,10 +1721,9 @@ def format_workbook(wb:Workbook, data):
         start_color = "FFdf2020",
         end_color = "FFdf2020"
     )
-    #endregion
 
-    # assemble format object
-    format_obj = {
+    # return the response
+    return {
         "fill": {
             "data": fill_data,
             "header": fill_header
@@ -1600,1329 +1748,19 @@ def format_workbook(wb:Workbook, data):
             "text": "General",
             "date": "yyyy-mm-dd",
             "datetime": "yyyy-mm-dd hh:mm",
-            "number": get_decimal_format
+            "number": create_decimal_format
         }
     }
 
-    #region create data validation rules
-    dv_employees = DataValidation(
-        type = "list",
-        showDropDown = False,
-        formula1 = data["data_validation"]["employees"],
-        allow_blank = True
-    )
-    dv_employees.error = "Your entry is not in the list."
-    dv_employees.errorTitle = "Invalid Entry"
-    dv_dispositions = DataValidation(
-        type = "list",
-        showDropDown = False,
-        formula1 = data["data_validation"]["dispositions"],
-        allow_blank = True
-    )
-    dv_dispositions.error = "Your entry is not in the list."
-    dv_dispositions.errorTitle = "Invalid Entry"
-    dv_material_types = DataValidation(
-        type = "list",
-        showDropDown = False,
-        formula1 = data["data_validation"]["material_types"],
-        allow_blank = True
-    )
-    dv_material_types.error = "Your entry is not in the list."
-    dv_material_types.errorTitle = "Invalid Entry"
-    dv_locations = DataValidation(
-        type = "list",
-        showDropDown = False,
-        formula1 = data["data_validation"]["locations"],
-        allow_blank = True
-    )
-    dv_locations.error = "Your entry is not in the list."
-    dv_locations.errorTitle = "Invalid Entry"
-    dv_suppliers = DataValidation(
-        type = "list",
-        showDropDown = False,
-        formula1 = data["data_validation"]["suppliers"],
-        allow_blank = True
-    )
-    dv_suppliers.error = "Your entry is not in the list."
-    dv_suppliers.errorTitle = "Invalid Entry"
-    dv_integer = DataValidation(
-        type = "whole",
-        operator = "greaterThanOrEqual",
-        formula1 = 0,
-        allow_blank = True
-    )
-    dv_integer.error = "Your entry must be a whole number."
-    dv_integer.errorTitle = "Invalid Entry"
-    dv_decimal = DataValidation(
-        type = "decimal",
-        allow_blank = True
-    )
-    dv_decimal.error = "Your entry must be a valid number."
-    dv_decimal.errorTitle = "Invalid Entry"
-    dv_gauges = DataValidation(
-        type = "list",
-        showDropDown = False,
-        formula1 = data["data_validation"]["gauges"],
-        allow_blank = True
-    )
-    dv_gauges.error = "Your entry is not in the list."
-    dv_gauges.errorTitle = "Invalid Entry"
-    #endregion
+def create_check_parameters(received_qty:int) -> dict:
 
-    # assemble data validation object
-    data_validation_obj = {
-        "employees": dv_employees,
-        "dispositions": dv_dispositions,
-        "locations": dv_locations,
-        "material_types": dv_material_types,
-        "suppliers": dv_suppliers,
-        "integer": dv_integer,
-        "decimal": dv_decimal,
-        "gauges": dv_gauges
-    }
-
-    # create the correctly named worksheet
-    ws = wb.active
-    ws.title = data["metadata"]["type"]
-
-    # add data validation attributes to the worksheet
-    ws.add_data_validation(dv_employees)
-    ws.add_data_validation(dv_dispositions)
-    ws.add_data_validation(dv_integer)
-    ws.add_data_validation(dv_locations)
-    ws.add_data_validation(dv_material_types)
-    ws.add_data_validation(dv_suppliers)
-    ws.add_data_validation(dv_decimal)
-    ws.add_data_validation(dv_gauges)
-
-    # apply formats
-    if data["metadata"]["type"] == "internal":
-        format_metadata_block_internal(ws, data, format_obj, data_validation_obj)
-        format_print_block(ws, data, format_obj)
-        format_inspections_block_internal(ws, data, format_obj, data_validation_obj)
-    elif data["metadata"]["type"] == "freight":
-        format_metadata_block_freight(ws, data, format_obj, data_validation_obj)
-        format_print_block(ws, data, format_obj)
-        format_inspections_block_freight(ws, data, format_obj, data_validation_obj)
-    else:
-        wb.close()
-        return {
-            "status": "alert",
-            "response": "A purchase order and receiver number or a job number must be selected."
-        }
-
-    # set protections
-    wb.security = WorkbookProtection(workbookPassword="quality", lockStructure=True)
-    ws.protection.sheet = True
-    ws.protection.enable()
-
-    return {
-        "status": "ok",
-        "response": None
-    }
-
-def format_metadata_block_internal(ws, data, format_obj, data_validation_obj):
-
-    # define editable attribute
-    is_editable = Protection(False, False)
-
-    # extract data validation attributes
-    dv_employees = data_validation_obj["employees"]
-    dv_dispositions = data_validation_obj["dispositions"]
-    dv_locations = data_validation_obj["locations"]
-    dv_material_types = data_validation_obj["material_types"]
-    dv_integer = data_validation_obj["integer"]
-
-    #region merge cells
-    ws.merge_cells(range_string = "B4:C4")
-    ws.merge_cells(range_string = "B5:C5")
-    ws.merge_cells(range_string = "B6:C6")
-    ws.merge_cells(range_string = "D4:E4")
-    ws.merge_cells(range_string = "D5:E5")
-    ws.merge_cells(range_string = "D6:E6")
-    ws.merge_cells(range_string = "G4:H4")
-    ws.merge_cells(range_string = "G5:H5")
-    ws.merge_cells(range_string = "G6:H6")
-    ws.merge_cells(range_string = "I4:J4")
-    ws.merge_cells(range_string = "I5:J5")
-    ws.merge_cells(range_string = "I6:J6")
-    ws.merge_cells(range_string = "L4:M4")
-    ws.merge_cells(range_string = "L5:M5")
-    ws.merge_cells(range_string = "N4:O4")
-    ws.merge_cells(range_string = "N5:O5")
-    ws.merge_cells(range_string = "Q4:R4")
-    ws.merge_cells(range_string = "Q5:R5")
-    ws.merge_cells(range_string = "Q6:R6")
-    ws.merge_cells(range_string = "S4:T4")
-    ws.merge_cells(range_string = "S5:T5")
-    ws.merge_cells(range_string = "S6:T6")
-    ws.merge_cells(range_string = "V4:W4")
-    ws.merge_cells(range_string = "V5:W5")
-    ws.merge_cells(range_string = "V6:W6")
-    ws.merge_cells(range_string = "X4:Y4")
-    ws.merge_cells(range_string = "X5:Y5")
-    ws.merge_cells(range_string = "X6:Y6")
-    #endregion
-
-    #region set the data
-    ws["D4"].value = data["item"]
-    ws["D5"].value = data["drawing"]
-    ws["D6"].value = data["revision"]
-    ws["I4"].value = data["metadata"]["date"]
-    ws["I5"].value = data["metadata"]["inspector"]
-    ws["I6"].value = data["metadata"]["disposition"]
-    ws["N4"].value = data["metadata"]["job_number"]
-    ws["N5"].value = data["metadata"]["operator"]
-    ws["S4"].value = data["metadata"]["qc_full_inspect_interval"]
-    ws["S5"].value = data["metadata"]["released_quantity"]
-    ws["S6"].value = data["metadata"]["completed_quantity"]
-    ws["X4"].value = data["metadata"]["material_type"]
-    ws["X5"].value = data["metadata"]["workcenter"]
-    ws["X6"].value = data["metadata"]["production_rate"]
-    #endregion
-
-    #region set the headers
-    ws["B4"].value = "Item Number"
-    ws["B5"].value = "Drawing Number"
-    ws["B6"].value = "Drawing Revision"
-    ws["G4"].value = "Date"
-    ws["G5"].value = "Inspector"
-    ws["G6"].value = "Disposition"
-    ws["L4"].value = "Job Number"
-    ws["L5"].value = "Operator"
-    ws["Q4"].value = "QC Full Inspect Interval"
-    ws["Q5"].value = "Released Quantity"
-    ws["Q6"].value = "Completed Quantity"
-    ws["V4"].value = "Material Type"
-    ws["V5"].value = "Work Center"
-    ws["V6"].value = "Parts / Hour"
-    #endregion
-
-    #region format the data
-    ws["D4"].fill = format_obj["fill"]["data"]
-    ws["E4"].fill = format_obj["fill"]["data"]
-    ws["D5"].fill = format_obj["fill"]["data"]
-    ws["E5"].fill = format_obj["fill"]["data"]
-    ws["D6"].fill = format_obj["fill"]["data"]
-    ws["E6"].fill = format_obj["fill"]["data"]
-    ws["I4"].fill = format_obj["fill"]["data"]
-    ws["J4"].fill = format_obj["fill"]["data"]
-    ws["I5"].fill = format_obj["fill"]["data"]
-    ws["J5"].fill = format_obj["fill"]["data"]
-    ws["I6"].fill = format_obj["fill"]["data"]
-    ws["J6"].fill = format_obj["fill"]["data"]
-    ws["N4"].fill = format_obj["fill"]["data"]
-    ws["O4"].fill = format_obj["fill"]["data"]
-    ws["N5"].fill = format_obj["fill"]["data"]
-    ws["O5"].fill = format_obj["fill"]["data"]
-    ws["S4"].fill = format_obj["fill"]["data"]
-    ws["T4"].fill = format_obj["fill"]["data"]
-    ws["S5"].fill = format_obj["fill"]["data"]
-    ws["T5"].fill = format_obj["fill"]["data"]
-    ws["S6"].fill = format_obj["fill"]["data"]
-    ws["T6"].fill = format_obj["fill"]["data"]
-    ws["X4"].fill = format_obj["fill"]["data"]
-    ws["Y4"].fill = format_obj["fill"]["data"]
-    ws["X5"].fill = format_obj["fill"]["data"]
-    ws["Y5"].fill = format_obj["fill"]["data"]
-    ws["X6"].fill = format_obj["fill"]["data"]
-    ws["Y6"].fill = format_obj["fill"]["data"]
-    ws["D4"].font = format_obj["font"]["data"]
-    ws["E4"].font = format_obj["font"]["data"]
-    ws["D5"].font = format_obj["font"]["data"]
-    ws["E5"].font = format_obj["font"]["data"]
-    ws["D6"].font = format_obj["font"]["data"]
-    ws["E6"].font = format_obj["font"]["data"]
-    ws["I4"].font = format_obj["font"]["data"]
-    ws["J4"].font = format_obj["font"]["data"]
-    ws["I5"].font = format_obj["font"]["data"]
-    ws["J5"].font = format_obj["font"]["data"]
-    ws["I6"].font = format_obj["font"]["data"]
-    ws["J6"].font = format_obj["font"]["data"]
-    ws["N4"].font = format_obj["font"]["data"]
-    ws["O4"].font = format_obj["font"]["data"]
-    ws["N5"].font = format_obj["font"]["data"]
-    ws["O5"].font = format_obj["font"]["data"]
-    ws["S4"].font = format_obj["font"]["data"]
-    ws["T4"].font = format_obj["font"]["data"]
-    ws["S5"].font = format_obj["font"]["data"]
-    ws["T5"].font = format_obj["font"]["data"]
-    ws["S6"].font = format_obj["font"]["data"]
-    ws["T6"].font = format_obj["font"]["data"]
-    ws["X4"].font = format_obj["font"]["data"]
-    ws["Y4"].font = format_obj["font"]["data"]
-    ws["X5"].font = format_obj["font"]["data"]
-    ws["Y5"].font = format_obj["font"]["data"]
-    ws["X6"].font = format_obj["font"]["data"]
-    ws["Y6"].font = format_obj["font"]["data"]
-    ws["D4"].border = format_obj["border"]["data"]
-    ws["E4"].border = format_obj["border"]["data"]
-    ws["D5"].border = format_obj["border"]["data"]
-    ws["E5"].border = format_obj["border"]["data"]
-    ws["D6"].border = format_obj["border"]["data"]
-    ws["E6"].border = format_obj["border"]["data"]
-    ws["I4"].border = format_obj["border"]["data"]
-    ws["J4"].border = format_obj["border"]["data"]
-    ws["I5"].border = format_obj["border"]["data"]
-    ws["J5"].border = format_obj["border"]["data"]
-    ws["I6"].border = format_obj["border"]["data"]
-    ws["J6"].border = format_obj["border"]["data"]
-    ws["N4"].border = format_obj["border"]["data"]
-    ws["O4"].border = format_obj["border"]["data"]
-    ws["N5"].border = format_obj["border"]["data"]
-    ws["O5"].border = format_obj["border"]["data"]
-    ws["S4"].border = format_obj["border"]["data"]
-    ws["T4"].border = format_obj["border"]["data"]
-    ws["S5"].border = format_obj["border"]["data"]
-    ws["T5"].border = format_obj["border"]["data"]
-    ws["S6"].border = format_obj["border"]["data"]
-    ws["T6"].border = format_obj["border"]["data"]
-    ws["X4"].border = format_obj["border"]["data"]
-    ws["Y4"].border = format_obj["border"]["data"]
-    ws["X5"].border = format_obj["border"]["data"]
-    ws["Y5"].border = format_obj["border"]["data"]
-    ws["X6"].border = format_obj["border"]["data"]
-    ws["Y6"].border = format_obj["border"]["data"]
-    ws["D4"].alignment = format_obj["alignment"]["data"]
-    ws["E4"].alignment = format_obj["alignment"]["data"]
-    ws["D5"].alignment = format_obj["alignment"]["data"]
-    ws["E5"].alignment = format_obj["alignment"]["data"]
-    ws["D6"].alignment = format_obj["alignment"]["data"]
-    ws["E6"].alignment = format_obj["alignment"]["data"]
-    ws["I4"].alignment = format_obj["alignment"]["data"]
-    ws["J4"].alignment = format_obj["alignment"]["data"]
-    ws["I5"].alignment = format_obj["alignment"]["data"]
-    ws["J5"].alignment = format_obj["alignment"]["data"]
-    ws["I6"].alignment = format_obj["alignment"]["data"]
-    ws["J6"].alignment = format_obj["alignment"]["data"]
-    ws["N4"].alignment = format_obj["alignment"]["data"]
-    ws["O4"].alignment = format_obj["alignment"]["data"]
-    ws["N5"].alignment = format_obj["alignment"]["data"]
-    ws["O5"].alignment = format_obj["alignment"]["data"]
-    ws["S4"].alignment = format_obj["alignment"]["data"]
-    ws["T4"].alignment = format_obj["alignment"]["data"]
-    ws["S5"].alignment = format_obj["alignment"]["data"]
-    ws["T5"].alignment = format_obj["alignment"]["data"]
-    ws["S6"].alignment = format_obj["alignment"]["data"]
-    ws["T6"].alignment = format_obj["alignment"]["data"]
-    ws["X4"].alignment = format_obj["alignment"]["data"]
-    ws["Y4"].alignment = format_obj["alignment"]["data"]
-    ws["X5"].alignment = format_obj["alignment"]["data"]
-    ws["Y5"].alignment = format_obj["alignment"]["data"]
-    ws["X6"].alignment = format_obj["alignment"]["data"]
-    ws["Y6"].alignment = format_obj["alignment"]["data"]
-    ws["N4"].number_format = format_obj["number_format"]["text"]
-    ws["O4"].number_format = format_obj["number_format"]["text"]
-    ws["N5"].number_format = format_obj["number_format"]["text"]
-    ws["O5"].number_format = format_obj["number_format"]["text"]
-    ws["S4"].number_format = format_obj["number_format"]["number"](0)
-    ws["T4"].number_format = format_obj["number_format"]["number"](0)
-    ws["S5"].number_format = format_obj["number_format"]["number"](0)
-    ws["T5"].number_format = format_obj["number_format"]["number"](0)
-    ws["S6"].number_format = format_obj["number_format"]["number"](0)
-    ws["T6"].number_format = format_obj["number_format"]["number"](0)
-    ws["X4"].number_format = format_obj["number_format"]["text"]
-    ws["Y4"].number_format = format_obj["number_format"]["text"]
-    ws["X5"].number_format = format_obj["number_format"]["text"]
-    ws["Y5"].number_format = format_obj["number_format"]["text"]
-    ws["X6"].number_format = format_obj["number_format"]["number"](2)
-    ws["Y6"].number_format = format_obj["number_format"]["number"](2)
-    #endregion
-
-    #region format the headers
-    ws["B4"].fill = format_obj["fill"]["header"]
-    ws["C4"].fill = format_obj["fill"]["header"]
-    ws["B5"].fill = format_obj["fill"]["header"]
-    ws["C5"].fill = format_obj["fill"]["header"]
-    ws["B6"].fill = format_obj["fill"]["header"]
-    ws["C6"].fill = format_obj["fill"]["header"]
-    ws["G4"].fill = format_obj["fill"]["header"]
-    ws["H4"].fill = format_obj["fill"]["header"]
-    ws["G5"].fill = format_obj["fill"]["header"]
-    ws["H5"].fill = format_obj["fill"]["header"]
-    ws["G6"].fill = format_obj["fill"]["header"]
-    ws["H6"].fill = format_obj["fill"]["header"]
-    ws["L4"].fill = format_obj["fill"]["header"]
-    ws["M4"].fill = format_obj["fill"]["header"]
-    ws["L5"].fill = format_obj["fill"]["header"]
-    ws["M5"].fill = format_obj["fill"]["header"]
-    ws["Q4"].fill = format_obj["fill"]["header"]
-    ws["R4"].fill = format_obj["fill"]["header"]
-    ws["Q5"].fill = format_obj["fill"]["header"]
-    ws["R5"].fill = format_obj["fill"]["header"]
-    ws["Q6"].fill = format_obj["fill"]["header"]
-    ws["R6"].fill = format_obj["fill"]["header"]
-    ws["V4"].fill = format_obj["fill"]["header"]
-    ws["W4"].fill = format_obj["fill"]["header"]
-    ws["V5"].fill = format_obj["fill"]["header"]
-    ws["W5"].fill = format_obj["fill"]["header"]
-    ws["V6"].fill = format_obj["fill"]["header"]
-    ws["W6"].fill = format_obj["fill"]["header"]
-    ws["B4"].font = format_obj["font"]["header"]
-    ws["C4"].font = format_obj["font"]["header"]
-    ws["B5"].font = format_obj["font"]["header"]
-    ws["C5"].font = format_obj["font"]["header"]
-    ws["B6"].font = format_obj["font"]["header"]
-    ws["C6"].font = format_obj["font"]["header"]
-    ws["G4"].font = format_obj["font"]["header"]
-    ws["H4"].font = format_obj["font"]["header"]
-    ws["G5"].font = format_obj["font"]["header"]
-    ws["H5"].font = format_obj["font"]["header"]
-    ws["G6"].font = format_obj["font"]["header"]
-    ws["H6"].font = format_obj["font"]["header"]
-    ws["L4"].font = format_obj["font"]["header"]
-    ws["M4"].font = format_obj["font"]["header"]
-    ws["L5"].font = format_obj["font"]["header"]
-    ws["M5"].font = format_obj["font"]["header"]
-    ws["Q4"].font = format_obj["font"]["header"]
-    ws["R4"].font = format_obj["font"]["header"]
-    ws["Q5"].font = format_obj["font"]["header"]
-    ws["R5"].font = format_obj["font"]["header"]
-    ws["Q6"].font = format_obj["font"]["header"]
-    ws["R6"].font = format_obj["font"]["header"]
-    ws["V4"].font = format_obj["font"]["header"]
-    ws["W4"].font = format_obj["font"]["header"]
-    ws["V5"].font = format_obj["font"]["header"]
-    ws["W5"].font = format_obj["font"]["header"]
-    ws["V6"].font = format_obj["font"]["header"]
-    ws["W6"].font = format_obj["font"]["header"]
-    ws["B4"].border = format_obj["border"]["header"]
-    ws["C4"].border = format_obj["border"]["header"]
-    ws["B5"].border = format_obj["border"]["header"]
-    ws["C5"].border = format_obj["border"]["header"]
-    ws["B6"].border = format_obj["border"]["header"]
-    ws["C6"].border = format_obj["border"]["header"]
-    ws["G4"].border = format_obj["border"]["header"]
-    ws["H4"].border = format_obj["border"]["header"]
-    ws["G5"].border = format_obj["border"]["header"]
-    ws["H5"].border = format_obj["border"]["header"]
-    ws["G6"].border = format_obj["border"]["header"]
-    ws["H6"].border = format_obj["border"]["header"]
-    ws["L4"].border = format_obj["border"]["header"]
-    ws["M4"].border = format_obj["border"]["header"]
-    ws["L5"].border = format_obj["border"]["header"]
-    ws["M5"].border = format_obj["border"]["header"]
-    ws["Q4"].border = format_obj["border"]["header"]
-    ws["R4"].border = format_obj["border"]["header"]
-    ws["Q5"].border = format_obj["border"]["header"]
-    ws["R5"].border = format_obj["border"]["header"]
-    ws["Q6"].border = format_obj["border"]["header"]
-    ws["R6"].border = format_obj["border"]["header"]
-    ws["V4"].border = format_obj["border"]["header"]
-    ws["W4"].border = format_obj["border"]["header"]
-    ws["V5"].border = format_obj["border"]["header"]
-    ws["W5"].border = format_obj["border"]["header"]
-    ws["V6"].border = format_obj["border"]["header"]
-    ws["W6"].border = format_obj["border"]["header"]
-    ws["B4"].alignment = format_obj["alignment"]["header"]
-    ws["C4"].alignment = format_obj["alignment"]["header"]
-    ws["B5"].alignment = format_obj["alignment"]["header"]
-    ws["C5"].alignment = format_obj["alignment"]["header"]
-    ws["B6"].alignment = format_obj["alignment"]["header"]
-    ws["C6"].alignment = format_obj["alignment"]["header"]
-    ws["G4"].alignment = format_obj["alignment"]["header"]
-    ws["H4"].alignment = format_obj["alignment"]["header"]
-    ws["G5"].alignment = format_obj["alignment"]["header"]
-    ws["H5"].alignment = format_obj["alignment"]["header"]
-    ws["G6"].alignment = format_obj["alignment"]["header"]
-    ws["H6"].alignment = format_obj["alignment"]["header"]
-    ws["L4"].alignment = format_obj["alignment"]["header"]
-    ws["M4"].alignment = format_obj["alignment"]["header"]
-    ws["L5"].alignment = format_obj["alignment"]["header"]
-    ws["M5"].alignment = format_obj["alignment"]["header"]
-    ws["Q4"].alignment = format_obj["alignment"]["header"]
-    ws["R4"].alignment = format_obj["alignment"]["header"]
-    ws["Q5"].alignment = format_obj["alignment"]["header"]
-    ws["R5"].alignment = format_obj["alignment"]["header"]
-    ws["Q6"].alignment = format_obj["alignment"]["header"]
-    ws["R6"].alignment = format_obj["alignment"]["header"]
-    ws["V4"].alignment = format_obj["alignment"]["header"]
-    ws["W4"].alignment = format_obj["alignment"]["header"]
-    ws["V5"].alignment = format_obj["alignment"]["header"]
-    ws["W5"].alignment = format_obj["alignment"]["header"]
-    ws["V6"].alignment = format_obj["alignment"]["header"]
-    ws["W6"].alignment = format_obj["alignment"]["header"]
-    #endregion
-
-    #region set editable states
-    ws["I5"].protection = is_editable
-    ws["I6"].protection = is_editable
-    ws["N5"].protection = is_editable
-    ws["S4"].protection = is_editable
-    ws["S5"].protection = is_editable
-    ws["S6"].protection = is_editable
-    ws["X4"].protection = is_editable
-    ws["X5"].protection = is_editable
-    ws["X6"].protection = is_editable
-    #endregion
-
-    #region apply data validation
-    dv_employees.add("I5:J5")
-    dv_dispositions.add("I6:I6")
-    dv_employees.add("N5:O5")
-    dv_integer.add("S4:T6")
-    dv_integer.add("X6:Y6")
-    dv_material_types.add("X4:Y4")
-    dv_locations.add("X5:Y5")
-    #endregion
-
-def format_metadata_block_freight(ws, data, format_obj, data_validation_obj):
-
-    # define editable attribute
-    is_editable = Protection(False, False)
-
-    # extract data validation attributes
-    dv_employees = data_validation_obj["employees"]
-    dv_dispositions = data_validation_obj["dispositions"]
-    dv_suppliers = data_validation_obj["suppliers"]
-    dv_integer = data_validation_obj["integer"]
-
-    #region merge cells
-    ws.merge_cells(range_string = "B4:C4")
-    ws.merge_cells(range_string = "B5:C5")
-    ws.merge_cells(range_string = "B6:C6")
-    ws.merge_cells(range_string = "D4:E4")
-    ws.merge_cells(range_string = "D5:E5")
-    ws.merge_cells(range_string = "D6:E6")
-    ws.merge_cells(range_string = "G4:H4")
-    ws.merge_cells(range_string = "G5:H5")
-    ws.merge_cells(range_string = "G6:H6")
-    ws.merge_cells(range_string = "I4:J4")
-    ws.merge_cells(range_string = "I5:J5")
-    ws.merge_cells(range_string = "I6:J6")
-    ws.merge_cells(range_string = "L4:M4")
-    ws.merge_cells(range_string = "L5:M5")
-    ws.merge_cells(range_string = "L6:M6")
-    ws.merge_cells(range_string = "N4:O4")
-    ws.merge_cells(range_string = "N5:O5")
-    ws.merge_cells(range_string = "N6:O6")
-    ws.merge_cells(range_string = "Q4:R4")
-    ws.merge_cells(range_string = "S4:T4")
-    #endregion
-
-    #region set the data
-    ws["D4"].value = data["item"]
-    ws["D5"].value = data["drawing"]
-    ws["D6"].value = data["revision"]
-    ws["I4"].value = data["metadata"]["date"]
-    ws["I5"].value = data["metadata"]["inspector"]
-    ws["I6"].value = data["metadata"]["disposition"]
-    ws["N4"].value = data["metadata"]["purchase_order"]
-    ws["N5"].value = data["metadata"]["receiver_number"]
-    ws["N6"].value = data["metadata"]["supplier"]
-    ws["S4"].value = data["metadata"]["received_quantity"]
-    #endregion
-
-    #region set the headers
-    ws["B4"].value = "Item Number"
-    ws["B5"].value = "Drawing Number"
-    ws["B6"].value = "Drawing Revision"
-    ws["G4"].value = "Date"
-    ws["G5"].value = "Inspector"
-    ws["G6"].value = "Disposition"
-    ws["L4"].value = "Purchase Order"
-    ws["L5"].value = "Receiver Number"
-    ws["L6"].value = "Supplier"
-    ws["Q4"].value = "Received Quantity"
-    #endregion
-
-    #region format the data
-    ws["D4"].fill = format_obj["fill"]["data"]
-    ws["E4"].fill = format_obj["fill"]["data"]
-    ws["D5"].fill = format_obj["fill"]["data"]
-    ws["E5"].fill = format_obj["fill"]["data"]
-    ws["D6"].fill = format_obj["fill"]["data"]
-    ws["E6"].fill = format_obj["fill"]["data"]
-    ws["I4"].fill = format_obj["fill"]["data"]
-    ws["J4"].fill = format_obj["fill"]["data"]
-    ws["I5"].fill = format_obj["fill"]["data"]
-    ws["J5"].fill = format_obj["fill"]["data"]
-    ws["I6"].fill = format_obj["fill"]["data"]
-    ws["J6"].fill = format_obj["fill"]["data"]
-    ws["N4"].fill = format_obj["fill"]["data"]
-    ws["O4"].fill = format_obj["fill"]["data"]
-    ws["N5"].fill = format_obj["fill"]["data"]
-    ws["O5"].fill = format_obj["fill"]["data"]
-    ws["N6"].fill = format_obj["fill"]["data"]
-    ws["O6"].fill = format_obj["fill"]["data"]
-    ws["S4"].fill = format_obj["fill"]["data"]
-    ws["T4"].fill = format_obj["fill"]["data"]
-    ws["D4"].font = format_obj["font"]["data"]
-    ws["E4"].font = format_obj["font"]["data"]
-    ws["D5"].font = format_obj["font"]["data"]
-    ws["E5"].font = format_obj["font"]["data"]
-    ws["D6"].font = format_obj["font"]["data"]
-    ws["E6"].font = format_obj["font"]["data"]
-    ws["I4"].font = format_obj["font"]["data"]
-    ws["J4"].font = format_obj["font"]["data"]
-    ws["I5"].font = format_obj["font"]["data"]
-    ws["J5"].font = format_obj["font"]["data"]
-    ws["I6"].font = format_obj["font"]["data"]
-    ws["J6"].font = format_obj["font"]["data"]
-    ws["N4"].font = format_obj["font"]["data"]
-    ws["O4"].font = format_obj["font"]["data"]
-    ws["N5"].font = format_obj["font"]["data"]
-    ws["O5"].font = format_obj["font"]["data"]
-    ws["N6"].font = format_obj["font"]["data"]
-    ws["O6"].font = format_obj["font"]["data"]
-    ws["S4"].font = format_obj["font"]["data"]
-    ws["T4"].font = format_obj["font"]["data"]
-    ws["D4"].border = format_obj["border"]["data"]
-    ws["E4"].border = format_obj["border"]["data"]
-    ws["D5"].border = format_obj["border"]["data"]
-    ws["E5"].border = format_obj["border"]["data"]
-    ws["D6"].border = format_obj["border"]["data"]
-    ws["E6"].border = format_obj["border"]["data"]
-    ws["I4"].border = format_obj["border"]["data"]
-    ws["J4"].border = format_obj["border"]["data"]
-    ws["I5"].border = format_obj["border"]["data"]
-    ws["J5"].border = format_obj["border"]["data"]
-    ws["I6"].border = format_obj["border"]["data"]
-    ws["J6"].border = format_obj["border"]["data"]
-    ws["N4"].border = format_obj["border"]["data"]
-    ws["O4"].border = format_obj["border"]["data"]
-    ws["N5"].border = format_obj["border"]["data"]
-    ws["O5"].border = format_obj["border"]["data"]
-    ws["N6"].border = format_obj["border"]["data"]
-    ws["O6"].border = format_obj["border"]["data"]
-    ws["S4"].border = format_obj["border"]["data"]
-    ws["T4"].border = format_obj["border"]["data"]
-    ws["D4"].alignment = format_obj["alignment"]["data"]
-    ws["E4"].alignment = format_obj["alignment"]["data"]
-    ws["D5"].alignment = format_obj["alignment"]["data"]
-    ws["E5"].alignment = format_obj["alignment"]["data"]
-    ws["D6"].alignment = format_obj["alignment"]["data"]
-    ws["E6"].alignment = format_obj["alignment"]["data"]
-    ws["I4"].alignment = format_obj["alignment"]["data"]
-    ws["J4"].alignment = format_obj["alignment"]["data"]
-    ws["I5"].alignment = format_obj["alignment"]["data"]
-    ws["J5"].alignment = format_obj["alignment"]["data"]
-    ws["I6"].alignment = format_obj["alignment"]["data"]
-    ws["J6"].alignment = format_obj["alignment"]["data"]
-    ws["N4"].alignment = format_obj["alignment"]["data"]
-    ws["O4"].alignment = format_obj["alignment"]["data"]
-    ws["N5"].alignment = format_obj["alignment"]["data"]
-    ws["O5"].alignment = format_obj["alignment"]["data"]
-    ws["N6"].alignment = format_obj["alignment"]["data"]
-    ws["O6"].alignment = format_obj["alignment"]["data"]
-    ws["S4"].alignment = format_obj["alignment"]["data"]
-    ws["T4"].alignment = format_obj["alignment"]["data"]
-    ws["N4"].number_format = format_obj["number_format"]["text"]
-    ws["O4"].number_format = format_obj["number_format"]["text"]
-    ws["N5"].number_format = format_obj["number_format"]["text"]
-    ws["O5"].number_format = format_obj["number_format"]["text"]
-    ws["N6"].number_format = format_obj["number_format"]["text"]
-    ws["O6"].number_format = format_obj["number_format"]["text"]
-    ws["S4"].number_format = format_obj["number_format"]["number"](0)
-    ws["T4"].number_format = format_obj["number_format"]["number"](0)
-    #endregion
-
-    #region format the headers
-    ws["B4"].fill = format_obj["fill"]["header"]
-    ws["C4"].fill = format_obj["fill"]["header"]
-    ws["B5"].fill = format_obj["fill"]["header"]
-    ws["C5"].fill = format_obj["fill"]["header"]
-    ws["B6"].fill = format_obj["fill"]["header"]
-    ws["C6"].fill = format_obj["fill"]["header"]
-    ws["G4"].fill = format_obj["fill"]["header"]
-    ws["H4"].fill = format_obj["fill"]["header"]
-    ws["G5"].fill = format_obj["fill"]["header"]
-    ws["H5"].fill = format_obj["fill"]["header"]
-    ws["G6"].fill = format_obj["fill"]["header"]
-    ws["H6"].fill = format_obj["fill"]["header"]
-    ws["L4"].fill = format_obj["fill"]["header"]
-    ws["M4"].fill = format_obj["fill"]["header"]
-    ws["L5"].fill = format_obj["fill"]["header"]
-    ws["M5"].fill = format_obj["fill"]["header"]
-    ws["L6"].fill = format_obj["fill"]["header"]
-    ws["M6"].fill = format_obj["fill"]["header"]
-    ws["Q4"].fill = format_obj["fill"]["header"]
-    ws["R4"].fill = format_obj["fill"]["header"]
-    ws["B4"].font = format_obj["font"]["header"]
-    ws["C4"].font = format_obj["font"]["header"]
-    ws["B5"].font = format_obj["font"]["header"]
-    ws["C5"].font = format_obj["font"]["header"]
-    ws["B6"].font = format_obj["font"]["header"]
-    ws["C6"].font = format_obj["font"]["header"]
-    ws["G4"].font = format_obj["font"]["header"]
-    ws["H4"].font = format_obj["font"]["header"]
-    ws["G5"].font = format_obj["font"]["header"]
-    ws["H5"].font = format_obj["font"]["header"]
-    ws["G6"].font = format_obj["font"]["header"]
-    ws["H6"].font = format_obj["font"]["header"]
-    ws["L4"].font = format_obj["font"]["header"]
-    ws["M4"].font = format_obj["font"]["header"]
-    ws["L5"].font = format_obj["font"]["header"]
-    ws["M5"].font = format_obj["font"]["header"]
-    ws["L6"].font = format_obj["font"]["header"]
-    ws["M6"].font = format_obj["font"]["header"]
-    ws["Q4"].font = format_obj["font"]["header"]
-    ws["R4"].font = format_obj["font"]["header"]
-    ws["B4"].border = format_obj["border"]["header"]
-    ws["C4"].border = format_obj["border"]["header"]
-    ws["B5"].border = format_obj["border"]["header"]
-    ws["C5"].border = format_obj["border"]["header"]
-    ws["B6"].border = format_obj["border"]["header"]
-    ws["C6"].border = format_obj["border"]["header"]
-    ws["G4"].border = format_obj["border"]["header"]
-    ws["H4"].border = format_obj["border"]["header"]
-    ws["G5"].border = format_obj["border"]["header"]
-    ws["H5"].border = format_obj["border"]["header"]
-    ws["G6"].border = format_obj["border"]["header"]
-    ws["H6"].border = format_obj["border"]["header"]
-    ws["L4"].border = format_obj["border"]["header"]
-    ws["M4"].border = format_obj["border"]["header"]
-    ws["L5"].border = format_obj["border"]["header"]
-    ws["M5"].border = format_obj["border"]["header"]
-    ws["L6"].border = format_obj["border"]["header"]
-    ws["M6"].border = format_obj["border"]["header"]
-    ws["Q4"].border = format_obj["border"]["header"]
-    ws["R4"].border = format_obj["border"]["header"]
-    ws["B4"].alignment = format_obj["alignment"]["header"]
-    ws["C4"].alignment = format_obj["alignment"]["header"]
-    ws["B5"].alignment = format_obj["alignment"]["header"]
-    ws["C5"].alignment = format_obj["alignment"]["header"]
-    ws["B6"].alignment = format_obj["alignment"]["header"]
-    ws["C6"].alignment = format_obj["alignment"]["header"]
-    ws["G4"].alignment = format_obj["alignment"]["header"]
-    ws["H4"].alignment = format_obj["alignment"]["header"]
-    ws["G5"].alignment = format_obj["alignment"]["header"]
-    ws["H5"].alignment = format_obj["alignment"]["header"]
-    ws["G6"].alignment = format_obj["alignment"]["header"]
-    ws["H6"].alignment = format_obj["alignment"]["header"]
-    ws["L4"].alignment = format_obj["alignment"]["header"]
-    ws["M4"].alignment = format_obj["alignment"]["header"]
-    ws["L5"].alignment = format_obj["alignment"]["header"]
-    ws["M5"].alignment = format_obj["alignment"]["header"]
-    ws["L6"].alignment = format_obj["alignment"]["header"]
-    ws["M6"].alignment = format_obj["alignment"]["header"]
-    ws["Q4"].alignment = format_obj["alignment"]["header"]
-    ws["R4"].alignment = format_obj["alignment"]["header"]
-    #endregion
-
-    #region set editable states
-    ws["I5"].protection = is_editable
-    ws["I6"].protection = is_editable
-    ws["N6"].protection = is_editable
-    ws["S4"].protection = is_editable
-    #endregion
-
-    #region apply the data validation
-    dv_employees.add("I5:J5")
-    dv_dispositions.add("I6:I6")
-    dv_suppliers.add("N6:O6")
-    dv_integer.add("S4:T4")
-    #endregion
-
-def format_print_block(ws, data, format_obj):
-
-    # set the data
-    feature_count = len(data["print"])
-    for i in range(feature_count):
-
-        # merge and format
-        ws.cell(8, 7 + i * 2).fill = format_obj["fill"]["data"]
-        ws.cell(8, 8 + i * 2).fill = format_obj["fill"]["data"]
-        ws.cell(8, 7 + i * 2).font = format_obj["font"]["data"]
-        ws.cell(8, 8 + i * 2).font = format_obj["font"]["data"]
-        ws.cell(8, 7 + i * 2).border = format_obj["border"]["data"]
-        ws.cell(8, 8 + i * 2).border = format_obj["border"]["data"]
-        ws.cell(8, 7 + i * 2).alignment = format_obj["alignment"]["data"]
-        ws.cell(8, 8 + i * 2).alignment = format_obj["alignment"]["data"]
-        for j in range(9, 15):
-            ws.merge_cells(start_row = j, end_row = j, start_column = 7 + i * 2, end_column = 8 + i * 2)
-            ws.cell(j, 7 + i * 2).fill = format_obj["fill"]["data"]
-            ws.cell(j, 8 + i * 2).fill = format_obj["fill"]["data"]
-            ws.cell(j, 7 + i * 2).font = format_obj["font"]["data"]
-            ws.cell(j, 8 + i * 2).font = format_obj["font"]["data"]
-            ws.cell(j, 7 + i * 2).border = format_obj["border"]["data"]
-            ws.cell(j, 8 + i * 2).border = format_obj["border"]["data"]
-            ws.cell(j, 7 + i * 2).alignment = format_obj["alignment"]["data"]
-            ws.cell(j, 8 + i * 2).alignment = format_obj["alignment"]["data"]
-
-        # set the data
-        ws.cell(8, 7 + i * 2).value = data["print"][i]["id"]
-        ws.cell(8, 8 + i * 2).value = data["print"][i]["name"]
-        ws.cell(9, 7 + i * 2).value = data["print"][i]["operation_type"]
-        ws.cell(10, 7 + i * 2).value = data["print"][i]["dimension_type"]
-        ws.cell(11, 7 + i * 2).value = data["print"][i]["usl"]
-        ws.cell(12, 7 + i * 2).value = data["print"][i]["lsl"]
-        ws.cell(13, 7 + i * 2).value = data["print"][i]["gauge_type"]
-        ws.cell(14, 7 + i * 2).value = data["print"][i]["frequency_type"]
-
-        # apply number formats
-        ws.cell(8, 7 + i * 2).number_format = format_obj["number_format"]["text"]
-        ws.cell(9, 7 + i * 2).number_format = format_obj["number_format"]["text"]
-        ws.cell(10, 7 + i * 2).number_format = format_obj["number_format"]["text"]
-        ws.cell(11, 7 + i * 2).number_format = format_obj["number_format"]["number"](data["print"][i]["precision"])
-        ws.cell(12, 7 + i * 2).number_format = format_obj["number_format"]["number"](data["print"][i]["precision"])
-        ws.cell(13, 7 + i * 2).number_format = format_obj["number_format"]["text"]
-        ws.cell(14, 7 + i * 2).number_format = format_obj["number_format"]["text"]
-
-    # set the header
-    ws.merge_cells(range_string = "E8:F8")
-    ws.merge_cells(range_string = "E9:F9")
-    ws.merge_cells(range_string = "E10:F10")
-    ws.merge_cells(range_string = "E11:F11")
-    ws.merge_cells(range_string = "E12:F12")
-    ws.merge_cells(range_string = "E13:F13")
-    ws.merge_cells(range_string = "E14:F14")
-    ws["E8"].value = "Feature"
-    ws["E9"].value = "Operation"
-    ws["E10"].value = "Dimension"
-    ws["E11"].value = "Upper"
-    ws["E12"].value = "Lower"
-    ws["E13"].value = "Gauge Type"
-    ws["E14"].value = "Check Frequency"
-    for i in range(8, 15):
-        ws.cell(i, 5).fill = format_obj["fill"]["header"]
-        ws.cell(i, 6).fill = format_obj["fill"]["header"]
-        ws.cell(i, 5).font = format_obj["font"]["header"]
-        ws.cell(i, 6).font = format_obj["font"]["header"]
-        ws.cell(i, 5).border = format_obj["border"]["header"]
-        ws.cell(i, 6).border = format_obj["border"]["header"]
-        ws.cell(i, 5).alignment = format_obj["alignment"]["header"]
-        ws.cell(i, 6).alignment = format_obj["alignment"]["header"]
-
-def format_inspections_block_internal(ws, data, format_obj, data_validation_obj):
-
-    # define editable attribute
-    is_editable = Protection(False, False)
-
-    # extract data validation attributes
-    dv_employees = data_validation_obj["employees"]
-    dv_integer = data_validation_obj["integer"]
-    dv_gauges = data_validation_obj["gauges"]
-
-    # get the correct feature indexing
-    feature_index = []
-    for j in range(len(data["inspections"][0]["features"])):
-        print_feature_id = ws.cell(8, 7 + j * 2).value
-        for i in range(len(data["inspections"][0]["features"])):
-            if data["inspections"][i]["features"][i]["print_feature_id"] == print_feature_id:
-                feature_index.append(i)
-
-    # create the inspections list
-    for i in range(len(data["inspections"])):
-
-        # data
-        for j in range(len(data["inspections"][i]["features"])):
-
-            # set data
-            ws.cell(17 + i, 7 + j * 2).value = data["inspections"][i]["features"][feature_index[j]]["measured"]
-            ws.cell(17 + i, 8 + j * 2).value = data["inspections"][i]["features"][feature_index[j]]["gauge"]
-
-            # set formatting
-            ws.cell(17 + i, 7 + j * 2).fill = format_obj["fill"]["data"]
-            ws.cell(17 + i, 8 + j * 2).fill = format_obj["fill"]["data"]
-            ws.cell(17 + i, 7 + j * 2).font = format_obj["font"]["data"]
-            ws.cell(17 + i, 8 + j * 2).font = format_obj["font"]["data"]
-            ws.cell(17 + i, 7 + j * 2).border = format_obj["border"]["data"]
-            ws.cell(17 + i, 8 + j * 2).border = format_obj["border"]["data"]
-            ws.cell(17 + i, 7 + j * 2).alignment = format_obj["alignment"]["data"]
-            ws.cell(17 + i, 8 + j * 2).alignment = format_obj["alignment"]["data"]
-            ws.cell(17 + i, 7 + j * 2).number_format = format_obj["number_format"]["number"](data["print"][j]["precision"])
-            ws.cell(17 + i, 8 + j * 2).number_format = format_obj["number_format"]["text"]
-
-            # set editable state
-            ws.cell(17 + i, 7 + j * 2).protection = is_editable
-            ws.cell(17 + i, 8 + j * 2).protection = is_editable
-
-            # set data validation
-            dv_gauges.add(ws.cell(17 + i, 8 + j * 2).coordinate)
-
-            # set conditional formatting
-            column = ws.cell(17 + i, 7 + j * 2).column_letter
-            usl_address = f"${column}${11}"
-            lsl_address = f"${column}${12}"
-            measure_address = f"{column}{17 + i}"
-            blnk_formula = f"=ISBLANK({measure_address})"
-            pass_formula = f"=AND({measure_address}<={usl_address},{measure_address}>={lsl_address})"
-            fail_formula = f"=OR({measure_address}>{usl_address},{measure_address}<{lsl_address})"
-            blnk_rule = FormulaRule(
-                formula = [blnk_formula],
-                fill = format_obj["fill"]["data"],
-                stopIfTrue = True
-            )
-            pass_rule = FormulaRule(
-                formula = [pass_formula],
-                fill = format_obj["pass_fail"]["pass"],
-                stopIfTrue = True
-            )
-            fail_rule = FormulaRule(
-                formula = [fail_formula],
-                fill = format_obj["pass_fail"]["fail"],
-                stopIfTrue = True
-            )
-            ws.conditional_formatting.add(
-                measure_address,
-                blnk_rule
-            )
-            ws.conditional_formatting.add(
-                measure_address,
-                pass_rule
-            )
-            ws.conditional_formatting.add(
-                measure_address,
-                fail_rule
-            )
-
-    row = 17 + len(data["inspections"])
-    for j in range(len(data["inspections"][0]["features"])):
-
-        # set data
-        ws.cell(row, 7 + j * 2).value = ""
-        ws.cell(row, 8 + j * 2).value = ""
-
-        # set format
-        ws.cell(row, 7 + j * 2).fill = format_obj["fill"]["data"]
-        ws.cell(row, 8 + j * 2).fill = format_obj["fill"]["data"]
-        ws.cell(row, 7 + j * 2).font = format_obj["font"]["data"]
-        ws.cell(row, 8 + j * 2).font = format_obj["font"]["data"]
-        ws.cell(row, 7 + j * 2).border = format_obj["border"]["data"]
-        ws.cell(row, 8 + j * 2).border = format_obj["border"]["data"]
-        ws.cell(row, 7 + j * 2).alignment = format_obj["alignment"]["data"]
-        ws.cell(row, 8 + j * 2).alignment = format_obj["alignment"]["data"]
-        ws.cell(row, 7 + j * 2).number_format = format_obj["number_format"]["number"](data["print"][j]["precision"])
-        ws.cell(row, 8 + j * 2).number_format = format_obj["number_format"]["text"]
-
-        # set editable state
-        ws.cell(row, 7 + j * 2).protection = is_editable
-        ws.cell(row, 8 + j * 2).protection = is_editable
-
-        # set data validation
-        dv_gauges.add(ws.cell(row, 8 + j * 2).coordinate)
-
-        # set conditional formatting
-        column = ws.cell(row, 7 + j * 2).column_letter
-        usl_address = f"${column}${11}"
-        lsl_address = f"${column}${12}"
-        measure_address = f"{column}{row}"
-        blnk_formula = f"=ISBLANK({measure_address})"
-        pass_formula = f"=AND({measure_address}<={usl_address},{measure_address}>={lsl_address})"
-        fail_formula = f"=OR({measure_address}>{usl_address},{measure_address}<{lsl_address})"
-        blnk_rule = FormulaRule(
-            formula = [blnk_formula],
-            fill = format_obj["fill"]["data"],
-            stopIfTrue = True
-        )
-        pass_rule = FormulaRule(
-            formula = [pass_formula],
-            fill = format_obj["pass_fail"]["pass"],
-            stopIfTrue = True
-        )
-        fail_rule = FormulaRule(
-            formula = [fail_formula],
-            fill = format_obj["pass_fail"]["fail"],
-            stopIfTrue = True
-        )
-        ws.conditional_formatting.add(
-            measure_address,
-            blnk_rule
-        )
-        ws.conditional_formatting.add(
-            measure_address,
-            pass_rule
-        )
-        ws.conditional_formatting.add(
-            measure_address,
-            fail_rule
-        )
-    ws.merge_cells(start_row = row, end_row = row, start_column = 2, end_column = 3)
-    ws.merge_cells(start_row = row, end_row = row, start_column = 4, end_column = 5)
-    ws.cell(row, 2).fill = format_obj["fill"]["data"]
-    ws.cell(row, 3).fill = format_obj["fill"]["data"]
-    ws.cell(row, 4).fill = format_obj["fill"]["data"]
-    ws.cell(row, 5).fill = format_obj["fill"]["data"]
-    ws.cell(row, 6).fill = format_obj["fill"]["data"]
-    ws.cell(row, 2).font = format_obj["font"]["data"]
-    ws.cell(row, 3).font = format_obj["font"]["data"]
-    ws.cell(row, 4).font = format_obj["font"]["data"]
-    ws.cell(row, 5).font = format_obj["font"]["data"]
-    ws.cell(row, 6).font = format_obj["font"]["data"]
-    ws.cell(row, 2).border = format_obj["border"]["data"]
-    ws.cell(row, 3).border = format_obj["border"]["data"]
-    ws.cell(row, 4).border = format_obj["border"]["data"]
-    ws.cell(row, 5).border = format_obj["border"]["data"]
-    ws.cell(row, 6).border = format_obj["border"]["data"]
-    ws.cell(row, 2).alignment = format_obj["alignment"]["data"]
-    ws.cell(row, 3).alignment = format_obj["alignment"]["data"]
-    ws.cell(row, 4).alignment = format_obj["alignment"]["data"]
-    ws.cell(row, 5).alignment = format_obj["alignment"]["data"]
-    ws.cell(row, 6).alignment = format_obj["alignment"]["data"]
-    ws.cell(row, 2).number_format = format_obj["number_format"]["text"]
-    ws.cell(row, 3).number_format = format_obj["number_format"]["text"]
-    ws.cell(row, 4).number_format = format_obj["number_format"]["datetime"]
-    ws.cell(row, 5).number_format = format_obj["number_format"]["datetime"]
-    ws.cell(row, 6).number_format = format_obj["number_format"]["number"](0)
-    ws.cell(row, 2).protection = is_editable
-    ws.cell(row, 3).protection = is_editable
-    ws.cell(row, 6).protection = is_editable
-    dv_employees.add(f"{ws.cell(row, 2).coordinate}:{ws.cell(row, 3).coordinate}")
-
-    # merge
-    ws.merge_cells(range_string = "B16:C16")
-    ws.merge_cells(range_string = "D16:E16")
-
-    # set contents
-    ws["B16"].value = "Inspector"
-    ws["D16"].value = "Date/Time"
-    ws["F16"].value = "Part Count"
-
-    # set formatting
-    ws["B16"].fill = format_obj["fill"]["header"]
-    ws["C16"].fill = format_obj["fill"]["header"]
-    ws["D16"].fill = format_obj["fill"]["header"]
-    ws["E16"].fill = format_obj["fill"]["header"]
-    ws["F16"].fill = format_obj["fill"]["header"]
-    ws["B16"].font = format_obj["font"]["header"]
-    ws["C16"].font = format_obj["font"]["header"]
-    ws["D16"].font = format_obj["font"]["header"]
-    ws["E16"].font = format_obj["font"]["header"]
-    ws["F16"].font = format_obj["font"]["header"]
-    ws["B16"].border = format_obj["border"]["header"]
-    ws["C16"].border = format_obj["border"]["header"]
-    ws["D16"].border = format_obj["border"]["header"]
-    ws["E16"].border = format_obj["border"]["header"]
-    ws["f16"].border = format_obj["border"]["header"]
-    ws["B16"].alignment = format_obj["alignment"]["header"]
-    ws["C16"].alignment = format_obj["alignment"]["header"]
-    ws["D16"].alignment = format_obj["alignment"]["header"]
-    ws["E16"].alignment = format_obj["alignment"]["header"]
-    ws["F16"].alignment = format_obj["alignment"]["header"]
-
-    # dynamic headers
-    for i in range(len(data["inspections"])):
-
-        # merge
-        ws.merge_cells(start_row = 17 + i, end_row = 17 + i, start_column = 2, end_column = 3)
-        ws.merge_cells(start_row = 17 + i, end_row = 17 + i, start_column = 4, end_column = 5)
-
-        # set contents
-        ws.cell(17 + i, 2).value = data["inspections"][i]["employee_name"]
-        ws.cell(17 + i, 4).value = data["inspections"][i]["datetime_measured"]
-        ws.cell(17 + i, 6).value = data["inspections"][i]["part_index"]
-
-        # set format
-        ws.cell(17 + i, 2).fill = format_obj["fill"]["data"]
-        ws.cell(17 + i, 3).fill = format_obj["fill"]["data"]
-        ws.cell(17 + i, 4).fill = format_obj["fill"]["data"]
-        ws.cell(17 + i, 5).fill = format_obj["fill"]["data"]
-        ws.cell(17 + i, 6).fill = format_obj["fill"]["data"]
-        ws.cell(17 + i, 2).font = format_obj["font"]["data"]
-        ws.cell(17 + i, 3).font = format_obj["font"]["data"]
-        ws.cell(17 + i, 4).font = format_obj["font"]["data"]
-        ws.cell(17 + i, 5).font = format_obj["font"]["data"]
-        ws.cell(17 + i, 6).font = format_obj["font"]["data"]
-        ws.cell(17 + i, 2).border = format_obj["border"]["data"]
-        ws.cell(17 + i, 3).border = format_obj["border"]["data"]
-        ws.cell(17 + i, 4).border = format_obj["border"]["data"]
-        ws.cell(17 + i, 5).border = format_obj["border"]["data"]
-        ws.cell(17 + i, 6).border = format_obj["border"]["data"]
-        ws.cell(17 + i, 2).alignment = format_obj["alignment"]["data"]
-        ws.cell(17 + i, 3).alignment = format_obj["alignment"]["data"]
-        ws.cell(17 + i, 4).alignment = format_obj["alignment"]["data"]
-        ws.cell(17 + i, 5).alignment = format_obj["alignment"]["data"]
-        ws.cell(17 + i, 6).alignment = format_obj["alignment"]["data"]
-        ws.cell(17 + i, 2).number_format = format_obj["number_format"]["text"]
-        ws.cell(17 + i, 3).number_format = format_obj["number_format"]["text"]
-        ws.cell(17 + i, 4).number_format = format_obj["number_format"]["datetime"]
-        ws.cell(17 + i, 5).number_format = format_obj["number_format"]["datetime"]
-        ws.cell(17 + i, 6).number_format = format_obj["number_format"]["number"](0)
-
-        # set editable state
-        ws.cell(17 + i, 2).protection = is_editable
-        ws.cell(17 + i, 3).protection = is_editable
-        ws.cell(17 + i, 6).protection = is_editable
-
-        # set data validation
-        dv_employees.add(f"{ws.cell(17 + i, 2).coordinate}:{ws.cell(17 + i, 3).coordinate}")
-        dv_integer.add(ws.cell(17 + i, 6).coordinate)
-
-    for j in range(len(data["inspections"][0]["features"])):
-
-        # merge
-        ws.merge_cells(start_row = 16, end_row = 16, start_column = 7 + j * 2, end_column = 8 + j * 2)
-
-        # set contents
-        ws.cell(16, 7 + j * 2).value = j + 1
-
-        # set format
-        ws.cell(16, 7 + j * 2).fill = format_obj["fill"]["header"]
-        ws.cell(16, 8 + j * 2).fill = format_obj["fill"]["header"]
-        ws.cell(16, 7 + j * 2).font = format_obj["font"]["header"]
-        ws.cell(16, 8 + j * 2).font = format_obj["font"]["header"]
-        ws.cell(16, 7 + j * 2).border = format_obj["border"]["header"]
-        ws.cell(16, 8 + j * 2).border = format_obj["border"]["header"]
-        ws.cell(16, 7 + j * 2).alignment = Alignment(horizontal = "center", vertical = "center")
-        ws.cell(16, 8 + j * 2).alignment = Alignment(horizontal = "center", vertical = "center")
-        ws.cell(16, 7 + j * 2).number_format = format_obj["number_format"]["number"](0)
-        ws.cell(16, 8 + j * 2).number_format = format_obj["number_format"]["number"](0)
-
-    return {
-        "status": "ok",
-        "response": None
-    }
-
-def format_inspections_block_freight(ws, data, format_obj, data_validation_obj):
-
-    # define editable attribute
-    is_editable = Protection(False, False)
-
-    # extract data validation attributes
-    dv_employees = data_validation_obj["employees"]
-    dv_gauges = data_validation_obj["gauges"]
-
-    # get the correct feature indexing
-    feature_index = []
-    for j in range(len(data["inspections"][0]["features"])):
-        print_feature_id = ws.cell(8, 7 + j * 2).value
-        for i in range(len(data["inspections"][0]["features"])):
-            if data["inspections"][i]["features"][i]["print_feature_id"] == print_feature_id:
-                feature_index.append(i)
-
-    # create the inspections list
-    for i in range(len(data["inspections"])):
-
-        # data
-        for j in range(len(data["inspections"][i]["features"])):
-
-            # set data
-            ws.cell(17 + i, 7 + j * 2).value = data["inspections"][i]["features"][feature_index[j]]["measured"]
-            ws.cell(17 + i, 8 + j * 2).value = data["inspections"][i]["features"][feature_index[j]]["gauge"]
-
-            # set formatting
-            ws.cell(17 + i, 7 + j * 2).fill = format_obj["fill"]["data"]
-            ws.cell(17 + i, 8 + j * 2).fill = format_obj["fill"]["data"]
-            ws.cell(17 + i, 7 + j * 2).font = format_obj["font"]["data"]
-            ws.cell(17 + i, 8 + j * 2).font = format_obj["font"]["data"]
-            ws.cell(17 + i, 7 + j * 2).border = format_obj["border"]["data"]
-            ws.cell(17 + i, 8 + j * 2).border = format_obj["border"]["data"]
-            ws.cell(17 + i, 7 + j * 2).alignment = format_obj["alignment"]["data"]
-            ws.cell(17 + i, 8 + j * 2).alignment = format_obj["alignment"]["data"]
-            ws.cell(17 + i, 7 + j * 2).number_format = format_obj["number_format"]["number"](data["print"][j]["precision"])
-            ws.cell(17 + i, 8 + j * 2).number_format = format_obj["number_format"]["text"]
-
-            # set editable state
-            ws.cell(17 + i, 7 + j * 2).protection = is_editable
-            ws.cell(17 + i, 8 + j * 2).protection = is_editable
-
-            # set data validation
-            dv_gauges.add(ws.cell(17 + i, 8 + j * 2).coordinate)
-
-            # set conditional formatting
-            column = ws.cell(17 + i, 7 + j * 2).column_letter
-            usl_address = f"${column}${11}"
-            lsl_address = f"${column}${12}"
-            measure_address = f"{column}{17 + i}"
-            blnk_formula = f"=ISBLANK({measure_address})"
-            pass_formula = f"=AND({measure_address}<={usl_address},{measure_address}>={lsl_address})"
-            fail_formula = f"=OR({measure_address}>{usl_address},{measure_address}<{lsl_address})"
-            blnk_rule = FormulaRule(
-                formula = [blnk_formula],
-                fill = format_obj["fill"]["data"],
-                stopIfTrue = True
-            )
-            pass_rule = FormulaRule(
-                formula = [pass_formula],
-                fill = format_obj["pass_fail"]["pass"],
-                stopIfTrue = True
-            )
-            fail_rule = FormulaRule(
-                formula = [fail_formula],
-                fill = format_obj["pass_fail"]["fail"],
-                stopIfTrue = True
-            )
-            ws.conditional_formatting.add(
-                measure_address,
-                blnk_rule
-            )
-            ws.conditional_formatting.add(
-                measure_address,
-                pass_rule
-            )
-            ws.conditional_formatting.add(
-                measure_address,
-                fail_rule
-            )
-
-    row = 17 + len(data["inspections"])
-    for j in range(len(data["inspections"][0]["features"])):
-
-        # set data
-        ws.cell(row, 7 + j * 2).value = ""
-        ws.cell(row, 8 + j * 2).value = ""
-
-        # set format
-        ws.cell(row, 7 + j * 2).fill = format_obj["fill"]["data"]
-        ws.cell(row, 8 + j * 2).fill = format_obj["fill"]["data"]
-        ws.cell(row, 7 + j * 2).font = format_obj["font"]["data"]
-        ws.cell(row, 8 + j * 2).font = format_obj["font"]["data"]
-        ws.cell(row, 7 + j * 2).border = format_obj["border"]["data"]
-        ws.cell(row, 8 + j * 2).border = format_obj["border"]["data"]
-        ws.cell(row, 7 + j * 2).alignment = format_obj["alignment"]["data"]
-        ws.cell(row, 8 + j * 2).alignment = format_obj["alignment"]["data"]
-        ws.cell(row, 7 + j * 2).number_format = format_obj["number_format"]["number"](data["print"][j]["precision"])
-        ws.cell(row, 8 + j * 2).number_format = format_obj["number_format"]["text"]
-
-        # set editable state
-        ws.cell(row, 7 + j * 2).protection = is_editable
-        ws.cell(row, 8 + j * 2).protection = is_editable
-
-        # set data validation
-        dv_gauges.add(ws.cell(row, 8 + j * 2).coordinate)
-
-        # set conditional formatting
-        column = ws.cell(row, 7 + j * 2).column_letter
-        usl_address = f"${column}${11}"
-        lsl_address = f"${column}${12}"
-        measure_address = f"{column}{row}"
-        blnk_formula = f"=ISBLANK({measure_address})"
-        pass_formula = f"=AND({measure_address}<={usl_address},{measure_address}>={lsl_address})"
-        fail_formula = f"=OR({measure_address}>{usl_address},{measure_address}<{lsl_address})"
-        blnk_rule = FormulaRule(
-            formula = [blnk_formula],
-            fill = format_obj["fill"]["data"],
-            stopIfTrue = True
-        )
-        pass_rule = FormulaRule(
-            formula = [pass_formula],
-            fill = format_obj["pass_fail"]["pass"],
-            stopIfTrue = True
-        )
-        fail_rule = FormulaRule(
-            formula = [fail_formula],
-            fill = format_obj["pass_fail"]["fail"],
-            stopIfTrue = True
-        )
-        ws.conditional_formatting.add(
-            measure_address,
-            blnk_rule
-        )
-        ws.conditional_formatting.add(
-            measure_address,
-            pass_rule
-        )
-        ws.conditional_formatting.add(
-            measure_address,
-            fail_rule
-        )
-    ws.merge_cells(start_row = row, end_row = row, start_column = 2, end_column = 3)
-    ws.merge_cells(start_row = row, end_row = row, start_column = 4, end_column = 5)
-    ws.cell(row, 2).fill = format_obj["fill"]["data"]
-    ws.cell(row, 3).fill = format_obj["fill"]["data"]
-    ws.cell(row, 4).fill = format_obj["fill"]["data"]
-    ws.cell(row, 5).fill = format_obj["fill"]["data"]
-    ws.cell(row, 6).fill = format_obj["fill"]["data"]
-    ws.cell(row, 2).font = format_obj["font"]["data"]
-    ws.cell(row, 3).font = format_obj["font"]["data"]
-    ws.cell(row, 4).font = format_obj["font"]["data"]
-    ws.cell(row, 5).font = format_obj["font"]["data"]
-    ws.cell(row, 6).font = format_obj["font"]["data"]
-    ws.cell(row, 2).border = format_obj["border"]["data"]
-    ws.cell(row, 3).border = format_obj["border"]["data"]
-    ws.cell(row, 4).border = format_obj["border"]["data"]
-    ws.cell(row, 5).border = format_obj["border"]["data"]
-    ws.cell(row, 6).border = format_obj["border"]["data"]
-    ws.cell(row, 2).alignment = format_obj["alignment"]["data"]
-    ws.cell(row, 3).alignment = format_obj["alignment"]["data"]
-    ws.cell(row, 4).alignment = format_obj["alignment"]["data"]
-    ws.cell(row, 5).alignment = format_obj["alignment"]["data"]
-    ws.cell(row, 6).alignment = format_obj["alignment"]["data"]
-    ws.cell(row, 2).number_format = format_obj["number_format"]["text"]
-    ws.cell(row, 3).number_format = format_obj["number_format"]["text"]
-    ws.cell(row, 4).number_format = format_obj["number_format"]["datetime"]
-    ws.cell(row, 5).number_format = format_obj["number_format"]["datetime"]
-    ws.cell(row, 6).number_format = format_obj["number_format"]["number"](0)
-    ws.cell(row, 2).protection = is_editable
-    ws.cell(row, 3).protection = is_editable
-    ws.cell(row, 6).protection = is_editable
-    dv_employees.add(f"{ws.cell(row, 2).coordinate}:{ws.cell(row, 3).coordinate}")
-
-    # merge
-    ws.merge_cells(range_string = "B16:C16")
-    ws.merge_cells(range_string = "D16:E16")
-
-    # set contents
-    ws["B16"].value = "Inspector"
-    ws["D16"].value = "Date/Time"
-    ws["F16"].value = "Check"
-
-    # set formatting
-    ws["B16"].fill = format_obj["fill"]["header"]
-    ws["C16"].fill = format_obj["fill"]["header"]
-    ws["D16"].fill = format_obj["fill"]["header"]
-    ws["E16"].fill = format_obj["fill"]["header"]
-    ws["F16"].fill = format_obj["fill"]["header"]
-    ws["B16"].font = format_obj["font"]["header"]
-    ws["C16"].font = format_obj["font"]["header"]
-    ws["D16"].font = format_obj["font"]["header"]
-    ws["E16"].font = format_obj["font"]["header"]
-    ws["F16"].font = format_obj["font"]["header"]
-    ws["B16"].border = format_obj["border"]["header"]
-    ws["C16"].border = format_obj["border"]["header"]
-    ws["D16"].border = format_obj["border"]["header"]
-    ws["E16"].border = format_obj["border"]["header"]
-    ws["f16"].border = format_obj["border"]["header"]
-    ws["B16"].alignment = format_obj["alignment"]["header"]
-    ws["C16"].alignment = format_obj["alignment"]["header"]
-    ws["D16"].alignment = format_obj["alignment"]["header"]
-    ws["E16"].alignment = format_obj["alignment"]["header"]
-    ws["F16"].alignment = format_obj["alignment"]["header"]
-
-    # dynamic headers
-    for i in range(len(data["inspections"])):
-
-        # merge
-        ws.merge_cells(start_row = 17 + i, end_row = 17 + i, start_column = 2, end_column = 3)
-        ws.merge_cells(start_row = 17 + i, end_row = 17 + i, start_column = 4, end_column = 5)
-
-        # set contents
-        ws.cell(17 + i, 2).value = data["inspections"][i]["employee_name"]
-        ws.cell(17 + i, 4).value = data["inspections"][i]["datetime_measured"]
-        ws.cell(17 + i, 6).value = data["inspections"][i]["part_index"]
-
-        # set format
-        ws.cell(17 + i, 2).fill = format_obj["fill"]["data"]
-        ws.cell(17 + i, 3).fill = format_obj["fill"]["data"]
-        ws.cell(17 + i, 4).fill = format_obj["fill"]["data"]
-        ws.cell(17 + i, 5).fill = format_obj["fill"]["data"]
-        ws.cell(17 + i, 6).fill = format_obj["fill"]["data"]
-        ws.cell(17 + i, 2).font = format_obj["font"]["data"]
-        ws.cell(17 + i, 3).font = format_obj["font"]["data"]
-        ws.cell(17 + i, 4).font = format_obj["font"]["data"]
-        ws.cell(17 + i, 5).font = format_obj["font"]["data"]
-        ws.cell(17 + i, 6).font = format_obj["font"]["data"]
-        ws.cell(17 + i, 2).border = format_obj["border"]["data"]
-        ws.cell(17 + i, 3).border = format_obj["border"]["data"]
-        ws.cell(17 + i, 4).border = format_obj["border"]["data"]
-        ws.cell(17 + i, 5).border = format_obj["border"]["data"]
-        ws.cell(17 + i, 6).border = format_obj["border"]["data"]
-        ws.cell(17 + i, 2).alignment = format_obj["alignment"]["data"]
-        ws.cell(17 + i, 3).alignment = format_obj["alignment"]["data"]
-        ws.cell(17 + i, 4).alignment = format_obj["alignment"]["data"]
-        ws.cell(17 + i, 5).alignment = format_obj["alignment"]["data"]
-        ws.cell(17 + i, 6).alignment = format_obj["alignment"]["data"]
-        ws.cell(17 + i, 2).number_format = format_obj["number_format"]["text"]
-        ws.cell(17 + i, 3).number_format = format_obj["number_format"]["text"]
-        ws.cell(17 + i, 4).number_format = format_obj["number_format"]["datetime"]
-        ws.cell(17 + i, 5).number_format = format_obj["number_format"]["datetime"]
-        ws.cell(17 + i, 6).number_format = format_obj["number_format"]["number"](0)
-
-        # set editable state
-        ws.cell(17 + i, 2).protection = is_editable
-        ws.cell(17 + i, 3).protection = is_editable
-
-        # set data validation
-        dv_employees.add(f"{ws.cell(17 + i, 2).coordinate}:{ws.cell(17 + i, 3).coordinate}")
-
-    # apply check coloring
-    received_qty = int(data["metadata"]["received_quantity"])
+    # initialize variables
     array_size = 0
     reduced_1 = 0
     reduced_2 = 0
     reduced_3 = 0
 
+    # define variables
     if received_qty < 2:
         array_size = 1
         reduced_1 = 1
@@ -2979,7 +1817,7 @@ def format_inspections_block_freight(ws, data, format_obj, data_validation_obj):
         reduced_2 = 10
         reduced_3 = 1
 
-    # blue
+    # colors
     reduced_1_color = PatternFill(
         fill_type = "solid",
         start_color = "ff4d4dff",
@@ -2996,45 +1834,1325 @@ def format_inspections_block_freight(ws, data, format_obj, data_validation_obj):
         end_color = "ff4dff4d"
     )
 
-    for j in range(reduced_1):
-        ws.cell(17 + j, 6).fill = reduced_1_color
+    # return the results
+    return {
+        "sizes": {
+            "total": array_size,
+            "1": reduced_1,
+            "2": reduced_2,
+            "3": reduced_3
+        },
+        "colors": {
+            "1": reduced_1_color,
+            "2": reduced_2_color,
+            "3": reduced_3_color
+        }
+    }
 
-    for j in range(reduced_2):
-        ws.cell(17 + j, 6).fill = reduced_2_color
+def create_decimal_format(decimal_places:int) -> str:
+    if decimal_places > 0:
+        return "#,##0." + "0" * decimal_places
+    else:
+        return "#,##0"
 
-    for j in range(reduced_3):
-        ws.cell(17 + j, 6).fill = reduced_3_color
+# --------------------------------------------------
 
-    for j in range(len(data["inspections"][0]["features"])):
+def set_contents_internal(ws, part_id:int, job_number_id:int):
 
-        # merge
-        ws.merge_cells(start_row = 16, end_row = 16, start_column = 7 + j * 2, end_column = 8 + j * 2)
+    start_date = ws["I4"].value.date()
+    inspector_str = str(ws["I5"].value)
+    disposition_str = str(ws["I6"].value)
+    operator_str = str(ws["N5"].value)
+    full_inspect_interval = int(ws["S4"].value)
+    released_quantity = int(ws["S5"].value)
+    completed_quantity = int(ws["S6"].value)
+    material_type_str = str(ws["X4"].value)
+    workcenter_str = str(ws["X5"].value)
+    production_rate = float(ws["X6"].value)
 
-        # set contents
-        ws.cell(16, 7 + j * 2).value = j + 1
+    print(start_date)
 
-        # set format
+# --------------------------------------------------
+
+def get_metadata(part_id:int, job_number_id:int, purchase_order_id:int, receiver_number_id:int) -> dict:
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # get the part related components
+        parts_query = session.query(parts.item, parts.drawing, parts.revision).filter(parts.id == part_id).first()
+        if parts_query is None:
+            session.close()
+            return {
+                "status": "alert",
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [parts])
+            }
+        item, drawing, revision = parts_query
+
+        # get the inspections/inspection record related components
+        inspection_query = session.query(inspections.datetime_measured, employees.id, employees.first_name, employees.last_name, disposition_types.id, disposition_types.name)\
+            .join(inspection_records, (inspection_records.id == inspections.inspection_record_id))\
+            .join(employees, (employees.id == inspection_records.employee_id))\
+            .join(disposition_types, (disposition_types.id == inspection_records.disposition_id))\
+            .filter(inspections.part_id == part_id)\
+            .first()
+        if inspection_query is None:
+            session.close()
+            return {
+                "status": "alert",
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [inspections, inspection_records])
+            }
+        datetime_measured, inspector_id, inspector_first_name, inspector_last_name, disposition_id, disposition = inspection_query
+
+        # get the association related components
+        if job_number_id > -1 and purchase_order_id == -1:
+            fields = [
+                job_numbers.name,
+                employees.id,
+                employees.first_name,
+                employees.last_name,
+                job_numbers.full_inspect_interval,
+                job_numbers.released_qty,
+                job_numbers.completed_qty,
+                material_types.id,
+                material_types.name,
+                locations.id,
+                locations.name,
+                job_numbers.production_rate
+            ]
+            association_query = session.query(*fields)\
+                .join(inspections_job_numbers, (inspections_job_numbers.job_number_id == job_numbers.id))\
+                .join(inspections, (inspections.id == inspections_job_numbers.inspection_id))\
+                .join(employees, (employees.id == job_numbers.employee_id))\
+                .join(material_types, (material_types.id == job_numbers.material_type_id))\
+                .join(locations, (locations.id == job_numbers.location_id))\
+                .filter(inspections.part_id == part_id)\
+                .filter(job_numbers.id == job_number_id)\
+                .first()
+            if association_query is None:
+                session.close()
+                return {
+                    "status": "alert",
+                    "response": text_response(stack()[0][3], message_type.records_not_found, tables = [job_numbers, employees, material_types, locations])
+                }
+            job_number, operator_id, operator_first_name, operator_last_name, full_inspect_interval, released_qty, completed_qty, material_type_id, material_type, location_id, location, production_rate = association_query
+
+            # close the database connection
+            session.close()
+
+            # return the results
+            return {
+                "status": "ok",
+                "response": {
+                    "inspection_type": "internal",
+                    "item": item,
+                    "drawing": drawing,
+                    "revision": revision,
+                    "date": datetime_measured,
+                    "inspector": f"{inspector_id}| {inspector_first_name} {inspector_last_name}",
+                    "disposition": f"{disposition_id}| {disposition}",
+                    "job_number": job_number,
+                    "operator": f"{operator_id}| {operator_first_name} {operator_last_name}",
+                    "qc_full_inspect_interval": full_inspect_interval,
+                    "released_quantity": released_qty,
+                    "completed_quantity": completed_qty,
+                    "material_type": f"{material_type_id}| {material_type}",
+                    "workcenter": f"{location_id}| {location}",
+                    "production_rate": production_rate
+                }
+            }
+        elif job_number_id == -1 and purchase_order_id > -1:
+            fields = [
+                purchase_orders.name,
+                receiver_numbers.name,
+                suppliers.id,
+                suppliers.name,
+                receiver_numbers.received_qty
+            ]
+            association_query = session.query(*fields)\
+                .join(inspections_purchase_orders, (inspections_purchase_orders.purchase_order_id == purchase_orders.id))\
+                .join(inspections, (inspections.id == inspections_purchase_orders.inspection_id))\
+                .join(receiver_numbers, (receiver_numbers.purchase_order_id == purchase_orders.id))\
+                .join(suppliers, (suppliers.id == purchase_orders.supplier_id))\
+                .filter(inspections.part_id == part_id)\
+                .filter(purchase_orders.id == purchase_order_id)\
+                .filter(receiver_numbers.id == receiver_number_id)\
+                .first()
+            purchase_order, receiver_number, supplier_id, supplier, received_qty = association_query
+
+            # close the database session
+            session.close()
+
+            # return the response
+            return {
+                "status": "ok",
+                "response": {
+                    "inspection_type": "freight",
+                    "item": item,
+                    "drawing": drawing,
+                    "revision": revision,
+                    "date": datetime_measured,
+                    "inspector": f"{inspector_id}| {inspector_first_name} {inspector_last_name}",
+                    "disposition": f"{disposition_id}| {disposition}",
+                    "purchase_order": purchase_order,
+                    "receiver_number": receiver_number,
+                    "supplier": f"{supplier_id}| {supplier}",
+                    "received_quantity": received_qty
+                }
+            }
+        else:
+            session.close()
+            return {
+                "status": "alert",
+                "response": text_response(stack()[0][3], message_type.generic, err_msg = "invalid parameters; no job number or purchase order")
+            }
+
+    except SQLAlchemyError as e:
+        session.close()
+        return {
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+        }
+
+def get_print(part_id:int) -> dict:
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # define the required fields
+        fields = [
+            print_features.id,
+            print_features.name,
+            print_features.nominal,
+            print_features.usl,
+            print_features.lsl,
+            print_features.precision,
+            operation_types.name,
+            dimension_types.name,
+            gauge_types.name,
+            frequency_types.name
+        ]
+
+        # query the database
+        query = session.query(*fields)\
+            .join(operation_types, (operation_types.id == print_features.operation_type_id))\
+            .join(dimension_types, (dimension_types.id == print_features.dimension_type_id))\
+            .join(gauge_types, (gauge_types.id == print_features.gauge_type_id))\
+            .join(frequency_types, (frequency_types.id == print_features.frequency_type_id))\
+            .filter(print_features.part_id == part_id)\
+            .order_by(print_features.id.asc())\
+            .all()
+
+        # close the database session
+        session.close()
+
+        # return the results
+        if len(query) > 0:
+            output_arr = []
+            for id, name, nominal, usl, lsl, precision, op_type, dim_type, gauge_type, freq_type in query:
+                output_arr.append({
+                    "id": id,
+                    "name": name,
+                    "nominal": nominal,
+                    "usl": usl,
+                    "lsl": lsl,
+                    "precision": precision,
+                    "operation_type": op_type,
+                    "dimension_type": dim_type,
+                    "gauge_type": gauge_type,
+                    "frequency_type": freq_type
+                })
+            return {
+                "status": "ok",
+                "response": output_arr
+            }
+        else:
+            return {
+                "status": "log",
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [print_features, operation_types, dimension_types, gauge_types, frequency_types])
+            }
+
+    except SQLAlchemyError as e:
+        session.close()
+        return {
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+        }
+
+def get_inspections(part_id:int, job_number_id:int, purchase_order_id:int) -> dict:
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # inspections query fields
+        inspection_fields = [
+            inspections.id,
+            inspections.part_index,
+            inspections.datetime_measured,
+            employees.first_name,
+            employees.last_name
+        ]
+        if job_number_id > -1 and purchase_order_id == -1:
+            inspection_query = session.query(*inspection_fields)\
+                .join(inspections_job_numbers, (inspections_job_numbers.inspection_id == inspections.id))\
+                .join(job_numbers, (job_numbers.id == inspections_job_numbers.job_number_id))\
+                .join(employees, (employees.id == inspections.employee_id))\
+                .filter(inspections.part_id == part_id)\
+                .filter(job_numbers.id == job_number_id)\
+                .order_by(inspections.id.asc()).all()
+        elif job_number_id == -1 and purchase_order_id > -1:
+            inspection_query = session.query(*inspection_fields)\
+                .join(inspections_purchase_orders, (inspections_purchase_orders.inspection_id == inspections.id))\
+                .join(purchase_orders, (purchase_orders.id == inspections_purchase_orders.purchase_order_id))\
+                .join(employees, (employees.id == inspections.employee_id))\
+                .filter(inspections.part_id == part_id)\
+                .filter(purchase_orders.id == purchase_order_id)\
+                .order_by(inspections.id.asc()).all()
+        else:
+            session.close()
+            return {
+                "status": "alert",
+                "response": text_response(stack()[0][3], message_type.generic, err_msg = "invalid parameters; no job number or purchase order")
+            }
+
+        # features query fields
+        features_fields = [
+            features.measured,
+            features.print_feature_id,
+            print_features.precision,
+            gauges.name,
+        ]
+
+        # assemble the results
+        if len(inspection_query) > 0:
+            output_arr = []
+            for id, part_index, datetime_measured, first_name, last_name in inspection_query:
+
+                # get features
+                features_query = session.query(*features_fields)\
+                    .join(gauges, (gauges.id == features.gauge_id))\
+                    .join(print_features, (print_features.id == features.print_feature_id))\
+                    .filter(features.inspection_id == id)\
+                    .order_by(features.id.asc())\
+                    .all()
+                if len(features_query) > 0:
+                    features_list = []
+                    for measured, print_feature_id, precision, gauge in features_query:
+                        features_list.append({
+                            "measured": measured,
+                            "print_feature_id": print_feature_id,
+                            "precision": precision,
+                            "gauge": gauge
+                        })
+                else:
+                    session.close()
+                    return {
+                        "status": "alert",
+                        "response": text_response(stack()[0][3], message_type.records_not_found, tables = [features, gauges, inspections])
+                    }
+
+                # assemble the final list
+                output_arr.append({
+                    "id": id,
+                    "part_index": part_index,
+                    "datetime_measured": datetime_measured,
+                    "inspector": f"{first_name} {last_name}",
+                    "features": features_list
+                })
+
+            # close the database connection
+            session.close()
+
+            # return the results
+            return {
+                "status": "ok",
+                "response": output_arr
+            }
+        else:
+            session.close()
+            return {
+                "status": "log",
+                "response": text_response(stack()[0][3], message_type.records_not_found, tables = [inspections, employees, job_numbers, purchase_orders])
+            }
+
+    except SQLAlchemyError as e:
+        session.close()
+        return {
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+        }
+
+def get_data_validation() -> dict:
+
+    try:
+
+        # open the database session
+        session = Session(engine)
+
+        # employees
+        employees_query = session.query(employees.id, employees.first_name, employees.last_name)\
+            .order_by(employees.first_name.asc(), employees.last_name.asc())\
+            .all()
+        employees_list = []
+        for id, first_name, last_name in employees_query:
+            employees_list.append(f"{id}| {first_name} {last_name}")
+
+        # dispositions
+        dispositions_query = session.query(disposition_types.id, disposition_types.name)\
+            .order_by(disposition_types.name.asc())\
+            .all()
+        dispositions_list = []
+        for id, name in dispositions_query:
+            dispositions_list.append(f"{id}| {name}")
+
+        # materials
+        materials_query = session.query(material_types.id, material_types.name)\
+            .order_by(material_types.name.asc())\
+            .all()
+        materials_list = []
+        for id, name in materials_query:
+            materials_list.append(f"{id}| {name}")
+
+        # locations
+        locations_query = session.query(locations.id, locations.name)\
+            .order_by(locations.name.asc())\
+            .all()
+        locations_list = []
+        for id, name in locations_query:
+            locations_list.append(f"{id}| {name}")
+
+        # suppliers
+        suppliers_query = session.query(suppliers.id, suppliers.name)\
+            .order_by(suppliers.name.asc())\
+            .all()
+        suppliers_list = []
+        for id, name in suppliers_query:
+            suppliers_list.append(f"{id}| {name}")
+
+        # gauges
+        gauges_query = session.query(gauges.id, gauges.name)\
+            .order_by(gauges.name.asc())\
+            .all()
+        gauges_list = []
+        for id, name in gauges_query:
+            gauges_list.append(f"{id}| {name}")
+
+        # close the database session
+        session.close()
+
+        # assemble the data validation objects
+        dv_employees = DataValidation(
+            type = "list",
+            showDropDown = False,
+            formula1 = '"' + ','.join(employees_list) + '"',
+            allow_blank = True
+        )
+        dv_employees.error = "Your entry is not in the list."
+        dv_employees.errorTitle = "Invalid Entry"
+        dv_dispositions = DataValidation(
+            type = "list",
+            showDropDown = False,
+            formula1 = '"' + ','.join(dispositions_list) + '"',
+            allow_blank = True
+        )
+        dv_dispositions.error = "Your entry is not in the list."
+        dv_dispositions.errorTitle = "Invalid Entry"
+        dv_material_types = DataValidation(
+            type = "list",
+            showDropDown = False,
+            formula1 = '"' + ','.join(materials_list) + '"',
+            allow_blank = True
+        )
+        dv_material_types.error = "Your entry is not in the list."
+        dv_material_types.errorTitle = "Invalid Entry"
+        dv_locations = DataValidation(
+            type = "list",
+            showDropDown = False,
+            formula1 = '"' + ','.join(locations_list) + '"',
+            allow_blank = True
+        )
+        dv_locations.error = "Your entry is not in the list."
+        dv_locations.errorTitle = "Invalid Entry"
+        dv_suppliers = DataValidation(
+            type = "list",
+            showDropDown = False,
+            formula1 = '"' + ','.join(suppliers_list) + '"',
+            allow_blank = True
+        )
+        dv_suppliers.error = "Your entry is not in the list."
+        dv_suppliers.errorTitle = "Invalid Entry"
+        dv_integers = DataValidation(
+            type = "whole",
+            operator = "greaterThanOrEqual",
+            formula1 = 0,
+            allow_blank = True
+        )
+        dv_integers.error = "Your entry must be a whole number."
+        dv_integers.errorTitle = "Invalid Entry"
+        dv_decimals = DataValidation(
+            type = "decimal",
+            allow_blank = True
+        )
+        dv_decimals.error = "Your entry must be a valid number."
+        dv_decimals.errorTitle = "Invalid Entry"
+        dv_gauges = DataValidation(
+            type = "list",
+            showDropDown = False,
+            formula1 = '"' + ','.join(gauges_list) + '"',
+            allow_blank = True
+        )
+        dv_gauges.error = "Your entry is not in the list."
+        dv_gauges.errorTitle = "Invalid Entry"
+
+        # return the response
+        return {
+            "employees": dv_employees,
+            "dispositions": dv_dispositions,
+            "material_types": dv_material_types,
+            "locations": dv_locations,
+            "suppliers": dv_suppliers,
+            "gauges": dv_gauges,
+            "integers": dv_integers,
+            "decimals": dv_decimals
+        }
+
+    except SQLAlchemyError as e:
+        session.close()
+        return {
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+        }
+
+# --------------------------------------------------
+
+def format_metadata(ws, is_editable:Protection, job_number_id:int, purchase_order_id:int, format_obj:dict, validation_obj:dict, data:dict):
+
+    if job_number_id > -1 and purchase_order_id == -1:
+
+        #region merge cells
+        ws.merge_cells(range_string = "B4:C4")
+        ws.merge_cells(range_string = "B5:C5")
+        ws.merge_cells(range_string = "B6:C6")
+        ws.merge_cells(range_string = "D4:E4")
+        ws.merge_cells(range_string = "D5:E5")
+        ws.merge_cells(range_string = "D6:E6")
+        ws.merge_cells(range_string = "G4:H4")
+        ws.merge_cells(range_string = "G5:H5")
+        ws.merge_cells(range_string = "G6:H6")
+        ws.merge_cells(range_string = "I4:J4")
+        ws.merge_cells(range_string = "I5:J5")
+        ws.merge_cells(range_string = "I6:J6")
+        ws.merge_cells(range_string = "L4:M4")
+        ws.merge_cells(range_string = "L5:M5")
+        ws.merge_cells(range_string = "N4:O4")
+        ws.merge_cells(range_string = "N5:O5")
+        ws.merge_cells(range_string = "Q4:R4")
+        ws.merge_cells(range_string = "Q5:R5")
+        ws.merge_cells(range_string = "Q6:R6")
+        ws.merge_cells(range_string = "S4:T4")
+        ws.merge_cells(range_string = "S5:T5")
+        ws.merge_cells(range_string = "S6:T6")
+        ws.merge_cells(range_string = "V4:W4")
+        ws.merge_cells(range_string = "V5:W5")
+        ws.merge_cells(range_string = "V6:W6")
+        ws.merge_cells(range_string = "X4:Y4")
+        ws.merge_cells(range_string = "X5:Y5")
+        ws.merge_cells(range_string = "X6:Y6")
+        #endregion
+
+        #region set the data
+        ws["D4"].value = data["item"]
+        ws["D5"].value = data["drawing"]
+        ws["D6"].value = data["revision"]
+        ws["I4"].value = data["date"]
+        ws["I5"].value = data["inspector"]
+        ws["I6"].value = data["disposition"]
+        ws["N4"].value = data["job_number"]
+        ws["N5"].value = data["operator"]
+        ws["S4"].value = data["qc_full_inspect_interval"]
+        ws["S5"].value = data["released_quantity"]
+        ws["S6"].value = data["completed_quantity"]
+        ws["X4"].value = data["material_type"]
+        ws["X5"].value = data["workcenter"]
+        ws["X6"].value = data["production_rate"]
+        #endregion
+
+        #region set the headers
+        ws["B4"].value = "Item Number"
+        ws["B5"].value = "Drawing Number"
+        ws["B6"].value = "Drawing Revision"
+        ws["G4"].value = "Date"
+        ws["G5"].value = "Inspector"
+        ws["G6"].value = "Disposition"
+        ws["L4"].value = "Job Number"
+        ws["L5"].value = "Operator"
+        ws["Q4"].value = "QC Full Inspect Interval"
+        ws["Q5"].value = "Released Quantity"
+        ws["Q6"].value = "Completed Quantity"
+        ws["V4"].value = "Material Type"
+        ws["V5"].value = "Work Center"
+        ws["V6"].value = "Parts / Hour"
+        #endregion
+
+        #region format the data
+        ws["D4"].fill = format_obj["fill"]["data"]
+        ws["E4"].fill = format_obj["fill"]["data"]
+        ws["D5"].fill = format_obj["fill"]["data"]
+        ws["E5"].fill = format_obj["fill"]["data"]
+        ws["D6"].fill = format_obj["fill"]["data"]
+        ws["E6"].fill = format_obj["fill"]["data"]
+        ws["I4"].fill = format_obj["fill"]["data"]
+        ws["J4"].fill = format_obj["fill"]["data"]
+        ws["I5"].fill = format_obj["fill"]["data"]
+        ws["J5"].fill = format_obj["fill"]["data"]
+        ws["I6"].fill = format_obj["fill"]["data"]
+        ws["J6"].fill = format_obj["fill"]["data"]
+        ws["N4"].fill = format_obj["fill"]["data"]
+        ws["O4"].fill = format_obj["fill"]["data"]
+        ws["N5"].fill = format_obj["fill"]["data"]
+        ws["O5"].fill = format_obj["fill"]["data"]
+        ws["S4"].fill = format_obj["fill"]["data"]
+        ws["T4"].fill = format_obj["fill"]["data"]
+        ws["S5"].fill = format_obj["fill"]["data"]
+        ws["T5"].fill = format_obj["fill"]["data"]
+        ws["S6"].fill = format_obj["fill"]["data"]
+        ws["T6"].fill = format_obj["fill"]["data"]
+        ws["X4"].fill = format_obj["fill"]["data"]
+        ws["Y4"].fill = format_obj["fill"]["data"]
+        ws["X5"].fill = format_obj["fill"]["data"]
+        ws["Y5"].fill = format_obj["fill"]["data"]
+        ws["X6"].fill = format_obj["fill"]["data"]
+        ws["Y6"].fill = format_obj["fill"]["data"]
+        ws["D4"].font = format_obj["font"]["data"]
+        ws["E4"].font = format_obj["font"]["data"]
+        ws["D5"].font = format_obj["font"]["data"]
+        ws["E5"].font = format_obj["font"]["data"]
+        ws["D6"].font = format_obj["font"]["data"]
+        ws["E6"].font = format_obj["font"]["data"]
+        ws["I4"].font = format_obj["font"]["data"]
+        ws["J4"].font = format_obj["font"]["data"]
+        ws["I5"].font = format_obj["font"]["data"]
+        ws["J5"].font = format_obj["font"]["data"]
+        ws["I6"].font = format_obj["font"]["data"]
+        ws["J6"].font = format_obj["font"]["data"]
+        ws["N4"].font = format_obj["font"]["data"]
+        ws["O4"].font = format_obj["font"]["data"]
+        ws["N5"].font = format_obj["font"]["data"]
+        ws["O5"].font = format_obj["font"]["data"]
+        ws["S4"].font = format_obj["font"]["data"]
+        ws["T4"].font = format_obj["font"]["data"]
+        ws["S5"].font = format_obj["font"]["data"]
+        ws["T5"].font = format_obj["font"]["data"]
+        ws["S6"].font = format_obj["font"]["data"]
+        ws["T6"].font = format_obj["font"]["data"]
+        ws["X4"].font = format_obj["font"]["data"]
+        ws["Y4"].font = format_obj["font"]["data"]
+        ws["X5"].font = format_obj["font"]["data"]
+        ws["Y5"].font = format_obj["font"]["data"]
+        ws["X6"].font = format_obj["font"]["data"]
+        ws["Y6"].font = format_obj["font"]["data"]
+        ws["D4"].border = format_obj["border"]["data"]
+        ws["E4"].border = format_obj["border"]["data"]
+        ws["D5"].border = format_obj["border"]["data"]
+        ws["E5"].border = format_obj["border"]["data"]
+        ws["D6"].border = format_obj["border"]["data"]
+        ws["E6"].border = format_obj["border"]["data"]
+        ws["I4"].border = format_obj["border"]["data"]
+        ws["J4"].border = format_obj["border"]["data"]
+        ws["I5"].border = format_obj["border"]["data"]
+        ws["J5"].border = format_obj["border"]["data"]
+        ws["I6"].border = format_obj["border"]["data"]
+        ws["J6"].border = format_obj["border"]["data"]
+        ws["N4"].border = format_obj["border"]["data"]
+        ws["O4"].border = format_obj["border"]["data"]
+        ws["N5"].border = format_obj["border"]["data"]
+        ws["O5"].border = format_obj["border"]["data"]
+        ws["S4"].border = format_obj["border"]["data"]
+        ws["T4"].border = format_obj["border"]["data"]
+        ws["S5"].border = format_obj["border"]["data"]
+        ws["T5"].border = format_obj["border"]["data"]
+        ws["S6"].border = format_obj["border"]["data"]
+        ws["T6"].border = format_obj["border"]["data"]
+        ws["X4"].border = format_obj["border"]["data"]
+        ws["Y4"].border = format_obj["border"]["data"]
+        ws["X5"].border = format_obj["border"]["data"]
+        ws["Y5"].border = format_obj["border"]["data"]
+        ws["X6"].border = format_obj["border"]["data"]
+        ws["Y6"].border = format_obj["border"]["data"]
+        ws["D4"].alignment = format_obj["alignment"]["data"]
+        ws["E4"].alignment = format_obj["alignment"]["data"]
+        ws["D5"].alignment = format_obj["alignment"]["data"]
+        ws["E5"].alignment = format_obj["alignment"]["data"]
+        ws["D6"].alignment = format_obj["alignment"]["data"]
+        ws["E6"].alignment = format_obj["alignment"]["data"]
+        ws["I4"].alignment = format_obj["alignment"]["data"]
+        ws["J4"].alignment = format_obj["alignment"]["data"]
+        ws["I5"].alignment = format_obj["alignment"]["data"]
+        ws["J5"].alignment = format_obj["alignment"]["data"]
+        ws["I6"].alignment = format_obj["alignment"]["data"]
+        ws["J6"].alignment = format_obj["alignment"]["data"]
+        ws["N4"].alignment = format_obj["alignment"]["data"]
+        ws["O4"].alignment = format_obj["alignment"]["data"]
+        ws["N5"].alignment = format_obj["alignment"]["data"]
+        ws["O5"].alignment = format_obj["alignment"]["data"]
+        ws["S4"].alignment = format_obj["alignment"]["data"]
+        ws["T4"].alignment = format_obj["alignment"]["data"]
+        ws["S5"].alignment = format_obj["alignment"]["data"]
+        ws["T5"].alignment = format_obj["alignment"]["data"]
+        ws["S6"].alignment = format_obj["alignment"]["data"]
+        ws["T6"].alignment = format_obj["alignment"]["data"]
+        ws["X4"].alignment = format_obj["alignment"]["data"]
+        ws["Y4"].alignment = format_obj["alignment"]["data"]
+        ws["X5"].alignment = format_obj["alignment"]["data"]
+        ws["Y5"].alignment = format_obj["alignment"]["data"]
+        ws["X6"].alignment = format_obj["alignment"]["data"]
+        ws["Y6"].alignment = format_obj["alignment"]["data"]
+        ws["D4"].number_format = format_obj["number_format"]["text"]
+        ws["E4"].number_format = format_obj["number_format"]["text"]
+        ws["D5"].number_format = format_obj["number_format"]["text"]
+        ws["E5"].number_format = format_obj["number_format"]["text"]
+        ws["D6"].number_format = format_obj["number_format"]["text"]
+        ws["E6"].number_format = format_obj["number_format"]["text"]
+        ws["I4"].number_format = format_obj["number_format"]["date"]
+        ws["J4"].number_format = format_obj["number_format"]["date"]
+        ws["I5"].number_format = format_obj["number_format"]["text"]
+        ws["J5"].number_format = format_obj["number_format"]["text"]
+        ws["I6"].number_format = format_obj["number_format"]["text"]
+        ws["J6"].number_format = format_obj["number_format"]["text"]
+        ws["N4"].number_format = format_obj["number_format"]["text"]
+        ws["O4"].number_format = format_obj["number_format"]["text"]
+        ws["N5"].number_format = format_obj["number_format"]["text"]
+        ws["O5"].number_format = format_obj["number_format"]["text"]
+        ws["S4"].number_format = format_obj["number_format"]["number"](0)
+        ws["T4"].number_format = format_obj["number_format"]["number"](0)
+        ws["S5"].number_format = format_obj["number_format"]["number"](0)
+        ws["T5"].number_format = format_obj["number_format"]["number"](0)
+        ws["S6"].number_format = format_obj["number_format"]["number"](0)
+        ws["T6"].number_format = format_obj["number_format"]["number"](0)
+        ws["X4"].number_format = format_obj["number_format"]["text"]
+        ws["Y4"].number_format = format_obj["number_format"]["text"]
+        ws["X5"].number_format = format_obj["number_format"]["text"]
+        ws["Y5"].number_format = format_obj["number_format"]["text"]
+        ws["X6"].number_format = format_obj["number_format"]["text"]
+        ws["Y6"].number_format = format_obj["number_format"]["text"]
+        #endregion
+
+        #region format the headers
+        ws["B4"].fill = format_obj["fill"]["header"]
+        ws["C4"].fill = format_obj["fill"]["header"]
+        ws["B5"].fill = format_obj["fill"]["header"]
+        ws["C5"].fill = format_obj["fill"]["header"]
+        ws["B6"].fill = format_obj["fill"]["header"]
+        ws["C6"].fill = format_obj["fill"]["header"]
+        ws["G4"].fill = format_obj["fill"]["header"]
+        ws["H4"].fill = format_obj["fill"]["header"]
+        ws["G5"].fill = format_obj["fill"]["header"]
+        ws["H5"].fill = format_obj["fill"]["header"]
+        ws["G6"].fill = format_obj["fill"]["header"]
+        ws["H6"].fill = format_obj["fill"]["header"]
+        ws["L4"].fill = format_obj["fill"]["header"]
+        ws["M4"].fill = format_obj["fill"]["header"]
+        ws["L5"].fill = format_obj["fill"]["header"]
+        ws["M5"].fill = format_obj["fill"]["header"]
+        ws["Q4"].fill = format_obj["fill"]["header"]
+        ws["R4"].fill = format_obj["fill"]["header"]
+        ws["Q5"].fill = format_obj["fill"]["header"]
+        ws["R5"].fill = format_obj["fill"]["header"]
+        ws["Q6"].fill = format_obj["fill"]["header"]
+        ws["R6"].fill = format_obj["fill"]["header"]
+        ws["V4"].fill = format_obj["fill"]["header"]
+        ws["W4"].fill = format_obj["fill"]["header"]
+        ws["V5"].fill = format_obj["fill"]["header"]
+        ws["W5"].fill = format_obj["fill"]["header"]
+        ws["V6"].fill = format_obj["fill"]["header"]
+        ws["W6"].fill = format_obj["fill"]["header"]
+        ws["B4"].font = format_obj["font"]["header"]
+        ws["C4"].font = format_obj["font"]["header"]
+        ws["B5"].font = format_obj["font"]["header"]
+        ws["C5"].font = format_obj["font"]["header"]
+        ws["B6"].font = format_obj["font"]["header"]
+        ws["C6"].font = format_obj["font"]["header"]
+        ws["G4"].font = format_obj["font"]["header"]
+        ws["H4"].font = format_obj["font"]["header"]
+        ws["G5"].font = format_obj["font"]["header"]
+        ws["H5"].font = format_obj["font"]["header"]
+        ws["G6"].font = format_obj["font"]["header"]
+        ws["H6"].font = format_obj["font"]["header"]
+        ws["L4"].font = format_obj["font"]["header"]
+        ws["M4"].font = format_obj["font"]["header"]
+        ws["L5"].font = format_obj["font"]["header"]
+        ws["M5"].font = format_obj["font"]["header"]
+        ws["Q4"].font = format_obj["font"]["header"]
+        ws["R4"].font = format_obj["font"]["header"]
+        ws["Q5"].font = format_obj["font"]["header"]
+        ws["R5"].font = format_obj["font"]["header"]
+        ws["Q6"].font = format_obj["font"]["header"]
+        ws["R6"].font = format_obj["font"]["header"]
+        ws["V4"].font = format_obj["font"]["header"]
+        ws["W4"].font = format_obj["font"]["header"]
+        ws["V5"].font = format_obj["font"]["header"]
+        ws["W5"].font = format_obj["font"]["header"]
+        ws["V6"].font = format_obj["font"]["header"]
+        ws["W6"].font = format_obj["font"]["header"]
+        ws["B4"].border = format_obj["border"]["header"]
+        ws["C4"].border = format_obj["border"]["header"]
+        ws["B5"].border = format_obj["border"]["header"]
+        ws["C5"].border = format_obj["border"]["header"]
+        ws["B6"].border = format_obj["border"]["header"]
+        ws["C6"].border = format_obj["border"]["header"]
+        ws["G4"].border = format_obj["border"]["header"]
+        ws["H4"].border = format_obj["border"]["header"]
+        ws["G5"].border = format_obj["border"]["header"]
+        ws["H5"].border = format_obj["border"]["header"]
+        ws["G6"].border = format_obj["border"]["header"]
+        ws["H6"].border = format_obj["border"]["header"]
+        ws["L4"].border = format_obj["border"]["header"]
+        ws["M4"].border = format_obj["border"]["header"]
+        ws["L5"].border = format_obj["border"]["header"]
+        ws["M5"].border = format_obj["border"]["header"]
+        ws["Q4"].border = format_obj["border"]["header"]
+        ws["R4"].border = format_obj["border"]["header"]
+        ws["Q5"].border = format_obj["border"]["header"]
+        ws["R5"].border = format_obj["border"]["header"]
+        ws["Q6"].border = format_obj["border"]["header"]
+        ws["R6"].border = format_obj["border"]["header"]
+        ws["V4"].border = format_obj["border"]["header"]
+        ws["W4"].border = format_obj["border"]["header"]
+        ws["V5"].border = format_obj["border"]["header"]
+        ws["W5"].border = format_obj["border"]["header"]
+        ws["V6"].border = format_obj["border"]["header"]
+        ws["W6"].border = format_obj["border"]["header"]
+        ws["B4"].alignment = format_obj["alignment"]["header"]
+        ws["C4"].alignment = format_obj["alignment"]["header"]
+        ws["B5"].alignment = format_obj["alignment"]["header"]
+        ws["C5"].alignment = format_obj["alignment"]["header"]
+        ws["B6"].alignment = format_obj["alignment"]["header"]
+        ws["C6"].alignment = format_obj["alignment"]["header"]
+        ws["G4"].alignment = format_obj["alignment"]["header"]
+        ws["H4"].alignment = format_obj["alignment"]["header"]
+        ws["G5"].alignment = format_obj["alignment"]["header"]
+        ws["H5"].alignment = format_obj["alignment"]["header"]
+        ws["G6"].alignment = format_obj["alignment"]["header"]
+        ws["H6"].alignment = format_obj["alignment"]["header"]
+        ws["L4"].alignment = format_obj["alignment"]["header"]
+        ws["M4"].alignment = format_obj["alignment"]["header"]
+        ws["L5"].alignment = format_obj["alignment"]["header"]
+        ws["M5"].alignment = format_obj["alignment"]["header"]
+        ws["Q4"].alignment = format_obj["alignment"]["header"]
+        ws["R4"].alignment = format_obj["alignment"]["header"]
+        ws["Q5"].alignment = format_obj["alignment"]["header"]
+        ws["R5"].alignment = format_obj["alignment"]["header"]
+        ws["Q6"].alignment = format_obj["alignment"]["header"]
+        ws["R6"].alignment = format_obj["alignment"]["header"]
+        ws["V4"].alignment = format_obj["alignment"]["header"]
+        ws["W4"].alignment = format_obj["alignment"]["header"]
+        ws["V5"].alignment = format_obj["alignment"]["header"]
+        ws["W5"].alignment = format_obj["alignment"]["header"]
+        ws["V6"].alignment = format_obj["alignment"]["header"]
+        ws["W6"].alignment = format_obj["alignment"]["header"]
+        #endregion
+
+        #region set editable states
+        ws["I5"].protection = is_editable
+        ws["I6"].protection = is_editable
+        ws["N5"].protection = is_editable
+        ws["S4"].protection = is_editable
+        ws["S5"].protection = is_editable
+        ws["S6"].protection = is_editable
+        ws["X4"].protection = is_editable
+        ws["X5"].protection = is_editable
+        ws["X6"].protection = is_editable
+        #endregion
+
+        #region apply data validation
+        validation_obj["employees"].add("I5:J5")
+        validation_obj["dispositions"].add("I6:I6")
+        validation_obj["employees"].add("N5:O5")
+        validation_obj["integers"].add("S4:T6")
+        validation_obj["material_types"].add("X4:Y4")
+        validation_obj["locations"].add("X5:Y5")
+        validation_obj["decimals"].add("X6:Y6")
+        #endregion
+
+    if job_number_id == -1 and purchase_order_id > -1:
+
+        #region merge cells
+        ws.merge_cells(range_string = "B4:C4")
+        ws.merge_cells(range_string = "B5:C5")
+        ws.merge_cells(range_string = "B6:C6")
+        ws.merge_cells(range_string = "D4:E4")
+        ws.merge_cells(range_string = "D5:E5")
+        ws.merge_cells(range_string = "D6:E6")
+        ws.merge_cells(range_string = "G4:H4")
+        ws.merge_cells(range_string = "G5:H5")
+        ws.merge_cells(range_string = "G6:H6")
+        ws.merge_cells(range_string = "I4:J4")
+        ws.merge_cells(range_string = "I5:J5")
+        ws.merge_cells(range_string = "I6:J6")
+        ws.merge_cells(range_string = "L4:M4")
+        ws.merge_cells(range_string = "L5:M5")
+        ws.merge_cells(range_string = "L6:M6")
+        ws.merge_cells(range_string = "N4:O4")
+        ws.merge_cells(range_string = "N5:O5")
+        ws.merge_cells(range_string = "N6:O6")
+        ws.merge_cells(range_string = "Q4:R4")
+        ws.merge_cells(range_string = "S4:T4")
+        #endregion
+
+        #region set the data
+        ws["D4"].value = data["item"]
+        ws["D5"].value = data["drawing"]
+        ws["D6"].value = data["revision"]
+        ws["I4"].value = data["date"]
+        ws["I5"].value = data["inspector"]
+        ws["I6"].value = data["disposition"]
+        ws["N4"].value = data["purchase_order"]
+        ws["N5"].value = data["receiver_number"]
+        ws["N6"].value = data["supplier"]
+        ws["S4"].value = data["received_quantity"]
+        #endregion
+
+        #region set the headers
+        ws["B4"].value = "Item Number"
+        ws["B5"].value = "Drawing Number"
+        ws["B6"].value = "Drawing Revision"
+        ws["G4"].value = "Date"
+        ws["G5"].value = "Inspector"
+        ws["G6"].value = "Disposition"
+        ws["L4"].value = "Purchase Order"
+        ws["L5"].value = "Receiver Number"
+        ws["L6"].value = "Supplier"
+        ws["Q4"].value = "Received Quantity"
+        #endregion
+
+        #region format the data
+        ws["D4"].fill = format_obj["fill"]["data"]
+        ws["E4"].fill = format_obj["fill"]["data"]
+        ws["D5"].fill = format_obj["fill"]["data"]
+        ws["E5"].fill = format_obj["fill"]["data"]
+        ws["D6"].fill = format_obj["fill"]["data"]
+        ws["E6"].fill = format_obj["fill"]["data"]
+        ws["I4"].fill = format_obj["fill"]["data"]
+        ws["J4"].fill = format_obj["fill"]["data"]
+        ws["I5"].fill = format_obj["fill"]["data"]
+        ws["J5"].fill = format_obj["fill"]["data"]
+        ws["I6"].fill = format_obj["fill"]["data"]
+        ws["J6"].fill = format_obj["fill"]["data"]
+        ws["N4"].fill = format_obj["fill"]["data"]
+        ws["O4"].fill = format_obj["fill"]["data"]
+        ws["N5"].fill = format_obj["fill"]["data"]
+        ws["O5"].fill = format_obj["fill"]["data"]
+        ws["N6"].fill = format_obj["fill"]["data"]
+        ws["O6"].fill = format_obj["fill"]["data"]
+        ws["S4"].fill = format_obj["fill"]["data"]
+        ws["T4"].fill = format_obj["fill"]["data"]
+        ws["D4"].font = format_obj["font"]["data"]
+        ws["E4"].font = format_obj["font"]["data"]
+        ws["D5"].font = format_obj["font"]["data"]
+        ws["E5"].font = format_obj["font"]["data"]
+        ws["D6"].font = format_obj["font"]["data"]
+        ws["E6"].font = format_obj["font"]["data"]
+        ws["I4"].font = format_obj["font"]["data"]
+        ws["J4"].font = format_obj["font"]["data"]
+        ws["I5"].font = format_obj["font"]["data"]
+        ws["J5"].font = format_obj["font"]["data"]
+        ws["I6"].font = format_obj["font"]["data"]
+        ws["J6"].font = format_obj["font"]["data"]
+        ws["N4"].font = format_obj["font"]["data"]
+        ws["O4"].font = format_obj["font"]["data"]
+        ws["N5"].font = format_obj["font"]["data"]
+        ws["O5"].font = format_obj["font"]["data"]
+        ws["N6"].font = format_obj["font"]["data"]
+        ws["O6"].font = format_obj["font"]["data"]
+        ws["S4"].font = format_obj["font"]["data"]
+        ws["T4"].font = format_obj["font"]["data"]
+        ws["D4"].border = format_obj["border"]["data"]
+        ws["E4"].border = format_obj["border"]["data"]
+        ws["D5"].border = format_obj["border"]["data"]
+        ws["E5"].border = format_obj["border"]["data"]
+        ws["D6"].border = format_obj["border"]["data"]
+        ws["E6"].border = format_obj["border"]["data"]
+        ws["I4"].border = format_obj["border"]["data"]
+        ws["J4"].border = format_obj["border"]["data"]
+        ws["I5"].border = format_obj["border"]["data"]
+        ws["J5"].border = format_obj["border"]["data"]
+        ws["I6"].border = format_obj["border"]["data"]
+        ws["J6"].border = format_obj["border"]["data"]
+        ws["N4"].border = format_obj["border"]["data"]
+        ws["O4"].border = format_obj["border"]["data"]
+        ws["N5"].border = format_obj["border"]["data"]
+        ws["O5"].border = format_obj["border"]["data"]
+        ws["N6"].border = format_obj["border"]["data"]
+        ws["O6"].border = format_obj["border"]["data"]
+        ws["S4"].border = format_obj["border"]["data"]
+        ws["T4"].border = format_obj["border"]["data"]
+        ws["D4"].alignment = format_obj["alignment"]["data"]
+        ws["E4"].alignment = format_obj["alignment"]["data"]
+        ws["D5"].alignment = format_obj["alignment"]["data"]
+        ws["E5"].alignment = format_obj["alignment"]["data"]
+        ws["D6"].alignment = format_obj["alignment"]["data"]
+        ws["E6"].alignment = format_obj["alignment"]["data"]
+        ws["I4"].alignment = format_obj["alignment"]["data"]
+        ws["J4"].alignment = format_obj["alignment"]["data"]
+        ws["I5"].alignment = format_obj["alignment"]["data"]
+        ws["J5"].alignment = format_obj["alignment"]["data"]
+        ws["I6"].alignment = format_obj["alignment"]["data"]
+        ws["J6"].alignment = format_obj["alignment"]["data"]
+        ws["N4"].alignment = format_obj["alignment"]["data"]
+        ws["O4"].alignment = format_obj["alignment"]["data"]
+        ws["N5"].alignment = format_obj["alignment"]["data"]
+        ws["O5"].alignment = format_obj["alignment"]["data"]
+        ws["N6"].alignment = format_obj["alignment"]["data"]
+        ws["O6"].alignment = format_obj["alignment"]["data"]
+        ws["S4"].alignment = format_obj["alignment"]["data"]
+        ws["T4"].alignment = format_obj["alignment"]["data"]
+        ws["N4"].number_format = format_obj["number_format"]["text"]
+        ws["O4"].number_format = format_obj["number_format"]["text"]
+        ws["N5"].number_format = format_obj["number_format"]["text"]
+        ws["O5"].number_format = format_obj["number_format"]["text"]
+        ws["N6"].number_format = format_obj["number_format"]["text"]
+        ws["O6"].number_format = format_obj["number_format"]["text"]
+        ws["S4"].number_format = format_obj["number_format"]["number"](0)
+        ws["T4"].number_format = format_obj["number_format"]["number"](0)
+        #endregion
+
+        #region format the headers
+        ws["B4"].fill = format_obj["fill"]["header"]
+        ws["C4"].fill = format_obj["fill"]["header"]
+        ws["B5"].fill = format_obj["fill"]["header"]
+        ws["C5"].fill = format_obj["fill"]["header"]
+        ws["B6"].fill = format_obj["fill"]["header"]
+        ws["C6"].fill = format_obj["fill"]["header"]
+        ws["G4"].fill = format_obj["fill"]["header"]
+        ws["H4"].fill = format_obj["fill"]["header"]
+        ws["G5"].fill = format_obj["fill"]["header"]
+        ws["H5"].fill = format_obj["fill"]["header"]
+        ws["G6"].fill = format_obj["fill"]["header"]
+        ws["H6"].fill = format_obj["fill"]["header"]
+        ws["L4"].fill = format_obj["fill"]["header"]
+        ws["M4"].fill = format_obj["fill"]["header"]
+        ws["L5"].fill = format_obj["fill"]["header"]
+        ws["M5"].fill = format_obj["fill"]["header"]
+        ws["L6"].fill = format_obj["fill"]["header"]
+        ws["M6"].fill = format_obj["fill"]["header"]
+        ws["Q4"].fill = format_obj["fill"]["header"]
+        ws["R4"].fill = format_obj["fill"]["header"]
+        ws["B4"].font = format_obj["font"]["header"]
+        ws["C4"].font = format_obj["font"]["header"]
+        ws["B5"].font = format_obj["font"]["header"]
+        ws["C5"].font = format_obj["font"]["header"]
+        ws["B6"].font = format_obj["font"]["header"]
+        ws["C6"].font = format_obj["font"]["header"]
+        ws["G4"].font = format_obj["font"]["header"]
+        ws["H4"].font = format_obj["font"]["header"]
+        ws["G5"].font = format_obj["font"]["header"]
+        ws["H5"].font = format_obj["font"]["header"]
+        ws["G6"].font = format_obj["font"]["header"]
+        ws["H6"].font = format_obj["font"]["header"]
+        ws["L4"].font = format_obj["font"]["header"]
+        ws["M4"].font = format_obj["font"]["header"]
+        ws["L5"].font = format_obj["font"]["header"]
+        ws["M5"].font = format_obj["font"]["header"]
+        ws["L6"].font = format_obj["font"]["header"]
+        ws["M6"].font = format_obj["font"]["header"]
+        ws["Q4"].font = format_obj["font"]["header"]
+        ws["R4"].font = format_obj["font"]["header"]
+        ws["B4"].border = format_obj["border"]["header"]
+        ws["C4"].border = format_obj["border"]["header"]
+        ws["B5"].border = format_obj["border"]["header"]
+        ws["C5"].border = format_obj["border"]["header"]
+        ws["B6"].border = format_obj["border"]["header"]
+        ws["C6"].border = format_obj["border"]["header"]
+        ws["G4"].border = format_obj["border"]["header"]
+        ws["H4"].border = format_obj["border"]["header"]
+        ws["G5"].border = format_obj["border"]["header"]
+        ws["H5"].border = format_obj["border"]["header"]
+        ws["G6"].border = format_obj["border"]["header"]
+        ws["H6"].border = format_obj["border"]["header"]
+        ws["L4"].border = format_obj["border"]["header"]
+        ws["M4"].border = format_obj["border"]["header"]
+        ws["L5"].border = format_obj["border"]["header"]
+        ws["M5"].border = format_obj["border"]["header"]
+        ws["L6"].border = format_obj["border"]["header"]
+        ws["M6"].border = format_obj["border"]["header"]
+        ws["Q4"].border = format_obj["border"]["header"]
+        ws["R4"].border = format_obj["border"]["header"]
+        ws["B4"].alignment = format_obj["alignment"]["header"]
+        ws["C4"].alignment = format_obj["alignment"]["header"]
+        ws["B5"].alignment = format_obj["alignment"]["header"]
+        ws["C5"].alignment = format_obj["alignment"]["header"]
+        ws["B6"].alignment = format_obj["alignment"]["header"]
+        ws["C6"].alignment = format_obj["alignment"]["header"]
+        ws["G4"].alignment = format_obj["alignment"]["header"]
+        ws["H4"].alignment = format_obj["alignment"]["header"]
+        ws["G5"].alignment = format_obj["alignment"]["header"]
+        ws["H5"].alignment = format_obj["alignment"]["header"]
+        ws["G6"].alignment = format_obj["alignment"]["header"]
+        ws["H6"].alignment = format_obj["alignment"]["header"]
+        ws["L4"].alignment = format_obj["alignment"]["header"]
+        ws["M4"].alignment = format_obj["alignment"]["header"]
+        ws["L5"].alignment = format_obj["alignment"]["header"]
+        ws["M5"].alignment = format_obj["alignment"]["header"]
+        ws["L6"].alignment = format_obj["alignment"]["header"]
+        ws["M6"].alignment = format_obj["alignment"]["header"]
+        ws["Q4"].alignment = format_obj["alignment"]["header"]
+        ws["R4"].alignment = format_obj["alignment"]["header"]
+        #endregion
+
+        #region set editable states
+        ws["I5"].protection = is_editable
+        ws["I6"].protection = is_editable
+        ws["N6"].protection = is_editable
+        ws["S4"].protection = is_editable
+        #endregion
+
+        #region apply the data validation
+        validation_obj["employees"].add("I5:J5")
+        validation_obj["dispositions"].add("I6:I6")
+        validation_obj["suppliers"].add("N6:O6")
+        validation_obj["integers"].add("S4:T4")
+        #endregion
+
+def format_print(ws, format_obj:dict, data:dict):
+
+    for i in range(len(data)):
+
+        # merge and format
+        for j in range(8, 15):
+            ws.merge_cells(start_row = j, end_row = j, start_column = 7 + i * 2, end_column = 8 + i * 2)
+            ws.cell(j, 7 + i * 2).fill = format_obj["fill"]["data"]
+            ws.cell(j, 8 + i * 2).fill = format_obj["fill"]["data"]
+            ws.cell(j, 7 + i * 2).font = format_obj["font"]["data"]
+            ws.cell(j, 8 + i * 2).font = format_obj["font"]["data"]
+            ws.cell(j, 7 + i * 2).border = format_obj["border"]["data"]
+            ws.cell(j, 8 + i * 2).border = format_obj["border"]["data"]
+            ws.cell(j, 7 + i * 2).alignment = format_obj["alignment"]["data"]
+            ws.cell(j, 8 + i * 2).alignment = format_obj["alignment"]["data"]
+
+        # set the data
+        ws.cell(8, 7 + i * 2).value = data[i]["name"]
+        ws.cell(9, 7 + i * 2).value = data[i]["operation_type"]
+        ws.cell(10, 7 + i * 2).value = data[i]["dimension_type"]
+        ws.cell(11, 7 + i * 2).value = data[i]["usl"]
+        ws.cell(12, 7 + i * 2).value = data[i]["lsl"]
+        ws.cell(13, 7 + i * 2).value = data[i]["gauge_type"]
+        ws.cell(14, 7 + i * 2).value = data[i]["frequency_type"]
+
+        # apply number formats
+        ws.cell(8, 7 + i * 2).number_format = format_obj["number_format"]["text"]
+        ws.cell(9, 7 + i * 2).number_format = format_obj["number_format"]["text"]
+        ws.cell(10, 7 + i * 2).number_format = format_obj["number_format"]["text"]
+        ws.cell(11, 7 + i * 2).number_format = format_obj["number_format"]["number"](data[i]["precision"])
+        ws.cell(12, 7 + i * 2).number_format = format_obj["number_format"]["number"](data[i]["precision"])
+        ws.cell(13, 7 + i * 2).number_format = format_obj["number_format"]["text"]
+        ws.cell(14, 7 + i * 2).number_format = format_obj["number_format"]["text"]
+
+        # merge and set print feature ids
+        ws.merge_cells(start_row = 16, end_row = 16, start_column = 7 + i * 2, end_column = 8 + i * 2)
+        ws.cell(16, 7 + i * 2).value = data[i]["id"]
+        ws.cell(16, 7 + i * 2).alignment = Alignment(horizontal = "center", vertical = "center")
+        ws.cell(16, 8 + i * 2).alignment = Alignment(horizontal = "center", vertical = "center")
+
+    # set static header
+    ws.merge_cells(range_string = "E8:F8")
+    ws.merge_cells(range_string = "E9:F9")
+    ws.merge_cells(range_string = "E10:F10")
+    ws.merge_cells(range_string = "E11:F11")
+    ws.merge_cells(range_string = "E12:F12")
+    ws.merge_cells(range_string = "E13:F13")
+    ws.merge_cells(range_string = "E14:F14")
+    ws["E8"].value = "Feature"
+    ws["E9"].value = "Operation"
+    ws["E10"].value = "Dimension"
+    ws["E11"].value = "Upper"
+    ws["E12"].value = "Lower"
+    ws["E13"].value = "Gauge Type"
+    ws["E14"].value = "Check Frequency"
+    for i in range(8, 15):
+        ws.cell(i, 5).fill = format_obj["fill"]["header"]
+        ws.cell(i, 6).fill = format_obj["fill"]["header"]
+        ws.cell(i, 5).font = format_obj["font"]["header"]
+        ws.cell(i, 6).font = format_obj["font"]["header"]
+        ws.cell(i, 5).border = format_obj["border"]["header"]
+        ws.cell(i, 6).border = format_obj["border"]["header"]
+        ws.cell(i, 5).alignment = format_obj["alignment"]["header"]
+        ws.cell(i, 6).alignment = format_obj["alignment"]["header"]
+
+def format_inspections(ws, is_editable:Protection, job_number_id:int, purchase_order_id:int, format_obj:dict, validation_obj:dict, check_parameters:dict, data:dict):
+
+    # create the inspections list
+    for i in range(len(data)):
+
+        # inspections
+        ws.merge_cells(start_row = 17 + i, end_row = 17 + i, start_column = 2, end_column = 3)
+        ws.merge_cells(start_row = 17 + i, end_row = 17 + i, start_column = 4, end_column = 5)
+        ws.cell(17 + i, 2).number_format = format_obj["number_format"]["text"]
+        ws.cell(17 + i, 3).number_format = format_obj["number_format"]["text"]
+        ws.cell(17 + i, 4).number_format = format_obj["number_format"]["datetime"]
+        ws.cell(17 + i, 5).number_format = format_obj["number_format"]["datetime"]
+        ws.cell(17 + i, 6).number_format = format_obj["number_format"]["number"](0)
+        ws.cell(17 + i, 2).value = data[i]["inspector"]
+        ws.cell(17 + i, 4).value = data[i]["datetime_measured"]
+        ws.cell(17 + i, 6).value = data[i]["part_index"]
+        validation_obj["employees"].add(f"{ws.cell(17 + i, 2).coordinate}:{ws.cell(17 + i, 3).coordinate}")
+        for j in range(2, 7):
+            ws.cell(17 + i, j).fill = format_obj["fill"]["data"]
+            ws.cell(17 + i, j).font = format_obj["font"]["data"]
+            ws.cell(17 + i, j).border = format_obj["border"]["data"]
+            ws.cell(17 + i, j).alignment = format_obj["alignment"]["data"]
+
+        # features
+        feature_index = []
+        for j in range(len(data[i]["features"])):
+
+            # get the correct feature indexing
+            print_feature_id = ws.cell(16, 7 + j * 2).value
+            for z in range(len(data[i]["features"])):
+                if data[i]["features"][z]["print_feature_id"] == print_feature_id:
+                    feature_index.append(z)
+
+            # set data
+            ws.cell(17 + i, 7 + j * 2).value = data[i]["features"][feature_index[j]]["measured"]
+            ws.cell(17 + i, 8 + j * 2).value = data[i]["features"][feature_index[j]]["gauge"]
+
+            # set formatting
+            ws.cell(17 + i, 7 + j * 2).fill = format_obj["fill"]["data"]
+            ws.cell(17 + i, 8 + j * 2).fill = format_obj["fill"]["data"]
+            ws.cell(17 + i, 7 + j * 2).font = format_obj["font"]["data"]
+            ws.cell(17 + i, 8 + j * 2).font = format_obj["font"]["data"]
+            ws.cell(17 + i, 7 + j * 2).border = format_obj["border"]["data"]
+            ws.cell(17 + i, 8 + j * 2).border = format_obj["border"]["data"]
+            ws.cell(17 + i, 7 + j * 2).alignment = format_obj["alignment"]["data"]
+            ws.cell(17 + i, 8 + j * 2).alignment = format_obj["alignment"]["data"]
+            ws.cell(17 + i, 7 + j * 2).number_format = format_obj["number_format"]["number"](data[i]["features"][j]["precision"])
+            ws.cell(17 + i, 8 + j * 2).number_format = format_obj["number_format"]["text"]
+
+            # set editable state
+            ws.cell(17 + i, 7 + j * 2).protection = is_editable
+            ws.cell(17 + i, 8 + j * 2).protection = is_editable
+
+            # set data validation
+            validation_obj["gauges"].add(ws.cell(17 + i, 8 + j * 2).coordinate)
+
+            # set conditional formatting
+            conditional_formatting(ws, 17 + i, j, format_obj)
+
+    # bottom row
+    bottom_row = 17 + len(data)
+    ws.merge_cells(start_row = bottom_row, end_row = bottom_row, start_column = 2, end_column = 3)
+    ws.merge_cells(start_row = bottom_row, end_row = bottom_row, start_column = 4, end_column = 5)
+    ws.cell(bottom_row, 2).fill = format_obj["fill"]["data"]
+    ws.cell(bottom_row, 3).fill = format_obj["fill"]["data"]
+    ws.cell(bottom_row, 4).fill = format_obj["fill"]["data"]
+    ws.cell(bottom_row, 5).fill = format_obj["fill"]["data"]
+    ws.cell(bottom_row, 6).fill = format_obj["fill"]["data"]
+    ws.cell(bottom_row, 2).font = format_obj["font"]["data"]
+    ws.cell(bottom_row, 3).font = format_obj["font"]["data"]
+    ws.cell(bottom_row, 4).font = format_obj["font"]["data"]
+    ws.cell(bottom_row, 5).font = format_obj["font"]["data"]
+    ws.cell(bottom_row, 6).font = format_obj["font"]["data"]
+    ws.cell(bottom_row, 2).border = format_obj["border"]["data"]
+    ws.cell(bottom_row, 3).border = format_obj["border"]["data"]
+    ws.cell(bottom_row, 4).border = format_obj["border"]["data"]
+    ws.cell(bottom_row, 5).border = format_obj["border"]["data"]
+    ws.cell(bottom_row, 6).border = format_obj["border"]["data"]
+    ws.cell(bottom_row, 2).alignment = format_obj["alignment"]["data"]
+    ws.cell(bottom_row, 3).alignment = format_obj["alignment"]["data"]
+    ws.cell(bottom_row, 4).alignment = format_obj["alignment"]["data"]
+    ws.cell(bottom_row, 5).alignment = format_obj["alignment"]["data"]
+    ws.cell(bottom_row, 6).alignment = format_obj["alignment"]["data"]
+
+    # headers
+    ws.cell(16, 2).value = "Inspector"
+    ws.cell(16, 4).value = "Date/Time"
+    ws.merge_cells("B16:C16")
+    ws.merge_cells("D16:E16")
+    ws.cell(bottom_row, 2).protection = is_editable
+    ws.cell(bottom_row, 3).protection = is_editable
+    validation_obj["employees"].add(f"{ws.cell(bottom_row, 2).coordinate}:{ws.cell(bottom_row, 3).coordinate}")
+    for j in range(len(data[0]["features"])):
         ws.cell(16, 7 + j * 2).fill = format_obj["fill"]["header"]
         ws.cell(16, 8 + j * 2).fill = format_obj["fill"]["header"]
         ws.cell(16, 7 + j * 2).font = format_obj["font"]["header"]
         ws.cell(16, 8 + j * 2).font = format_obj["font"]["header"]
         ws.cell(16, 7 + j * 2).border = format_obj["border"]["header"]
         ws.cell(16, 8 + j * 2).border = format_obj["border"]["header"]
-        ws.cell(16, 7 + j * 2).alignment = Alignment(horizontal = "center", vertical = "center")
-        ws.cell(16, 8 + j * 2).alignment = Alignment(horizontal = "center", vertical = "center")
-        ws.cell(16, 7 + j * 2).number_format = format_obj["number_format"]["number"](0)
-        ws.cell(16, 8 + j * 2).number_format = format_obj["number_format"]["number"](0)
+        ws.cell(bottom_row, 7 + j * 2).fill = format_obj["fill"]["data"]
+        ws.cell(bottom_row, 8 + j * 2).fill = format_obj["fill"]["data"]
+        ws.cell(bottom_row, 7 + j * 2).font = format_obj["font"]["data"]
+        ws.cell(bottom_row, 8 + j * 2).font = format_obj["font"]["data"]
+        ws.cell(bottom_row, 7 + j * 2).border = format_obj["border"]["data"]
+        ws.cell(bottom_row, 8 + j * 2).border = format_obj["border"]["data"]
+        ws.cell(bottom_row, 7 + j * 2).alignment = format_obj["alignment"]["data"]
+        ws.cell(bottom_row, 8 + j * 2).alignment = format_obj["alignment"]["data"]
+        ws.cell(bottom_row, 7 + j * 2).protection = is_editable
+        ws.cell(bottom_row, 8 + j * 2).protection = is_editable
+        validation_obj["gauges"].add(ws.cell(bottom_row, 8 + j * 2).coordinate)
+        conditional_formatting(ws, bottom_row, j, format_obj)
 
-    return {
-        "status": "ok",
-        "response": None
-    }
+    for j in range(2, 7):
+        ws.cell(16, j).fill = format_obj["fill"]["header"]
+        ws.cell(16, j).font = format_obj["font"]["header"]
+        ws.cell(16, j).border = format_obj["border"]["header"]
+        ws.cell(16, j).alignment = format_obj["alignment"]["header"]
 
-def get_decimal_format(decimal_places:int) -> str:
-    if decimal_places > 0:
-        return "#,##0." + "0" * decimal_places
-    else:
-        return "#,##0"
+    if job_number_id > -1 and purchase_order_id == -1:
+        ws.cell(16, 6).value = "Part Count"
+    elif job_number_id == -1 and purchase_order_id > -1:
+        ws.cell(16, 6).value = "Check"
+        for j in range(check_parameters["sizes"]["1"]):
+            ws.cell(17 + j, 6).fill = check_parameters["colors"]["1"]
+
+        for j in range(check_parameters["sizes"]["2"]):
+            ws.cell(17 + j, 6).fill = check_parameters["colors"]["2"]
+
+        for j in range(check_parameters["sizes"]["3"]):
+            ws.cell(17 + j, 6).fill = check_parameters["colors"]["3"]
+
+def conditional_formatting(ws, i:int, j:int, format_obj:dict):
+
+    column = ws.cell(i, 7 + j * 2).column_letter
+    usl_address = f"${column}${11}"
+    lsl_address = f"${column}${12}"
+    measure_address = f"{column}{i}"
+    blnk_formula = f"=ISBLANK({measure_address})"
+    pass_formula = f"=AND({measure_address}<={usl_address},{measure_address}>={lsl_address})"
+    fail_formula = f"=OR({measure_address}>{usl_address},{measure_address}<{lsl_address})"
+    blnk_rule = FormulaRule(
+        formula = [blnk_formula],
+        fill = format_obj["fill"]["data"],
+        stopIfTrue = True
+    )
+    pass_rule = FormulaRule(
+        formula = [pass_formula],
+        fill = format_obj["pass_fail"]["pass"],
+        stopIfTrue = True
+    )
+    fail_rule = FormulaRule(
+        formula = [fail_formula],
+        fill = format_obj["pass_fail"]["fail"],
+        stopIfTrue = True
+    )
+    ws.conditional_formatting.add(
+        measure_address,
+        blnk_rule
+    )
+    ws.conditional_formatting.add(
+        measure_address,
+        pass_rule
+    )
+    ws.conditional_formatting.add(
+        measure_address,
+        fail_rule
+    )
+
+#endregion
 
 # --------------------------------------------------
 

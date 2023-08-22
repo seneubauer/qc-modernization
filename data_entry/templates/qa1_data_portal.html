@@ -31,30 +31,57 @@
         <!-- row -->
         <label class="label-header-dark" style="
             --grid-column: 1 / 4;
-            --grid-row: 1;">Available Parts</label>
+            --grid-row: 1;">Inspector</label>
+
+        <!-- operator inputs their name/id -->
+        <label class="label-dark" for="employee_id_filter" style="
+            --grid-column: 1;
+            --grid-row: 2;">Filter</label>
+        <input class="input-dark" type="text" id="employee_id_filter" style="
+            --grid-column: 1;
+            --grid-row: 3;
+            text-align: left;"
+            ondrag="return false;" ondrop="return false;">
+        <label class="label-dark" for="employee_id" style="
+            --grid-column: 2;
+            --grid-row: 2;">Inspector</label>
+        <select class="select-dark" id="employee_id" style="
+            --grid-column: 2;
+            --grid-row: 3;"></select>
+
+        <!-- row -->
+        <label class="label-header-dark" style="
+            --grid-column: 1 / 4;
+            --grid-row: 4;">Available Parts</label>
 
         <!-- operator selects the part -->
         <!-- row -->
         <label class="label-dark" for="part_id_filter" style="
             --grid-column: 1;
-            --grid-row: 2;">Filter</label>
+            --grid-row: 5;">Filter</label>
         <input class="input-dark" type="text" id="part_id_filter" style="
             --grid-column: 1;
-            --grid-row: 3;
+            --grid-row: 6;
             text-align: left;"
             ondrag="return false;" ondrop="return false;">
         <label class="label-dark" for="part_id" style="
             --grid-column: 2;
-            --grid-row: 2;">Part ID</label>
+            --grid-row: 5;">Part ID</label>
         <select class="select-dark" id="part_id" style="
             --grid-column: 2;
-            --grid-row: 3;"></select>
+            --grid-row: 6;"></select>
         <label class="label-dark" for="part_revision" style="
             --grid-column: 3;
-            --grid-row: 2;">Revision</label>
+            --grid-row: 5;">Revision</label>
         <select class="select-dark" id="part_revision" style="
             --grid-column: 3;
-            --grid-row: 3;"></select>
+            --grid-row: 6;"></select>
+        <label class="label-dark" for="use_existing_associations" style="
+            --grid-column: 1;
+            --grid-row: 7;">Use Existing Associations</label>
+        <input class="input-dark" type="checkbox" id="use_existing_associations" style="
+            --grid-column: 1;
+            --grid-row: 8;">
 
         <!-- these dropdowns are populated when the part is selected according to matching records -->
         <!-- operator selects job number or purchase order, depending on if they want internal or freight -->
@@ -62,51 +89,55 @@
         <!-- row -->
         <label class="label-header-dark" style="
             --grid-column: 1 / 4;
-            --grid-row: 4;">Inspection Associations</label>
+            --grid-row: 9;">Inspection Associations</label>
 
         <!-- row -->
         <label class="label-dark" for="job_number_filter" style="
             --grid-column: 1;
-            --grid-row: 5;">Filter</label>
+            --grid-row: 10;">Filter</label>
         <input class="input-dark" type="text" id="job_number_filter" style="
             --grid-column: 1;
-            --grid-row: 6;
+            --grid-row: 11;
             text-align: left;"
             ondrag="return false;" ondrop="return false;">
         <label class="label-dark" for="job_number" style="
             --grid-column: 2;
-            --grid-row: 5;">Job Number</label>
+            --grid-row: 10;">Job Number</label>
         <select class="select-dark" id="job_number" style="
             --grid-column: 2;
-            --grid-row: 6;"></select>
+            --grid-row: 11;"></select>
 
         <!-- row -->
         <label class="label-dark" for="purchase_order_filter" style="
             --grid-column: 1;
-            --grid-row: 7;">Filter</label>
+            --grid-row: 12;">Filter</label>
         <input class="input-dark" type="text" id="purchase_order_filter" style="
             --grid-column: 1;
-            --grid-row: 8;
+            --grid-row: 13;
             text-align: left;"
             ondrag="return false;" ondrop="return false;">
         <label class="label-dark" for="purchase_order" style="
             --grid-column: 2;
-            --grid-row: 7;">Purchase Order</label>
+            --grid-row: 12;">Purchase Order</label>
         <select class="select-dark" id="purchase_order" style="
             --grid-column: 2;
-            --grid-row: 8;"></select>
+            --grid-row: 13;"></select>
         <label class="label-dark" for="receiver_number" style="
             --grid-column: 3;
-            --grid-row: 7;">Receiver Number</label>
+            --grid-row: 12;">Receiver Number</label>
         <select class="select-dark" id="receiver_number" style="
             --grid-column: 3;
-            --grid-row: 8;"></select>
+            --grid-row: 13;"></select>
 
-        <!-- operator can either create a new set of inspections OR reopen an existing one -->
         <!-- row -->
-        <button class="button-dark" id="data_entry_btn" type="button" style="
+        <button class="button-dark" id="open_workbook_btn" type="button" style="
             --grid-column: 1 / 4;
-            --grid-row: 9;">Open Excel Document</button>
+            --grid-row: 14;">Open Excel Document</button>
+
+        <!-- row -->
+        <button class="button-dark" id="close_workbook_btn" type="button" style="
+            --grid-column: 1 / 4;
+            --grid-row: 15;">Close Excel Document</button>
     </div>
 
     <!-- import local js scripts -->
