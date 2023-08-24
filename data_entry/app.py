@@ -12,6 +12,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font
 from openpyxl.formatting.rule import FormulaRule
 from openpyxl.worksheet.datavalidation import DataValidation
+from openpyxl.comments import Comment
 import xlwings as xw
 
 # import general dependencies
@@ -1427,11 +1428,11 @@ def qa1_data_portal_set_inspection_record():
 
     # workbook is currently open
     if not excel_doc.closed:
-        wb = load_workbook(wb_address, read_only = True)
+        wb = load_workbook(wb_address)
         if job_number_id > -1 and purchase_order_id == -1:
             set_contents_internal(wb.active, part_id, job_number_id)
         elif job_number_id == -1 and purchase_order_id > -1:
-            print("")
+            set_contents_freight(wb.active, part_id, purchase_order_id, receiver_number_id)
         else:
             return {
                 "status": "alert",
@@ -1440,12 +1441,12 @@ def qa1_data_portal_set_inspection_record():
         wb.close()
         excel_doc.close()
 
-        # # close & delete the workbook
-        # if wb_filename in [x.name for x in xw.books]:
-        #     xw.Book(wb_address).close()
-        #     remove(wb_address)
-        #     if xw.books.count == 0:
-        #         xw.apps.active.quit()
+        # close & delete the workbook
+        if wb_filename in [x.name for x in xw.books]:
+            xw.Book(wb_address).close()
+            remove(wb_address)
+            if xw.books.count == 0:
+                xw.apps.active.quit()
 
         # send the complete flag
         return {
@@ -1859,18 +1860,248 @@ def create_decimal_format(decimal_places:int) -> str:
 
 def set_contents_internal(ws, part_id:int, job_number_id:int):
 
-    start_date = ws["I4"].value.date()
-    inspector_str = str(ws["I5"].value)
-    disposition_str = str(ws["I6"].value)
-    operator_str = str(ws["N5"].value)
-    full_inspect_interval = int(ws["S4"].value)
-    released_quantity = int(ws["S5"].value)
-    completed_quantity = int(ws["S6"].value)
-    material_type_str = str(ws["X4"].value)
-    workcenter_str = str(ws["X5"].value)
-    production_rate = float(ws["X6"].value)
+    # get the feature count
+    try:
 
-    print(start_date)
+        # open the database connection
+        session = Session(engine)
+
+        # query the database
+        query = session.query(print_features).filter(print_features.part_id == part_id).all()
+        feature_count = len(query)
+
+        # metadata - inspection record
+        inspection_record_id = int(str(ws.cell(1, 1).value).split(":")[1].strip())
+        inspector_id = int(str(ws["I5"].value).split("|")[0].strip())
+        disposition_id = int(str(ws["I6"].value).split("|")[0].strip())
+        session.query(inspection_records)\
+            .filter(inspection_records.id == inspection_record_id)\
+            .update({ "employee_id": inspector_id, "disposition_id": disposition_id })
+
+        # metadata - job number
+        operator_id = int(str(ws["N5"].value).split("|")[0].strip())
+        full_inspect_interval = int(ws["S4"].value)
+        released_quantity = int(ws["S5"].value)
+        completed_quantity = int(ws["S6"].value)
+        material_type_id = int(str(ws["X4"].value).split("|")[0].strip())
+        workcenter_id = int(str(ws["X5"].value).split("|")[0].strip())
+        production_rate = float(ws["X6"].value)
+        session.query(job_numbers)\
+            .filter(job_numbers.id == job_number_id)\
+            .update({
+                "production_rate": production_rate,
+                "full_inspect_interval": full_inspect_interval,
+                "released_qty": released_quantity,
+                "completed_qty": completed_quantity,
+                "employee_id": operator_id,
+                "material_type_id": material_type_id,
+                "location_id": workcenter_id
+            })
+        session.commit()
+
+        # inspections
+        for j in range(17, ws.max_row):
+
+            # does the inspection already exist in the database
+            if ws.cell(j, 6).comment.author == "1":
+                inspection_id = int(ws.cell(j, 6).comment.text)
+                employee_id = int(str(ws.cell(j, 2).value).split("|")[0].strip())
+                datetime_measured = ws.cell(j, 4).value
+                part_index = int(ws.cell(j, 6).value)
+                session.query(inspections)\
+                    .filter(inspections.id == inspection_id)\
+                    .update({ "part_index": part_index, "datetime_measured": datetime_measured, "employee_id": employee_id })
+                session.commit()
+
+                for i in range(feature_count):
+                    feature_id = int(ws.cell(j, 7 + i * 2).comment.text)
+                    if ws.cell(j, 7 + i * 2).value is None:
+                        measured = None
+                    else:
+                        measured = float(ws.cell(j, 7 + i * 2).value)
+                    if ws.cell(j, 8 + i * 2).value is None:
+                        gauge_id = None
+                    else:
+                        gauge_id = int(str(ws.cell(j, 8 + i * 2).value).split("|")[0].strip())
+                    session.query(features)\
+                        .filter(features.id == feature_id)\
+                        .update({ "measured": measured, "gauge_id": gauge_id })
+                    session.commit()
+            else:
+                employee_id = int(str(ws.cell(j, 2).value).split("|")[0].strip())
+                datetime_measured = ws.cell(j, 4).value
+                part_index = int(ws.cell(j, 6).value)
+
+                # new inspection
+                new_inspection = inspections(
+                    part_index = part_index,
+                    datetime_measured = datetime_measured,
+                    inspection_record_id = inspection_record_id,
+                    part_id = part_id,
+                    employee_id = employee_id,
+                    inspection_type_id = 0 # in process
+                )
+                session.add(new_inspection)
+                session.commit()
+
+                # new association
+                new_association = inspections_job_numbers(
+                    inspection_id = new_inspection.id,
+                    job_number_id = job_number_id
+                )
+                session.add(new_association)
+                session.commit()
+
+                # new features
+                for i in range(feature_count):
+                    print_feature_id = int(ws.cell(16, 7 + i * 2).value)
+                    if ws.cell(j, 7 + i * 2).value is None:
+                        measured = None
+                    else:
+                        measured = float(ws.cell(j, 7 + i * 2).value)
+                    if ws.cell(j, 8 + i * 2).value is None:
+                        gauge_id = None
+                    else:
+                        gauge_id = int(str(ws.cell(j, 8 + i * 2).value).split("|")[0].strip())
+                    new_feature = features(
+                        measured = measured,
+                        print_feature_id = print_feature_id,
+                        inspection_id = new_inspection.id,
+                        gauge_id = gauge_id
+                    )
+                    session.add(new_feature)
+                    session.commit()
+
+        # close the database connection
+        session.close()
+
+    except SQLAlchemyError as e:
+        session.close()
+        return {
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+        }
+
+def set_contents_freight(ws, part_id:int, purchase_order_id:int, receiver_number_id:int):
+
+    # get the feature count
+    try:
+
+        # open the database connection
+        session = Session(engine)
+
+        # query the database
+        query = session.query(print_features).filter(print_features.part_id == part_id).all()
+        feature_count = len(query)
+
+        # metadata - inspection record
+        inspection_record_id = int(str(ws.cell(1, 1).value).split(":")[1].strip())
+        inspector_id = int(str(ws["I5"].value).split("|")[0].strip())
+        disposition_id = int(str(ws["I6"].value).split("|")[0].strip())
+        session.query(inspection_records)\
+            .filter(inspection_records.id == inspection_record_id)\
+            .update({ "employee_id": inspector_id, "disposition_id": disposition_id })
+
+        # metadata - purchase order
+        supplier_id = int(str(ws["N6"].value).split("|")[0].strip())
+        session.query(purchase_orders)\
+            .filter(purchase_orders.id == purchase_order_id)\
+            .update({
+                "supplier_id": supplier_id
+            })
+        session.commit()
+
+        # metadata - receiver number
+        received_quantity = int(ws["S4"].value)
+        session.query(receiver_numbers)\
+            .filter(receiver_numbers.id == receiver_number_id)\
+            .update({
+                "received_qty": received_quantity
+            })
+        session.commit()
+
+        # inspections
+        for j in range(17, ws.max_row):
+
+            # does the inspection already exist in the database
+            if ws.cell(j, 6).comment.author == "1":
+                inspection_id = int(ws.cell(j, 6).comment.text)
+                employee_id = int(str(ws.cell(j, 2).value).split("|")[0].strip())
+                datetime_measured = ws.cell(j, 4).value
+                part_index = int(ws.cell(j, 6).value)
+                session.query(inspections)\
+                    .filter(inspections.id == inspection_id)\
+                    .update({ "part_index": part_index, "datetime_measured": datetime_measured, "employee_id": employee_id })
+                session.commit()
+
+                for i in range(feature_count):
+                    feature_id = int(ws.cell(j, 7 + i * 2).comment.text)
+                    if ws.cell(j, 7 + i * 2).value is None:
+                        measured = None
+                    else:
+                        measured = float(ws.cell(j, 7 + i * 2).value)
+                    if ws.cell(j, 8 + i * 2).value:
+                        gauge_id = None
+                    else:
+                        gauge_id = int(str(ws.cell(j, 8 + i * 2).value).split("|")[0].strip())
+                    session.query(features)\
+                        .filter(features.id == feature_id)\
+                        .update({ "measured": measured, "gauge_id": gauge_id })
+                    session.commit()
+            else:
+                employee_id = int(str(ws.cell(j, 2).value).split("|")[0].strip())
+                datetime_measured = ws.cell(j, 4).value
+                part_index = int(ws.cell(j, 6).value)
+
+                # new inspection
+                new_inspection = inspections(
+                    part_index = part_index,
+                    datetime_measured = datetime_measured,
+                    inspection_record_id = inspection_record_id,
+                    part_id = part_id,
+                    employee_id = employee_id,
+                    inspection_type_id = 0 # in process
+                )
+                session.add(new_inspection)
+                session.commit()
+
+                # new association
+                new_association = inspections_purchase_orders(
+                    inspection_id = new_inspection.id,
+                    purchase_order_id = purchase_order_id
+                )
+                session.add(new_association)
+                session.commit()
+
+                # new features
+                for i in range(feature_count):
+                    print_feature_id = int(ws.cell(16, 7 + i * 2).value)
+                    if ws.cell(j, 7 + i * 2).value is None:
+                        measured = None
+                    else:
+                        measured = float(ws.cell(j, 7 + i * 2).value)
+                    if ws.cell(j, 8 + i * 2).value is None:
+                        gauge_id = None
+                    else:
+                        gauge_id = int(str(ws.cell(j, 8 + i * 2).value).split("|")[0].strip())
+                    new_feature = features(
+                        measured = measured,
+                        print_feature_id = print_feature_id,
+                        inspection_id = new_inspection.id,
+                        gauge_id = gauge_id
+                    )
+                    session.add(new_feature)
+                    session.commit()
+
+        # close the database connection
+        session.close()
+
+    except SQLAlchemyError as e:
+        session.close()
+        return {
+            "status": "log",
+            "response": text_response(stack()[0][3], message_type.sql_exception, error = e)
+        }
 
 # --------------------------------------------------
 
@@ -1892,7 +2123,7 @@ def get_metadata(part_id:int, job_number_id:int, purchase_order_id:int, receiver
         item, drawing, revision = parts_query
 
         # get the inspections/inspection record related components
-        inspection_query = session.query(inspections.datetime_measured, employees.id, employees.first_name, employees.last_name, disposition_types.id, disposition_types.name)\
+        inspection_query = session.query(inspection_records.id, inspections.datetime_measured, employees.id, employees.first_name, employees.last_name, disposition_types.id, disposition_types.name)\
             .join(inspection_records, (inspection_records.id == inspections.inspection_record_id))\
             .join(employees, (employees.id == inspection_records.employee_id))\
             .join(disposition_types, (disposition_types.id == inspection_records.disposition_id))\
@@ -1904,7 +2135,7 @@ def get_metadata(part_id:int, job_number_id:int, purchase_order_id:int, receiver
                 "status": "alert",
                 "response": text_response(stack()[0][3], message_type.records_not_found, tables = [inspections, inspection_records])
             }
-        datetime_measured, inspector_id, inspector_first_name, inspector_last_name, disposition_id, disposition = inspection_query
+        inspection_record_id, datetime_measured, inspector_id, inspector_first_name, inspector_last_name, disposition_id, disposition = inspection_query
 
         # get the association related components
         if job_number_id > -1 and purchase_order_id == -1:
@@ -1950,6 +2181,7 @@ def get_metadata(part_id:int, job_number_id:int, purchase_order_id:int, receiver
                     "item": item,
                     "drawing": drawing,
                     "revision": revision,
+                    "inspection_record_id": inspection_record_id,
                     "date": datetime_measured,
                     "inspector": f"{inspector_id}| {inspector_first_name} {inspector_last_name}",
                     "disposition": f"{disposition_id}| {disposition}",
@@ -1993,6 +2225,7 @@ def get_metadata(part_id:int, job_number_id:int, purchase_order_id:int, receiver
                     "item": item,
                     "drawing": drawing,
                     "revision": revision,
+                    "inspection_record_id": inspection_record_id,
                     "date": datetime_measured,
                     "inspector": f"{inspector_id}| {inspector_first_name} {inspector_last_name}",
                     "disposition": f"{disposition_id}| {disposition}",
@@ -2095,6 +2328,7 @@ def get_inspections(part_id:int, job_number_id:int, purchase_order_id:int) -> di
             inspections.id,
             inspections.part_index,
             inspections.datetime_measured,
+            employees.id,
             employees.first_name,
             employees.last_name
         ]
@@ -2123,16 +2357,18 @@ def get_inspections(part_id:int, job_number_id:int, purchase_order_id:int) -> di
 
         # features query fields
         features_fields = [
+            features.id,
             features.measured,
             features.print_feature_id,
             print_features.precision,
+            gauges.id,
             gauges.name,
         ]
 
         # assemble the results
         if len(inspection_query) > 0:
             output_arr = []
-            for id, part_index, datetime_measured, first_name, last_name in inspection_query:
+            for id, part_index, datetime_measured, employee_id, first_name, last_name in inspection_query:
 
                 # get features
                 features_query = session.query(*features_fields)\
@@ -2143,12 +2379,13 @@ def get_inspections(part_id:int, job_number_id:int, purchase_order_id:int) -> di
                     .all()
                 if len(features_query) > 0:
                     features_list = []
-                    for measured, print_feature_id, precision, gauge in features_query:
+                    for feature_id, measured, print_feature_id, precision, gauge_id, gauge in features_query:
                         features_list.append({
+                            "id": feature_id,
                             "measured": measured,
                             "print_feature_id": print_feature_id,
                             "precision": precision,
-                            "gauge": gauge
+                            "gauge": f"{gauge_id}| {gauge}"
                         })
                 else:
                     session.close()
@@ -2162,7 +2399,7 @@ def get_inspections(part_id:int, job_number_id:int, purchase_order_id:int) -> di
                     "id": id,
                     "part_index": part_index,
                     "datetime_measured": datetime_measured,
-                    "inspector": f"{first_name} {last_name}",
+                    "inspector": f"{employee_id}| {first_name} {last_name}",
                     "features": features_list
                 })
 
@@ -2332,6 +2569,9 @@ def get_data_validation() -> dict:
 # --------------------------------------------------
 
 def format_metadata(ws, is_editable:Protection, job_number_id:int, purchase_order_id:int, format_obj:dict, validation_obj:dict, data:dict):
+
+    # set id
+    ws["A1"].value = f"ID: {data['inspection_record_id']}"
 
     if job_number_id > -1 and purchase_order_id == -1:
 
@@ -2997,10 +3237,15 @@ def format_inspections(ws, is_editable:Protection, job_number_id:int, purchase_o
         ws.cell(17 + i, 4).number_format = format_obj["number_format"]["datetime"]
         ws.cell(17 + i, 5).number_format = format_obj["number_format"]["datetime"]
         ws.cell(17 + i, 6).number_format = format_obj["number_format"]["number"](0)
+        ws.cell(17 + i, 2).protection = is_editable
+        ws.cell(17 + i, 3).protection = is_editable        
+        ws.cell(17 + i, 6).protection = is_editable
+        ws.cell(17 + i, 6).comment = Comment(data[i]["id"], "1")
         ws.cell(17 + i, 2).value = data[i]["inspector"]
         ws.cell(17 + i, 4).value = data[i]["datetime_measured"]
         ws.cell(17 + i, 6).value = data[i]["part_index"]
         validation_obj["employees"].add(f"{ws.cell(17 + i, 2).coordinate}:{ws.cell(17 + i, 3).coordinate}")
+        validation_obj["integers"].add(ws.cell(17 + i, 6).coordinate)
         for j in range(2, 7):
             ws.cell(17 + i, j).fill = format_obj["fill"]["data"]
             ws.cell(17 + i, j).font = format_obj["font"]["data"]
@@ -3018,6 +3263,7 @@ def format_inspections(ws, is_editable:Protection, job_number_id:int, purchase_o
                     feature_index.append(z)
 
             # set data
+            ws.cell(17 + i, 7 + j * 2).comment = Comment(data[i]["features"][feature_index[j]]["id"], "1")
             ws.cell(17 + i, 7 + j * 2).value = data[i]["features"][feature_index[j]]["measured"]
             ws.cell(17 + i, 8 + j * 2).value = data[i]["features"][feature_index[j]]["gauge"]
 
@@ -3038,6 +3284,7 @@ def format_inspections(ws, is_editable:Protection, job_number_id:int, purchase_o
             ws.cell(17 + i, 8 + j * 2).protection = is_editable
 
             # set data validation
+            validation_obj["decimals"].add(ws.cell(17 + i, 7 + j * 2).coordinate)
             validation_obj["gauges"].add(ws.cell(17 + i, 8 + j * 2).coordinate)
 
             # set conditional formatting
@@ -3067,6 +3314,11 @@ def format_inspections(ws, is_editable:Protection, job_number_id:int, purchase_o
     ws.cell(bottom_row, 4).alignment = format_obj["alignment"]["data"]
     ws.cell(bottom_row, 5).alignment = format_obj["alignment"]["data"]
     ws.cell(bottom_row, 6).alignment = format_obj["alignment"]["data"]
+    ws.cell(bottom_row, 2).number_format = format_obj["number_format"]["text"]
+    ws.cell(bottom_row, 3).number_format = format_obj["number_format"]["text"]
+    ws.cell(bottom_row, 4).number_format = format_obj["number_format"]["datetime"]
+    ws.cell(bottom_row, 5).number_format = format_obj["number_format"]["datetime"]
+    ws.cell(bottom_row, 6).number_format = format_obj["number_format"]["number"](0)
 
     # headers
     ws.cell(16, 2).value = "Inspector"
@@ -3075,7 +3327,9 @@ def format_inspections(ws, is_editable:Protection, job_number_id:int, purchase_o
     ws.merge_cells("D16:E16")
     ws.cell(bottom_row, 2).protection = is_editable
     ws.cell(bottom_row, 3).protection = is_editable
+    ws.cell(bottom_row, 6).protection = is_editable
     validation_obj["employees"].add(f"{ws.cell(bottom_row, 2).coordinate}:{ws.cell(bottom_row, 3).coordinate}")
+    validation_obj["integers"].add(ws.cell(bottom_row, 6).coordinate)
     for j in range(len(data[0]["features"])):
         ws.cell(16, 7 + j * 2).fill = format_obj["fill"]["header"]
         ws.cell(16, 8 + j * 2).fill = format_obj["fill"]["header"]
@@ -3091,8 +3345,11 @@ def format_inspections(ws, is_editable:Protection, job_number_id:int, purchase_o
         ws.cell(bottom_row, 8 + j * 2).border = format_obj["border"]["data"]
         ws.cell(bottom_row, 7 + j * 2).alignment = format_obj["alignment"]["data"]
         ws.cell(bottom_row, 8 + j * 2).alignment = format_obj["alignment"]["data"]
+        ws.cell(bottom_row, 7 + j * 2).number_format = format_obj["number_format"]["number"](data[0]["features"][j]["precision"])
+        ws.cell(bottom_row, 8 + j * 2).number_format = format_obj["number_format"]["text"]
         ws.cell(bottom_row, 7 + j * 2).protection = is_editable
         ws.cell(bottom_row, 8 + j * 2).protection = is_editable
+        validation_obj["decimals"].add(ws.cell(bottom_row, 7 + j * 2).coordinate)
         validation_obj["gauges"].add(ws.cell(bottom_row, 8 + j * 2).coordinate)
         conditional_formatting(ws, bottom_row, j, format_obj)
 

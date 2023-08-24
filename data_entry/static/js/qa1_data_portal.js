@@ -348,6 +348,10 @@ async function get_inspection_record_document()
 // close the open inspection record (excel document)
 async function set_inspection_record_document()
 {
+    if (!confirm("Close and save changes?")) {
+        return;
+    }
+
     await d3.json("/qa1_data_portal/set_inspection_record/", {
         method: "POST",
         body: JSON.stringify({
@@ -369,6 +373,7 @@ async function set_inspection_record_document()
                 select_job_number.attr("disabled", null);
                 select_purchase_order.attr("disabled", null);
                 select_receiver_number.attr("disabled", null);
+                check_existing_associations.attr("checked", false);
             }
         }
         else if (json.status == "log") {

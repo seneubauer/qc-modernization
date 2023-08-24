@@ -441,8 +441,8 @@ create table features
     print_feature_id integer not null,
     constraint fk_print_feature_id foreign key (print_feature_id) references print_features(id),
 
-    -- many features relate to one gauge
-    gauge_id integer not null,
+    -- many features can relate to one gauge
+    gauge_id integer,
     constraint fk_gauge_id foreign key (gauge_id) references gauges(id)
 );
 
